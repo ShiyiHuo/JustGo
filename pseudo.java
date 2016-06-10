@@ -1,11 +1,9 @@
 /**
-*last update: June 7
+*last update: June 9
 *
 *Changes:
-*more documentation
-*improved definitions of dependent classes
-*merged Stone and Army classes
-*implemented Replay
+*added resign
+*fixed object instantiation of Timer
 */
 
 public class GameHandler{
@@ -15,6 +13,7 @@ public class GameHandler{
 			//includes display() and prompt() functions
 	
 	enum A=1,B=2,C=3,D=4,E=5, ... S=19 //horizontal grid lines
+	enum BLACK = 1, WHITE = -1
 	
 	int[][] board //values of 0=empty, -1=white, 1=black
 	int currentTurn //-1=white, 1=black, 0 is invalid
@@ -42,7 +41,7 @@ public class GameHandler{
 	
 	
 	
-	public function newGame(Player A, Player B, int h, int w, int maintime, int byotime, int byoperiods){
+	public constructor Game(Player A, Player B, int h, int w, int maintime, int byotime, int byoperiods){
 		
 		int height = h
 		int width = w
@@ -52,12 +51,8 @@ public class GameHandler{
 		
 		createBoard(h,w)
 		
-		btimer.maintime = maintime
-		btimer.byotime = byotime
-		btimer.byoperiods = byoperiods
-		wtimer.maintime = maintime
-		wtimer.byotime = byotime
-		wtimer.byoperiods = byoperiods
+		btimer = new Timer(maintime,byotime,byoperiods)
+		wtimer = new Timer(maintime,byotime,byoperiods)
 		
 		int skillDiff = A.compareTo(B)
 		catch(Exception){//if player does not exist
@@ -89,6 +84,7 @@ public class GameHandler{
 		board = new int[h][w]
 		for each int h,w in board{
 			board[h][w] = 0
+			armiesInPlay[h][w] = null
 		}		
 	}
 	
@@ -155,47 +151,53 @@ public class GameHandler{
 		nextTurn()
 	}
 	
-	function gameOver(){
+	public function resign(){
+		black.timer.stop()
+		white.timer.stop()
+		if (currentTurn == 1) {//black resign
+			black.updateWinLoss(-1)
+			white.updateWinLoss(1)
+		}else if (currentTurn == -1){//white resign
+			black.updateWinLoss(1)
+			white.updateWinLoss(-1)
+		}
+	}
+	
+	function gameOver(){//game end by consecutive pass
 		black.timer.stop()
 		white.timer.stop()
 		
 		int result = score
 		//this player score modification should probably be moved to the user interface class or at least be visible there
 		if (result > 0) {
-			black.wins++
-			white.losses++
+			black.updateWinLoss(1)
+			white.updateWinLoss(-1)
 		}else if (result < 0){
-			black.losses++
-			white.losses++
+			black.updateWinLoss(-1)
+			white.updateWinLoss(1)
 		}
 			
-	}//calls score()
+	}
 	
 	public function score(){
 		//return 1 if black victory, -1 if white victory
 	}//may be called manually even if game if not over
 	
-	public function replay(){
-		//implementation to be decided: separate mode for replay?
-		//should only be allowed to be called if game is over
-	}
-	public function replayForward(){
-		moveHistory = moveHistory.next()
-		board[moveHistory.move.y][moveHistory.move.x] = moveHistory.colour //places the played piece on board
-		for each Point p in moveHistory.captured{
-			board[p.y][p.x] = 0 //remove captured
+	public function replay(boolean direction){
+		if direction {//forward
+			moveHistory = moveHistory.next()
+			board[moveHistory.move.y][moveHistory.move.x] = moveHistory.colour //places the played piece on board
+			for each Point p in moveHistory.captured{
+				board[p.y][p.x] = 0 //remove captured
+			}
 		}
-	}
-	public function replayBack(){
-		board[moveHistory.move.y][moveHistory.move.x] = 0 //remove the played piece
-		for each Point p in moveHistory.captured{
-			board[p.y][p.x] = (-1)*moveHistory.colour //return captured pieces
-		moveHistory = moveHistory.prev()
-	}
-	
-	
-	
-	
+		else{
+			board[moveHistory.move.y][moveHistory.move.x] = 0 //remove the played piece
+			for each Point p in moveHistory.captured{
+				board[p.y][p.x] = (-1)*moveHistory.colour //return captured pieces
+			moveHistory = moveHistory.prev()
+			}
+		}
 }
 
 /**
