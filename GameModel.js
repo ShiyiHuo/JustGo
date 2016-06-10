@@ -13,7 +13,6 @@ const PIECE = {
     white: 2
 }
 
-
 class Army {
 
 }
@@ -50,7 +49,7 @@ class Timer {
 class GameModel {
 
     // start new game
-    constructor (size, mainTime, byoPeriod) {
+   	constructor (size, mainTime, byoPeriod) {
         
         if (this.size % 2 == 0) {
             // throw error, illegal size
@@ -78,37 +77,9 @@ class GameModel {
     /**
      * called by GameController after black player has computed a move 
      */
-    makeBlackMove(move) {
+    makeBlackMove(x, y, color) {
         
-        if (currentTurn != TURN.black) {
-            // throw error
-        }
-
-        if (isLegalMove(move, PIECE.black)) {
-            // update board
-        }
-
-        blackTimer.stop();
-        whiteTimer.start();
-    }
-
-    /**
-     * called by GameController after white player has computed a move 
-     */
-    makeWhiteMove(move) {
-
-        if (currentTurn != TURN.white) {
-            // throw error
-        }
-
-        if (isLegalMove(move, PIECE.white)) {
-            // update board
-        }
-
-        whiteTimer.stop();
-        blackTimer.start();
-    }
-
+     
     /**
      * returns true if legal move for the color, called by makeWhiteMove or makeBlackMove
      */

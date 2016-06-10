@@ -54,7 +54,7 @@ app.post('/client_move', function(req, res) {
 /**
  * when it is the AI's turn the client polls the AI
  */
-app.post('/poll_AI', function(req, res){
+app.post('/poll', function(req, res){
     console.log("POST request to: /poll_AI");
 
     // query ai
