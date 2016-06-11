@@ -5900,6 +5900,7 @@
 									"visibility": "public",
 									"isStatic": false,
 									"isLeaf": false,
+									"type": "",
 									"isReadOnly": false,
 									"isOrdered": false,
 									"isUnique": false,
@@ -5915,6 +5916,7 @@
 									"visibility": "public",
 									"isStatic": false,
 									"isLeaf": false,
+									"type": "",
 									"isReadOnly": false,
 									"isOrdered": false,
 									"isUnique": false,
@@ -6397,6 +6399,7 @@
 									"visibility": "public",
 									"isStatic": false,
 									"isLeaf": false,
+									"type": "",
 									"isReadOnly": false,
 									"isOrdered": false,
 									"isUnique": false,
@@ -15393,7 +15396,7 @@
 													"height": 13,
 													"autoResize": false,
 													"underline": false,
-													"text": "Server",
+													"text": "GameServer",
 													"horizontalAlignment": 2,
 													"verticalAlignment": 5
 												},
@@ -21449,7 +21452,7 @@
 							"_parent": {
 								"$ref": "AAAAAAFVOBvlcw3Dqdw="
 							},
-							"name": "Server",
+							"name": "GameServer",
 							"visibility": "public",
 							"represent": {
 								"$ref": "AAAAAAFVOBwRWA3cHZ8="
@@ -21572,6 +21575,7 @@
 					"visibility": "public",
 					"isStatic": false,
 					"isLeaf": false,
+					"type": "",
 					"isReadOnly": false,
 					"isOrdered": false,
 					"isUnique": false,
@@ -21627,6 +21631,7 @@
 					"visibility": "public",
 					"isStatic": false,
 					"isLeaf": false,
+					"type": "",
 					"isReadOnly": false,
 					"isOrdered": false,
 					"isUnique": false,
@@ -21698,7 +21703,6 @@
 					"visibility": "public",
 					"isStatic": false,
 					"isLeaf": false,
-					"type": "",
 					"isReadOnly": false,
 					"isOrdered": false,
 					"isUnique": false,
