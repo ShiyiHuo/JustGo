@@ -1,9 +1,10 @@
 /**
-*last update: June 9
+*last update: June 11
 *
 *Changes:
-*added resign
-*fixed object instantiation of Timer
+*major change to Army class
+*moved neighbours processing to Army class instead of GameHandler.move()
+*changed board representation from int[][] to Army[][]
 */
 
 public class GameHandler{
@@ -15,13 +16,9 @@ public class GameHandler{
 	enum A=1,B=2,C=3,D=4,E=5, ... S=19 //horizontal grid lines
 	enum BLACK = 1, WHITE = -1
 	
-	int[][] board //values of 0=empty, -1=white, 1=black
+	Army[][] board //maps each coordinate on board to an Army object (or null)
 	int currentTurn //-1=white, 1=black, 0 is invalid
-	
-	Army[][] armiesInPlay
-		//to find references to Army objects given a position
-		//can be either null or an Army reference
-	
+		
 	float score
 	float komi
 	final float KOMI_PRESET = 5.5
@@ -81,10 +78,9 @@ public class GameHandler{
 	}
 	
 	function createBoard(int h, int w){
-		board = new int[h][w]
-		for each int h,w in board{
-			board[h][w] = 0
-			armiesInPlay[h][w] = null
+		board = new Army[h][w]
+		for each int x,y in board{
+			board[x][y] = null //make the array but do not create any Army objects
 		}		
 	}
 	
@@ -101,24 +97,18 @@ public class GameHandler{
 	public function move(int y, int x){//y is vertical position x is horizontal position
 		if !legalMove(y,x) throw new Exception //(to be caught by user interface app)
 		
-		board[y][x] = currentTurn //sets board position to current colour
-		app.displayMove(y,x) //visually show move
-		
 		List<Army> neighbours = new List
-			neighbours.add(armiesInPlay[y-1][x])
-			neighbours.add(armiesInPlay[y][x-1])
-			neighbours.add(armiesInPlay[y+1][x])
-			neighbours.add(armiesInPlay[y][x+1])
+			neighbours.add(board[y-1][x])
+			neighbours.add(board[y][x-1])
+			neighbours.add(board[y+1][x])
+			neighbours.add(board[y][x+1])
 			//check that the pointer does not go off the board
+			//check that the position is not null
+			//check that same army is not added to list twice
 			//possibly fewer than 4 neighbours
+		board[y][x] = new Army(currentTurn, y, x)) //sets board position to current colour
+		app.displayMove(y,x) //visually show move
 
-			
-		for each Army A in neighbours{
-			if A.colour == -1 * currentTurn //opposite colour
-				//capture
-			if A.colour == currentTurn //same colour
-				//union
-		}
 		previousPass = false
 		nextTurn()
 	}
@@ -206,9 +196,36 @@ public class GameHandler{
 class Army{
 	int colour
 	List<Point> positions
+	int liberties
+	
+	constructor Army(int col, int y, int x){
+		this.colour = col
+		
+		for each Army A in neighbours{
+			if A.colour != this.colour{
+				A.removeLiberty()
+			}
+			if A.colour == this.colour{
+				union(A)
+			}
+		}
+		positions = new List
+		positions.add(pos)
+	}
+			
+		
+			
+		for each Army A in neighbours{
+			if A.colour == -1 * currentTurn //opposite colour
+				//capture
+			if A.colour == currentTurn //same colour
+				//union
+		}
 	
 	function getLiberties()//return int
-	function union(Army A)
+	function union(Army A){
+		
+	}
 	
 }
 
