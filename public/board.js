@@ -1,5 +1,6 @@
 class Board {
     constructor(boardSize, squareSize, canvas, gameID) {
+        
         //create the board based on boardSize
         this.squareSize = squareSize;
         this.boardSize = boardSize;
@@ -38,7 +39,7 @@ class Board {
             this.context.fillRect(xcoord,ycoord,this.width,this.lineSize);
         }
     }
-    redrawTiles() {
+    reDrawTiles() {
 
     }
 
@@ -74,7 +75,7 @@ class Board {
         }
 
         if (xpos != -1 && ypos != -1) {
-            return [xpos,ypos];
+            return [xpos, ypos];
         } else {
             return;
         }

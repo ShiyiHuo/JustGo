@@ -1,3 +1,6 @@
+// globals 
+gameBoard = undefined;
+
 window.onload = function() {
 
     //create new game button and append it
@@ -9,7 +12,7 @@ window.onload = function() {
     //clicking new game calls new game function
     $("#newGameButton").click(function() {
         $("#newGameButton").hide();
-        $.post("/newGame","Client wants new game",function(gameID,status) {
+        $.post("/newGame", "Client wants new game", function(gameID, status) {
             if (status === "success" && gameID != undefined) {
                     console.log("Starting new game.");
                     newGame(gameID);
@@ -18,22 +21,33 @@ window.onload = function() {
     });
 }
 
-
+/**
+ * 
+ */
 function newGame(gameID) {
     canvas = document.createElement('canvas');
     $("body").append(canvas);
 
-    gameboard = new Board(9,50,canvas,gameID);
-    console.log("New board created with id: ", gameboard.getGameID());
+    gameBoard = new Board(9, 50, canvas, gameID);
+    console.log("New board created with id: ", gameBoard.getGameID());
 
-    $("canvas").click(function(e) {
-        var pos = gameboard.getIntersection(e.clientX,e.clientY);
-        console.log("The position is ", pos);
+    $("canvas").click(boardClicked);
+    gameBoard.drawBoard();
+}
 
-        $.post("/move",JSON.stringify(pos),function(d,s) {
-            console.log("The status is", s);
-            console.log("The data is ", d);
-        });
-    });
-    gameboard.drawBoard();
+/**
+ * Called when gameboard 
+ */
+function boardClicked(event) {
+        var position = gameBoard.getIntersection(event.clientX, event.clientY);
+        var move = {"x": position[0], "y": position[1]};
+        $.post("/move", move, update);
+}
+
+
+/**
+ * TODO: make recieve update from Game module in server then update the view.
+ */
+function update(data) {
+    console.log(data);
 }
