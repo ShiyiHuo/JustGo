@@ -24,15 +24,12 @@ for (var i = 0; i < size; i++) { // init board
  */
 function makeMove(x, y, color) {
 
-    console.log("MAKE MOVE");
-
     if ( __isLegalMove(x, y, color) ) {
-        return {x, y};
+        return [x, y];
     }
 
     throw "illegal move";   
 }
-
 
 /**
  * Called by makeMove
@@ -43,7 +40,10 @@ function __isLegalMove(x, y, color) {
     return true;
 }
 
+/**
+ * This module's public interface'
+ */
 module.exports = {
   makeMove: makeMove,
-  COLOR, COLOR
+  COLOR: COLOR
 };

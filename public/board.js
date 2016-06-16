@@ -12,8 +12,8 @@ class Board {
         this.boardState;
 
         //change the canvas attributes
-        canvas.height = this.height+this.lineSize;
-        canvas.width = this.width+this.lineSize;
+        canvas.height = this.height + this.lineSize;
+        canvas.width = this.width + this.lineSize;
 
         //get the canvas position
         var rect = canvas.getBoundingClientRect();
@@ -25,6 +25,7 @@ class Board {
     drawBoard() {
         this.context.fillStyle = "#F5DEB3";
         this.context.fillRect(this.lineSize,this.lineSize,this.width,this.height);
+        
         //draw vertical lines
         this.context.fillStyle = "#000000";
         for (var i = 0; i < this.boardSize; i++){
@@ -32,6 +33,7 @@ class Board {
             var ycoord = 0;
             this.context.fillRect(xcoord,ycoord,this.lineSize,this.height);
         }
+        
         //draw horizontal lines
         for (var i = 0; i < this.boardSize; i++){
             var ycoord = this.squareSize*i;
@@ -39,6 +41,7 @@ class Board {
             this.context.fillRect(xcoord,ycoord,this.width,this.lineSize);
         }
     }
+
     reDrawTiles() {
 
     }
@@ -59,7 +62,7 @@ class Board {
 
         //determine whether click is acceptable as board position
         for (var i = 0; i < this.boardSize + 1; i++) {
-            var absDist = Math.sqrt((xcoord-this.squareSize*i)*(xcoord-this.squareSize*i));
+            var absDist = Math.sqrt((xcoord - this.squareSize * i) * (xcoord - this.squareSize * i));
             if (absDist < 10) {
                 xpos = i;
                 break;
@@ -67,7 +70,7 @@ class Board {
         }
 
         for (var i = 0; i < this.boardSize + 1; i++) {
-            absDist = Math.sqrt((ycoord-this.squareSize*i)*(ycoord-this.squareSize*i));
+            absDist = Math.sqrt((ycoord - this.squareSize * i) * (ycoord - this.squareSize * i));
             if (absDist < 10) {
                 ypos = i;
                 break;

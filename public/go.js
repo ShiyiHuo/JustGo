@@ -3,13 +3,13 @@ gameBoard = undefined;
 
 window.onload = function() {
 
-    //create new game button and append it
+    // create new game button and append it
     newGameButton = document.createElement('button');
     newGameButton.setAttribute("id","newGameButton");
     $("body").append(newGameButton);
     $("#newGameButton").html("New Game");
 
-    //clicking new game calls new game function
+    // clicking new game calls new game function
     $("#newGameButton").click(function() {
         $("#newGameButton").hide();
         $.post("/newGame", "Client wants new game", function(gameID, status) {
@@ -22,21 +22,20 @@ window.onload = function() {
 }
 
 /**
- * 
+ * Create gameBoard
  */
 function newGame(gameID) {
     canvas = document.createElement('canvas');
     $("body").append(canvas);
 
     gameBoard = new Board(9, 50, canvas, gameID);
-    console.log("New board created with id: ", gameBoard.getGameID());
 
     $("canvas").click(boardClicked);
     gameBoard.drawBoard();
 }
 
 /**
- * Called when gameboard 
+ * Called when gameBoard is clicked
  */
 function boardClicked(event) {
         var position = gameBoard.getIntersection(event.clientX, event.clientY);
@@ -49,5 +48,5 @@ function boardClicked(event) {
  * TODO: make recieve update from Game module in server then update the view.
  */
 function update(data) {
-    console.log(data);
+    
 }

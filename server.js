@@ -21,15 +21,9 @@ app.post("/newGame", function(req, res, next) {
 app.post("/move", function(req, res, next) {
     console.log("Received turn: ", JSON.stringify(req.body));
     
-
-    try {
-        move = req.body;
-        var boardUpdates = Game.makeMove(move.x, move.y, game.COLOR.black);
-        res.json(boardUpdates);
-
-    } catch (error) {
-        
-    }
+    move = req.body;
+    var boardUpdates = Game.makeMove(move.x, move.y, Game.COLOR.black);
+    res.json(boardUpdates);
 
     res.end();
     next();
