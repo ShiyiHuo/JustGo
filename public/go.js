@@ -35,18 +35,15 @@ function newGame(gameID) {
 }
 
 /**
- * Called when gameBoard is clicked
+ * Called when gameBoard is clicked. Sends move to server then tells gameBoard to place piece
  */
 function boardClicked(event) {
         var position = gameBoard.getIntersection(event.clientX, event.clientY);
         var move = {"x": position[0], "y": position[1]};
-        $.post("/move", move, update);
-}
-
-
-/**
- * TODO: make recieve update from Game module in server then update the view.
- */
-function update(data) {
-    
+        
+        $.post("/move", move, function(data) {
+            var x = data[0];
+            var y = data[1];
+            gameBoard.placePiece(x, y);
+        });
 }
