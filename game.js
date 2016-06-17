@@ -59,7 +59,8 @@ class Game {
         this.board[yPos][xPos] = color;  // update the board 
         var capturedPieces = [];
 
-        // For all filled-tiles on board, do "flood-fill" algorithm
+        // For all tiles with pieces on board, find armies to calculate liberties
+        // append to capturedPieces if an army has no liberties
         for (var i = 0; i < this.board.length; i++) {
             for (var j = 0; j < this.board.length; j++) {
                    
@@ -120,7 +121,7 @@ class Game {
                             }
                         }
                     }
-                     
+
                 }
             }
         }
