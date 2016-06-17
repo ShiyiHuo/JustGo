@@ -60,7 +60,6 @@ class Board {
      */
     placePiece(x, y, color) {
 
-        console.log("placing piece with color: " + color);
         x = x * this.squareSize - 20;
         y = y * this.squareSize - 20;
 
