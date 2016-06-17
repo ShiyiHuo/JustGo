@@ -91,7 +91,7 @@ class Game {
                         for (var y = 0; y < this.size; y++) {
                             for (var x = 0; x < this.size; x++) {
                                 if (this.previouslyVisited[x][y]) {
-                                    capturedPieces.push(new Point(x, y));
+                                    capturedPieces.push(new Point(y, x));
                                 }
                             }
                         }
@@ -108,8 +108,14 @@ class Game {
             this.turn = COLOR.black;
         }
 
-        // TODO: needs to return updates
-        return [xPos, yPos, color, capturedPieces];
+        console.log(capturedPieces);
+
+        var move = new Move(xPos, yPos, color, capturedPieces);
+        move.capturedPieces = capturedPieces; // i think you have to add lists to objects this way
+
+        console.log(move);
+
+        return move;
     }
 
     clearPreviouslyVisited() {

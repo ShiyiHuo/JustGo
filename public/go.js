@@ -47,10 +47,11 @@ function boardClicked(event) {
                 window.alert("Illegal Move. Try again");
             }
             
-            var x = data[0];
-            var y = data[1];
-            var color = data[2];
-            var capturedPieces = data[3];
+            console.log(data);
+            var x = data.x;
+            var y = data.y;
+            var color = data.color;
+            var capturedPieces = data.capturedPieces;
             gameBoard.placePiece(x, y, color);
 
             if (capturedPieces) {

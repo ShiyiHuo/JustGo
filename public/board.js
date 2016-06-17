@@ -78,11 +78,24 @@ class Board {
 
     removePieces(pieces) {
         
-        console.log(pieces.x);
+        console.log(pieces);
 
-        /*
+        while (pieces.length > 0) {
+            var piece = pieces.pop();
+
+            var img = this.context.createImageData(40, 40);
+            for (var i = img.data.length; --i >= 0; ) {
+                img.data[i] = 0;
+            }
+
+            this.context.putImageData(img, piece.x * this.squareSize - 20, piece.y * this.squareSize - 20);
+
+        }
+
+        /* 
+        console.log(pieces.pop());
         for (var i = 0; i < pieces.length; i++) {
-            console.log("PIECES[i] " + pieces[i]);
+
 
             var img = this.context.createImageData(40, 40);
             for (var i = img.data.length; --i >= 0; ) {
