@@ -1,8 +1,8 @@
 // enumerations
 var COLOR = {
-    white: 0,
+    white: 2,
     black: 1,
-    empty: -1
+    empty: 0
 }
 
 class Board {

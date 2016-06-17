@@ -34,7 +34,11 @@ app.post("/makeClientMove", function(req, res, next) {
             var boardUpdates = gameInstance.makeMove(move.x, move.y, gameInstance.turn);  
             res.json(boardUpdates);      
         } catch (error) {
-            res.json("Illegal Move");
+            if (error instanceof Game.GameException) {
+                res.json("Illegal Move");
+            } else { // uncaught exception
+                console.log("Uncaught error: " + error);
+            }    
         }
         
     } 

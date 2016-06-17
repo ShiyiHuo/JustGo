@@ -2,9 +2,15 @@
 
 // enumerations
 var COLOR = {
-    white: 0,
+    white: 2,
     black: 1,
-    empty: -1
+    empty: 0
+}
+
+class GameException {
+    constructor(message) {
+        this.message = message;
+    }
 }
 
 class Game {
@@ -15,8 +21,9 @@ class Game {
         this.size = 9;
         this.board = [];
         for (var i = 0; i < this.size; i++) { // init board
-            this.board[i] = new Array(this.size);
+            this.board[i] = new Array(this.size).fill(COLOR.empty);
         }
+
     }
 
     /**
@@ -26,7 +33,7 @@ class Game {
     makeMove(x, y, color) {
 
         if (color != this.turn) {
-            throw "illegal move";
+            throw GameException("Not your turn.");
         }
 
         // TODO: check legal move, throw error if illegal
@@ -42,7 +49,21 @@ class Game {
             this.turn = COLOR.black;
         }
         
+        this.printBoard();
+
+        // TODO: needs to return updates
         return [x, y, color];
+    }
+
+    printBoard() {
+        var boardString = "";
+        for (var i = 0; i < this.size; i++) {
+            for (var j = 0; j < this.size; j++) {
+                boardString += this.board[i][j] + " ";
+            }
+            boardString += "\n";
+        }
+        console.log(boardString);
     }
 
 }
@@ -51,5 +72,6 @@ class Game {
  * This module's public interface'
  */
 module.exports = {
-    Game: Game
+    Game: Game,
+    GameException: GameException
 };
