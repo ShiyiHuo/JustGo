@@ -40,7 +40,7 @@ class Game {
 
         // update the board 
         // TODO: append to move history?
-        this.board[x][y] = color;  
+        this.board[y][x] = color;  
        
         // switch turn state to opposite color
         if (this.turn == COLOR.black) {
