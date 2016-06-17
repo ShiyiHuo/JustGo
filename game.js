@@ -35,10 +35,9 @@ class Game {
         this.clientColor = COLOR.black;
         this.size = 9;
         this.board = [];
-        for (var i = 0; i < this.size; i++) { // init board
+        for (var i = 0; i < this.size; i++) { // init board with empty
             this.board[i] = new Array(this.size).fill(COLOR.empty);
         }
-        this.previouslyVisited;
     }
 
     /**
@@ -51,28 +50,55 @@ class Game {
             throw GameException("Not your turn.");
         }
 
+        if (this.board[x][y] != COLOR.empty) {
+
+        }
+
         // TODO: check legal move, throw error if illegal
         // TODO: append to move history?
         this.board[yPos][xPos] = color;  // update the board 
-        this.printBoard(); 
-
         var capturedPieces = [];
 
-        for (var i = 0; i < this.size; i++) {
-            for (var j = 0; j < this.size; j++) {
-                if (this.board[i][j] != COLOR.empty) {
-                    var tileColor = this.board[i][j];
-                    this.clearPreviouslyVisited();
-                    this.getArmies(i, j, tileColor);     
-
-                    var liberties = 0;
-
-                    console.log(this.previouslyVisited);
+        // For all filled-tiles on board, do "flood-fill" algorithm
+        for (var i = 0; i < this.board.length; i++) {
+            for (var j = 0; j < this.board.length; j++) {
+                   
+                if (this.board[i][j] != COLOR.empty) {            
                     
+                    // init previously visited for depth first search
+                    var previouslyVisited = [];
+                    for (var k = 0; k < this.size; k++) { 
+                        previouslyVisited[k] = new Array(this.size).fill(false);
+                    }
+
+                    // perform depth first search to get armies connected to this piece
+                    var pieceColor = this.board[i][j];
+                    getArmies.call(this, i, j, pieceColor);
+
+                    function getArmies(x, y, color) {
+                        if (x < 0 || x >= this.board.length || y < 0 || y >= this.board.length) {
+                            return;
+                        }
+                        previouslyVisited[x][y] = true;
+                        if (y + 1 < this.board.length && this.board[x][y + 1] == color && !previouslyVisited[x][y + 1]) {
+                            getArmies.call(this, x, y + 1, color);
+                        }
+                        if (y - 1 >= 0 && this.board[x][y - 1] == color && !previouslyVisited[x][y - 1]) {
+                            getArmies.call(this, x, y - 1, color);
+                        }
+                        if (x + 1 < this.board.length && this.board[x + 1][y] == color && !previouslyVisited[x + 1][y]) {
+                            getArmies.call(this, x + 1, y, color);
+                        }
+                        if (x - 1 >= 0 && this.board[x - 1][y] == color && !previouslyVisited[x - 1][y]) {
+                            getArmies.call(this, x - 1, y, color);
+                        } 
+                    }
+
+                    // now after performing depth first search, iterate through army and sum liberties
+                    var liberties = 0;
                     for (var y = 0; y < this.size; y++) {
                         for (var x = 0; x < this.size; x++) {
-                            if (this.previouslyVisited[x][y]) {
-
+                            if (previouslyVisited[x][y]) {
                                 var rightLiberty = x + 1 < this.size && this.board[x + 1][y] == COLOR.empty;
                                 var leftLiberty = x - 1 >= 0 && this.board[x - 1][y] == COLOR.empty;
                                 var northLiberty = y + 1 < this.size && this.board[x][y + 1] == COLOR.empty;
@@ -80,23 +106,21 @@ class Game {
                                 if ( rightLiberty || leftLiberty || northLiberty || southLiberty ) {
                                     liberties++;
                                 }
-                                
                             }
                         }
                     }
 
+                    // if liberties == 0, the pieces are captured
                     if (liberties == 0) {
-                        console.log("SHOULD REMOVE: " + this.previouslyVisited);
-
                         for (var y = 0; y < this.size; y++) {
                             for (var x = 0; x < this.size; x++) {
-                                if (this.previouslyVisited[x][y]) {
+                                if (previouslyVisited[x][y]) {
                                     capturedPieces.push(new Point(y, x));
                                 }
                             }
                         }
-
                     }
+                     
                 }
             }
         }
@@ -108,43 +132,10 @@ class Game {
             this.turn = COLOR.black;
         }
 
-        console.log(capturedPieces);
-
         var move = new Move(xPos, yPos, color, capturedPieces);
-        move.capturedPieces = capturedPieces; // i think you have to add lists to objects this way
-
-        console.log(move);
+        move.capturedPieces = capturedPieces; // I think you have to add lists to objects this way
 
         return move;
-    }
-
-    clearPreviouslyVisited() {
-        this.previouslyVisited = [];
-        for (var i = 0; i < this.size; i++) { 
-            this.previouslyVisited[i] = new Array(this.size).fill(false);
-        }
-    }
-
-    getArmies(x, y, color) {
-
-        if (x < 0 || x > this.size || y < 0 || y > this.size) {
-            return;
-        }
-
-        this.previouslyVisited[x][y] = true;
-        if (y + 1 < this.size && this.board[x][y + 1] == color && !this.previouslyVisited[x][y + 1]) {
-            this.getArmies(x, y + 1, color);
-        }
-        if (y - 1 >= 0 && this.board[x][y - 1] == color && !this.previouslyVisited[x][y - 1]) {
-            this.getArmies(x, y - 1, color);
-        }
-        if (x + 1 < this.size && this.board[x + 1][y] == color && !this.previouslyVisited[x + 1][y]) {
-            this.getArmies(x + 1, y, color);
-        }
-        if (x - 1 >= 0 && this.board[x - 1][y] == color && !this.previouslyVisited[x - 1][y]) {
-            this.getArmies(x - 1, y, color);
-        }
-
     }
 
     printBoard() {
