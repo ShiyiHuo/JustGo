@@ -66,9 +66,15 @@ class Board {
 
         var context = this.context;
         var piece = new Image();
-        piece.src = 'img/blackPiece.png'
+
+        if (color == COLOR.black) {
+            piece.src = 'img/blackPiece.png';
+        } else { // white
+            piece.src = 'img/whitePiece.png';
+        }
+        
         piece.onload = function() {
-            context.drawImage(piece, x, y, 40, 40)
+            context.drawImage(piece, x, y, 40, 40);
         }   
     }
 
