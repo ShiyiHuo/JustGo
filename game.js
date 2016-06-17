@@ -7,6 +7,22 @@ var COLOR = {
     empty: 0
 }
 
+class Point {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+}
+
+class Move {
+    constructor(x, y, color, capturedPieces) {
+        this.x = x;
+        this.y = y; 
+        this.color = color;
+        this.capturedPieces;
+    }
+}
+
 class GameException {
     constructor(message) {
         this.message = message;
@@ -40,6 +56,8 @@ class Game {
         this.board[yPos][xPos] = color;  // update the board 
         this.printBoard(); 
 
+        var capturedPieces = [];
+
         for (var i = 0; i < this.size; i++) {
             for (var j = 0; j < this.size; j++) {
                 if (this.board[i][j] != COLOR.empty) {
@@ -66,12 +84,22 @@ class Game {
                             }
                         }
                     }
-                    console.log("liberties: " + liberties); 
+
+                    if (liberties == 0) {
+                        console.log("SHOULD REMOVE: " + this.previouslyVisited);
+
+                        for (var y = 0; y < this.size; y++) {
+                            for (var x = 0; x < this.size; x++) {
+                                if (this.previouslyVisited[x][y]) {
+                                    capturedPieces.push(new Point(x, y));
+                                }
+                            }
+                        }
+
+                    }
                 }
             }
         }
-
-        console.log("TERMINATING");
 
         // switch turn state to opposite color
         if (this.turn == COLOR.black) {
@@ -81,7 +109,7 @@ class Game {
         }
 
         // TODO: needs to return updates
-        return [xPos, yPos, color];
+        return [xPos, yPos, color, capturedPieces];
     }
 
     clearPreviouslyVisited() {

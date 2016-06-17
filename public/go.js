@@ -50,6 +50,11 @@ function boardClicked(event) {
             var x = data[0];
             var y = data[1];
             var color = data[2];
+            var capturedPieces = data[3];
             gameBoard.placePiece(x, y, color);
+
+            if (capturedPieces) {
+                gameBoard.removePieces(capturedPieces);
+            }
         });
 }

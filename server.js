@@ -32,6 +32,7 @@ app.post("/makeClientMove", function(req, res, next) {
         
         try {
             var boardUpdates = gameInstance.makeMove(move.x, move.y, gameInstance.turn);  
+            console.log("server board updates: " + boardUpdates);
             res.json(boardUpdates);      
         } catch (error) {
             if (error instanceof Game.GameException) {
