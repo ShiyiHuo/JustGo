@@ -1,3 +1,10 @@
+// enumerations
+var COLOR = {
+    white: 0,
+    black: 1,
+    empty: -1
+}
+
 class Board {
 
     constructor(boardSize, squareSize, canvas, gameID) {
@@ -53,7 +60,7 @@ class Board {
      */
     placePiece(x, y, color) {
 
-        console.log(color);
+        console.log("placing piece with color: " + color);
         x = x * this.squareSize - 20;
         y = y * this.squareSize - 20;
 

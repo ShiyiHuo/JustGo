@@ -43,8 +43,6 @@ function boardClicked(event) {
         
         $.post("/makeClientMove", move, function(data) {
             
-            console.log(data);
-
             if (data == "Illegal Move") {
                 window.alert("Illegal Move. Try again");
             }

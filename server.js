@@ -25,12 +25,18 @@ app.post("/newGame", function(req, res, next) {
 
 app.post("/makeClientMove", function(req, res, next) {
     console.log("POST: /makeClientMove: ", JSON.stringify(req.body));
-    
-    
+
+    move = req.body;  
+
     if (mode == "HOTSEAT") { // call Game class with color equal to the current turn
-        move = req.body;
-        var boardUpdates = gameInstance.makeMove(move.x, move.y, gameInstance.turn);
-        res.json(boardUpdates);
+        
+        try {
+            var boardUpdates = gameInstance.makeMove(move.x, move.y, gameInstance.turn);  
+            res.json(boardUpdates);      
+        } catch (error) {
+            res.json("Illegal Move");
+        }
+        
     } 
 
     res.end();
