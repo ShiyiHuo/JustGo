@@ -37,7 +37,7 @@ app.post("/makeClientMove", function(req, res, next) {
             if (error instanceof Game.GameException) {
                 res.json("Illegal Move");
             } else { // uncaught exception
-                console.log("Uncaught error: " + error);
+                console.log(error);
             }    
         }
         

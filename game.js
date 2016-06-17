@@ -14,7 +14,6 @@ class GameException {
 }
 
 class Game {
-
     constructor() {
         this.turn = COLOR.black;
         this.clientColor = COLOR.black;
@@ -23,36 +22,95 @@ class Game {
         for (var i = 0; i < this.size; i++) { // init board
             this.board[i] = new Array(this.size).fill(COLOR.empty);
         }
-
+        this.previouslyVisited;
     }
 
     /**
      * make a move with given color. 
      * Error is thrown if the move is illegal or not color's turn
      */
-    makeMove(x, y, color) {
+    makeMove(xPos, yPos, color) {
 
         if (color != this.turn) {
             throw GameException("Not your turn.");
         }
 
         // TODO: check legal move, throw error if illegal
-
-        // update the board 
         // TODO: append to move history?
-        this.board[y][x] = color;  
-       
+        this.board[yPos][xPos] = color;  // update the board 
+        this.printBoard(); 
+
+        for (var i = 0; i < this.size; i++) {
+            for (var j = 0; j < this.size; j++) {
+                if (this.board[i][j] != COLOR.empty) {
+                    var tileColor = this.board[i][j];
+                    this.clearPreviouslyVisited();
+                    this.getArmies(i, j, tileColor);     
+
+                    var liberties = 0;
+
+                    console.log(this.previouslyVisited);
+                    
+                    for (var y = 0; y < this.size; y++) {
+                        for (var x = 0; x < this.size; x++) {
+                            if (this.previouslyVisited[x][y]) {
+
+                                var rightLiberty = x + 1 < this.size && this.board[x + 1][y] == COLOR.empty;
+                                var leftLiberty = x - 1 >= 0 && this.board[x - 1][y] == COLOR.empty;
+                                var northLiberty = y + 1 < this.size && this.board[x][y + 1] == COLOR.empty;
+                                var southLiberty = y - 1 >= 0 && this.board[x][y - 1] == COLOR.empty;
+                                if ( rightLiberty || leftLiberty || northLiberty || southLiberty ) {
+                                    liberties++;
+                                }
+                                
+                            }
+                        }
+                    }
+                    console.log("liberties: " + liberties); 
+                }
+            }
+        }
+
+        console.log("TERMINATING");
+
         // switch turn state to opposite color
         if (this.turn == COLOR.black) {
             this.turn = COLOR.white;
         } else {
             this.turn = COLOR.black;
         }
-        
-        this.printBoard();
 
         // TODO: needs to return updates
-        return [x, y, color];
+        return [xPos, yPos, color];
+    }
+
+    clearPreviouslyVisited() {
+        this.previouslyVisited = [];
+        for (var i = 0; i < this.size; i++) { 
+            this.previouslyVisited[i] = new Array(this.size).fill(false);
+        }
+    }
+
+    getArmies(x, y, color) {
+
+        if (x < 0 || x > this.size || y < 0 || y > this.size) {
+            return;
+        }
+
+        this.previouslyVisited[x][y] = true;
+        if (y + 1 < this.size && this.board[x][y + 1] == color && !this.previouslyVisited[x][y + 1]) {
+            this.getArmies(x, y + 1, color);
+        }
+        if (y - 1 >= 0 && this.board[x][y - 1] == color && !this.previouslyVisited[x][y - 1]) {
+            this.getArmies(x, y - 1, color);
+        }
+        if (x + 1 < this.size && this.board[x + 1][y] == color && !this.previouslyVisited[x + 1][y]) {
+            this.getArmies(x + 1, y, color);
+        }
+        if (x - 1 >= 0 && this.board[x - 1][y] == color && !this.previouslyVisited[x - 1][y]) {
+            this.getArmies(x - 1, y, color);
+        }
+
     }
 
     printBoard() {
@@ -69,7 +127,7 @@ class Game {
 }
 
 /**
- * This module's public interface'
+ * This module's public interface
  */
 module.exports = {
     Game: Game,

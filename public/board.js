@@ -60,19 +60,26 @@ class Board {
      */
     placePiece(x, y, color) {
 
+
         x = x * this.squareSize - 20;
         y = y * this.squareSize - 20;
+
+
+        console.log("PLACING PIECE x: " + x + "y: " + y);
 
         var context = this.context;
         var piece = new Image();
 
         if (color == COLOR.black) {
+            console.log("COLOR IS BLACk");
             piece.src = 'img/blackPiece.png';
         } else { // white
+             console.log("COLOR IS white");
             piece.src = 'img/whitePiece.png';
         }
         
         piece.onload = function() {
+            console.log("IMG LOADED");
             context.drawImage(piece, x, y, 40, 40);
         }   
     }
