@@ -1,49 +1,42 @@
-// enumerations
-var TURN = {
-    white: 0,
-    black: 1
-}
+"use strict";
 
+// enumerations
 var COLOR = {
     white: 0,
     black: 1,
     empty: -1
 }
 
-// state to be stored in the database in the future 
-var turn = TURN.white
-var size = 9;
-var board = [];
-for (var i = 0; i < size; i++) { // init board
-    board[i] = new Array(size);
-}
+class Game {
 
-/**
- * Called by server under /move URI. 
- * Returns board updates
- */
-function makeMove(x, y, color) {
-
-    if ( __isLegalMove(x, y, color) ) {
-        return [x, y];
+    constructor() {
+        this.turn = COLOR.black;
+        this.clientColor = COLOR.black;
+        this.size = 9;
+        this.board = [];
+        for (var i = 0; i < this.size; i++) { // init board
+            this.board[i] = new Array(this.size);
+        }
     }
 
-    throw "illegal move";   
-}
+    makeMove(x, y, color) {
 
-/**
- * Called by makeMove
- * Returns true if move is legal, false if not
- */
-function __isLegalMove(x, y, color) {
+        this.board[x][y] = color;  
+       
+        if (this.turn == COLOR.black) {
+            this.turn = COLOR.white;
+        } else {
+            this.turn = COLOR.black;
+        }
+        
+        return [x, y, color];
+    }
 
-    return true;
 }
 
 /**
  * This module's public interface'
  */
 module.exports = {
-  makeMove: makeMove,
-  COLOR: COLOR
+    Game: Game
 };

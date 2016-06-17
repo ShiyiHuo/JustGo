@@ -1,4 +1,5 @@
 class Board {
+
     constructor(boardSize, squareSize, canvas, gameID) {
         
         //create the board based on boardSize
@@ -48,10 +49,11 @@ class Board {
 
     /**
      * Draw a piece on intersection (x, y) of the board canvas.
-     * Takes parameteres x, y in PIXELS!
+     * Takes parameters x, y in PIXELS!
      */
     placePiece(x, y, color) {
 
+        console.log(color);
         x = x * this.squareSize - 20;
         y = y * this.squareSize - 20;
 
@@ -74,7 +76,7 @@ class Board {
 
         //determine whether click is acceptable as board position
         for (var i = 0; i < this.boardSize + 1; i++) {
-            var absDist = Math.sqrt((xcoord - this.squareSize * i) * (xcoord - this.squareSize * i)); // abs()????
+            var absDist = Math.abs(xcoord - this.squareSize * i);
             if (absDist < 10) {
                 xpos = i;
                 break;
@@ -82,7 +84,7 @@ class Board {
         }
 
         for (var i = 0; i < this.boardSize + 1; i++) {
-            absDist = Math.sqrt((ycoord - this.squareSize * i) * (ycoord - this.squareSize * i)); // abs()??????
+            absDist = Math.abs(ycoord - this.squareSize * i); 
             if (absDist < 10) {
                 ypos = i;
                 break;

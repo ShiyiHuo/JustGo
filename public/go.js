@@ -41,9 +41,17 @@ function boardClicked(event) {
         var position = gameBoard.getIntersection(event.clientX, event.clientY);
         var move = {"x": position[0], "y": position[1]};
         
-        $.post("/move", move, function(data) {
+        $.post("/makeClientMove", move, function(data) {
+            
+            console.log(data);
+
+            if (data == "Illegal Move") {
+                window.alert("Illegal Move. Try again");
+            }
+            
             var x = data[0];
             var y = data[1];
-            gameBoard.placePiece(x, y);
+            var color = data[2];
+            gameBoard.placePiece(x, y, color);
         });
 }
