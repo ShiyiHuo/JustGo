@@ -47,7 +47,6 @@ function boardClicked(event) {
                 window.alert("Illegal Move. Try again");
             }
             
-            console.log(data);
             var x = data.x;
             var y = data.y;
             var color = data.color;

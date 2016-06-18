@@ -132,8 +132,11 @@ class Game {
             this.turn = COLOR.black;
         }
 
-        // TODO: append to move history?
-        // TODO: actually remove captured pieces from this.board
+        // remove captured pieces from board
+        for (var piece of capturedPieces) {
+            this.board[piece.x][piece.y] = COLOR.empty;
+        }
+        // TODO: append move to history?
 
         var move = new Move(xPos, yPos, color, capturedPieces);
         move.capturedPieces = capturedPieces; // I think you have to add lists to objects this way?
