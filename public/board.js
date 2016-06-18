@@ -91,7 +91,7 @@ class Board {
         img.onload = function() {
             while(pieces.length > 0) {
                 var piece = pieces.pop();
-                context.drawImage(img, squareSize * piece.x - 20, squareSize * piece.y - 20, 50, 50);
+                context.drawImage(img, squareSize * piece.x - 30, squareSize * piece.y - 30, 60, 60);
             }
         }
     }    
