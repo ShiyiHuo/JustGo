@@ -35,6 +35,7 @@ class Game {
         this.clientColor = COLOR.black;
         this.size = 9;
         this.board = [];
+        this.moveHistory = [];
         for (var i = 0; i < this.size; i++) { // init board with empty
             this.board[i] = new Array(this.size).fill(COLOR.empty);
         }
@@ -47,15 +48,13 @@ class Game {
     makeMove(xPos, yPos, color) {
 
         if (color != this.turn) {
-            throw GameException("Not your turn.");
+            throw new GameException("Not your turn.");
         }
 
-        if (this.board[x][y] != COLOR.empty) {
-
+        if (this.board[xPos][yPos] != COLOR.empty) {
+            throw new GameException("Illegal Move.");
         }
 
-        // TODO: check legal move, throw error if illegal
-        // TODO: append to move history?
         this.board[yPos][xPos] = color;  // update the board 
         var capturedPieces = [];
 
@@ -65,7 +64,7 @@ class Game {
             for (var j = 0; j < this.board.length; j++) {
                    
                 if (this.board[i][j] != COLOR.empty) {            
-                    
+                                 
                     // init previously visited for depth first search
                     var previouslyVisited = [];
                     for (var k = 0; k < this.size; k++) { 
@@ -95,7 +94,7 @@ class Game {
                         } 
                     }
 
-                    // now after performing depth first search, iterate through army and sum liberties
+                    // after performing depth first search, iterate through army and sum liberties
                     var liberties = 0;
                     for (var y = 0; y < this.size; y++) {
                         for (var x = 0; x < this.size; x++) {
@@ -111,7 +110,7 @@ class Game {
                         }
                     }
 
-                    // if liberties == 0, the pieces are captured
+                    // if no liberties the pieces are captured
                     if (liberties == 0) {
                         for (var y = 0; y < this.size; y++) {
                             for (var x = 0; x < this.size; x++) {
@@ -133,21 +132,13 @@ class Game {
             this.turn = COLOR.black;
         }
 
+        // TODO: append to move history?
+        // TODO: actually remove captured pieces from this.board
+
         var move = new Move(xPos, yPos, color, capturedPieces);
-        move.capturedPieces = capturedPieces; // I think you have to add lists to objects this way
+        move.capturedPieces = capturedPieces; // I think you have to add lists to objects this way?
 
         return move;
-    }
-
-    printBoard() {
-        var boardString = "";
-        for (var i = 0; i < this.size; i++) {
-            for (var j = 0; j < this.size; j++) {
-                boardString += this.board[i][j] + " ";
-            }
-            boardString += "\n";
-        }
-        console.log(boardString);
     }
 
 }

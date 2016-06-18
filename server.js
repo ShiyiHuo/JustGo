@@ -29,13 +29,13 @@ app.post("/makeClientMove", function(req, res, next) {
     move = req.body;  
 
     if (mode == "HOTSEAT") { // call Game class with color equal to the current turn
-        
+    
         try {
             var boardUpdates = gameInstance.makeMove(move.x, move.y, gameInstance.turn);  
             res.json(boardUpdates);      
         } catch (error) {
             if (error instanceof Game.GameException) {
-                res.json("Illegal Move");
+                res.json(error.message);
             } else { // uncaught exception
                 throw (error);
             }    
