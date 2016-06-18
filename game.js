@@ -7,11 +7,8 @@ var COLOR = {
     empty: 0
 }
 
-class Point {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-    }
+function point(x, y) {
+    return JSON.stringify({"x": x, "y": y});
 }
 
 class Move {
@@ -31,11 +28,11 @@ class GameException {
 
 class Game {
     constructor() {
-        this.turn = COLOR.black;
-        this.clientColor = COLOR.black;
-        this.size = 9;
-        this.board = [];
-        this.moveHistory = [];
+        this.turn = COLOR.black; // whos turn it is (white or black)
+        this.clientColor = COLOR.black; // used to emit event to query AI: when (clientColor != turn)?
+        this.size = 9; // board size, should be odd
+        this.board = []; 
+        this.moveHistory = []; // for ko rule and replay
         for (var i = 0; i < this.size; i++) { // init board with empty
             this.board[i] = new Array(this.size).fill(COLOR.empty);
         }
@@ -66,60 +63,52 @@ class Game {
                 if (this.board[i][j] != COLOR.empty) {            
                                  
                     // init previously visited for depth first search
-                    var previouslyVisited = [];
-                    for (var k = 0; k < this.size; k++) { 
-                        previouslyVisited[k] = new Array(this.size).fill(false);
-                    }
+                    var previouslyVisited = new Set();
 
                     // perform depth first search to get armies connected to this piece
                     var pieceColor = this.board[i][j];
-                    getArmies.call(this, i, j, pieceColor);
 
+                    getArmies.call(this, j, i, pieceColor); 
                     function getArmies(x, y, color) {
-                        if (x < 0 || x >= this.board.length || y < 0 || y >= this.board.length) {
+                        
+                        if (x < 0 || x >= this.board.length || y < 0 || y >= this.board.length) { // out of bounds
                             return;
                         }
-                        previouslyVisited[x][y] = true;
-                        if (y + 1 < this.board.length && this.board[x][y + 1] == color && !previouslyVisited[x][y + 1]) {
+                        previouslyVisited.add(point(x, y));
+                        
+                        if (y + 1 < this.board.length && this.board[y + 1][x] == color && !previouslyVisited.has(point(x, y + 1))) {
                             getArmies.call(this, x, y + 1, color);
                         }
-                        if (y - 1 >= 0 && this.board[x][y - 1] == color && !previouslyVisited[x][y - 1]) {
+                        if (y - 1 >= 0 && this.board[y - 1][x] == color && !previouslyVisited.has(point(x, y - 1))) {
                             getArmies.call(this, x, y - 1, color);
-                        }
-                        if (x + 1 < this.board.length && this.board[x + 1][y] == color && !previouslyVisited[x + 1][y]) {
+                        } 
+                        if (x + 1 < this.board.length && this.board[y][x + 1] == color && !previouslyVisited.has(point(x + 1, y))) {
                             getArmies.call(this, x + 1, y, color);
                         }
-                        if (x - 1 >= 0 && this.board[x - 1][y] == color && !previouslyVisited[x - 1][y]) {
+                        if (x - 1 >= 0 && this.board[y][x - 1] == color && !previouslyVisited.has(point(x - 1, y))) {
                             getArmies.call(this, x - 1, y, color);
-                        } 
+                        }   
+                        
                     }
 
-                    // after performing depth first search, iterate through army and sum liberties
+                    // calculate army's liberties                
                     var liberties = 0;
-                    for (var y = 0; y < this.board.length; y++) {
-                        for (var x = 0; x < this.board.length; x++) {
-                            
-                            if (previouslyVisited[x][y]) {
-                                var rightLiberty = x + 1 < this.board.length && this.board[x + 1][y] == COLOR.empty;
-                                var leftLiberty = x - 1 >= 0 && this.board[x - 1][y] == COLOR.empty;
-                                var northLiberty = y + 1 < this.board.length && this.board[x][y + 1] == COLOR.empty;
-                                var southLiberty = y - 1 >= 0 && this.board[x][y - 1] == COLOR.empty;
-                                if ( rightLiberty || leftLiberty || northLiberty || southLiberty ) {
-                                    liberties++;
-                                }
-                            }
-                        }
-                    }
+                    for (var node of previouslyVisited) {
+                        node = JSON.parse(node);
+                        var x = node.x;
+                        var y = node.y;
 
-                    // if no liberties the pieces are captured
-                    if (liberties == 0) {
-                        for (var y = 0; y < this.size; y++) {
-                            for (var x = 0; x < this.size; x++) {
-                                if (previouslyVisited[x][y]) {
-                                    capturedPieces.push(new Point(y, x));
-                                }
-                            }
+                        var rightLiberty = x + 1 < this.board.length && this.board[y][x + 1] == COLOR.empty;
+                        var leftLiberty = x - 1 >= 0 && this.board[y][x - 1] == COLOR.empty;
+                        var northLiberty = y + 1 < this.board.length && this.board[y + 1][x] == COLOR.empty;
+                        var southLiberty = y - 1 >= 0 && this.board[y - 1][x] == COLOR.empty;
+                        if ( rightLiberty || leftLiberty || northLiberty || southLiberty ) {
+                            liberties++;
                         }
+                    } 
+
+                    if (liberties == 0) {
+                        capturedPieces = Array.from(previouslyVisited);
                     }
 
                 }
@@ -135,16 +124,27 @@ class Game {
 
         // remove captured pieces from board
         for (var piece of capturedPieces) {
+            piece = JSON.parse(piece);
             this.board[piece.y][piece.x] = COLOR.empty;
         }
+
+        // convert "point" to object
+        for (var i = 0; i < capturedPieces.length; i++) {
+            capturedPieces[i] = JSON.parse(capturedPieces[i]);
+        }
+
         // TODO: append move to history?
         var move = new Move(xPos, yPos, color, capturedPieces);
         move.capturedPieces = capturedPieces; // I think you have to add lists to objects this way?
 
         this.printBoard();
+
         return move;
     }
 
+    /**
+     * logs board to console (for debug)
+     */
     printBoard() {
         var boardString = "";
         for (var i = 0; i < this.board.length; i++) {
