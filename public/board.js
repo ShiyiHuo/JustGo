@@ -50,7 +50,7 @@ class Board {
         }
     }
 
-    getGameID() {
+    getGameID() { // ?????
         return this.gameID;
     }
 
@@ -76,20 +76,29 @@ class Board {
         }   
     }
 
+    /**
+     * Removes a list of "pieces". Pieces are objects with "x" and "y" attributes
+     */
     removePieces(pieces) {
         
-        while (pieces.length > 0) {
-            var piece = pieces.pop();
+        console.log("removingPieces: " + JSON.stringify(pieces));
+        
+        var context = this.context;
+        var squareSize = this.squareSize;
 
-            var img = this.context.createImageData(40, 40);
-            for (var i = img.data.length; --i >= 0; ) {
-                img.data[i] = 0;
+        var img = new Image();
+        img.src = 'img/empty.png';
+        img.onload = function() {
+            while(pieces.length > 0) {
+                var piece = pieces.pop();
+                context.drawImage(img, squareSize * piece.x - 20, squareSize * piece.y - 20, 50, 50);
             }
-            this.context.putImageData(img, piece.x * this.squareSize - 20, piece.y * this.squareSize - 20);
         }
-
     }    
 
+    /**
+     * Converts xcoord and y coord in pixels to board grid-coordinates
+     */
     getIntersection(xcoord, ycoord) {
         //represent boardgame lines
         var xpos = -1;

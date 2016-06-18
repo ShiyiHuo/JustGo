@@ -51,8 +51,8 @@ class Game {
             throw new GameException("Not your turn.");
         }
 
-        if (this.board[xPos][yPos] != COLOR.empty) {
-            throw new GameException("Illegal Move.");
+        if (this.board[yPos][xPos] != COLOR.empty) {
+            throw new GameException("Occupied Place.");
         }
 
         this.board[yPos][xPos] = color;  // update the board 
@@ -96,12 +96,13 @@ class Game {
 
                     // after performing depth first search, iterate through army and sum liberties
                     var liberties = 0;
-                    for (var y = 0; y < this.size; y++) {
-                        for (var x = 0; x < this.size; x++) {
+                    for (var y = 0; y < this.board.length; y++) {
+                        for (var x = 0; x < this.board.length; x++) {
+                            
                             if (previouslyVisited[x][y]) {
-                                var rightLiberty = x + 1 < this.size && this.board[x + 1][y] == COLOR.empty;
+                                var rightLiberty = x + 1 < this.board.length && this.board[x + 1][y] == COLOR.empty;
                                 var leftLiberty = x - 1 >= 0 && this.board[x - 1][y] == COLOR.empty;
-                                var northLiberty = y + 1 < this.size && this.board[x][y + 1] == COLOR.empty;
+                                var northLiberty = y + 1 < this.board.length && this.board[x][y + 1] == COLOR.empty;
                                 var southLiberty = y - 1 >= 0 && this.board[x][y - 1] == COLOR.empty;
                                 if ( rightLiberty || leftLiberty || northLiberty || southLiberty ) {
                                     liberties++;
@@ -134,14 +135,25 @@ class Game {
 
         // remove captured pieces from board
         for (var piece of capturedPieces) {
-            this.board[piece.x][piece.y] = COLOR.empty;
+            this.board[piece.y][piece.x] = COLOR.empty;
         }
         // TODO: append move to history?
-
         var move = new Move(xPos, yPos, color, capturedPieces);
         move.capturedPieces = capturedPieces; // I think you have to add lists to objects this way?
 
+        this.printBoard();
         return move;
+    }
+
+    printBoard() {
+        var boardString = "";
+        for (var i = 0; i < this.board.length; i++) {
+            for (var j = 0; j < this.board.length; j++) {
+                boardString += this.board[i][j] + " ";
+            }
+            boardString += "\n";
+        }
+        console.log(boardString);
     }
 
 }

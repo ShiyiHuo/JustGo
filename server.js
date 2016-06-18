@@ -32,9 +32,11 @@ app.post("/makeClientMove", function(req, res, next) {
     
         try {
             var boardUpdates = gameInstance.makeMove(move.x, move.y, gameInstance.turn);  
+            console.log("RESPONSE: " + JSON.stringify(boardUpdates));
             res.json(boardUpdates);      
         } catch (error) {
             if (error instanceof Game.GameException) {
+                console.log("Caught GameException: " + error.message);
                 res.json(error.message);
             } else { // uncaught exception
                 throw (error);
