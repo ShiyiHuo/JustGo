@@ -53,3 +53,13 @@ function boardClicked(event) {
             }
         });
 }
+
+/**
+ * long polling
+ */
+setInterval(function() {
+    var sessionID = {"sessionID": gameBoard.sessionID};
+    $.post("/longpoll", sessionID, function(data) {
+        console.log("Response to longpoll with data: " + data);
+    });
+}, 5000);

@@ -2,7 +2,8 @@ var Game = require('./game.js')
 var express = require("express");
 var bodyParser = require("body-parser");
 var app = express();
-var mode = "HOTSEAT";
+var EventEmitter = require('events').EventEmitter;
+var messageBus = new EventEmitter();
 
 app.use(express.static("public"));
 app.use(bodyParser.urlencoded({extended: false}));
@@ -46,7 +47,12 @@ app.post("/newGame", function(req, res, next) {
  */
 app.post("/longpoll", function(req, res, next) {
     console.log("longpoll request from client");
+    
+    messageBus.once('AI TURN', function(data) {
+        console.log("responding to long poll request");
+        res.json(data);
 
+    });
 
 });
 
@@ -81,6 +87,8 @@ app.post("/makeClientMove", function(req, res, next) {
             // Note: we need to actually respond to the client with a separate message instead of this one (to show the AI's move)
             // since the clients must know if his/her move is legal and his/her timer stopped
             // and the AI's timer started. The AI may take a while to query a legal move.
+            messageBus.emit('AI TURN', "data");
+
 
             res.end();
         });
