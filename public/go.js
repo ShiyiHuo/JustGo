@@ -57,9 +57,20 @@ function boardClicked(event) {
 /**
  * long polling
  */
-setInterval(function() {
-    var sessionID = {"sessionID": gameBoard.sessionID};
-    $.post("/longpoll", sessionID, function(data) {
-        console.log("Response to longpoll with data: " + data);
-    });
-}, 5000);
+(function longpoll() {   
+    setTimeout(function() {
+        var sessionID = {"sessionID": gameBoard.gameID};
+        $.post("/longpoll", sessionID, function(data) {
+            console.log("Response to long poll with: " + JSON.stringify(data));
+
+            gameBoard.placePiece(data.x, data.y, data.color);
+
+            if (data.capturedPieces) {
+                gameBoard.removePieces(data.capturedPieces);
+            }
+
+            longpoll();
+        })
+    }, 5000) 
+})();
+

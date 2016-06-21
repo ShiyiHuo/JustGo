@@ -4,6 +4,7 @@ var bodyParser = require("body-parser");
 var app = express();
 var EventEmitter = require('events').EventEmitter;
 var messageBus = new EventEmitter();
+var AIInterface = require('./AIInterface.js');
 
 app.use(express.static("public"));
 app.use(bodyParser.urlencoded({extended: false}));
@@ -19,6 +20,10 @@ MongoClient.connect(url, function(err, db) {
 	db.close();
 });
 
+
+/**
+ * Set up server
+ */
 app.listen(30144, function() {
     console.log("Express listening on port 30144");
 }); 
@@ -42,16 +47,35 @@ app.post("/newGame", function(req, res, next) {
 });
 
 /**
- * Period polling request from the client every 120 or so seconds.
+ * Period polling request from the client every 30 seconds.
  * The request is responded to when the AI is querried
  */
 app.post("/longpoll", function(req, res, next) {
-    console.log("longpoll request from client");
-    
-    messageBus.once('AI TURN', function(data) {
-        console.log("responding to long poll request");
-        res.json(data);
+    console.log("longpoll request from client with sessionID: " + req.body.sessionID);
+        
+    messageBus.once('AI TURN', function(game) {
 
+        var board = game.board;
+        var size = game.board.length;
+        var lastMove = game.moveHistory.pop();
+        
+        // format the JSON-input to the AI server
+        // NOTE: the AI uses x to represent the rows (confusingly?) and they must be switched
+        var formattedAIInput = { size: size,
+                                board: board,
+                                last: {x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c : lastMove.color} }; 
+                            
+        AIInterface.queryAI(formattedAIInput, 
+                            function (body) { 
+                                console.log("AI RESPONDS WITH " + body);
+                                
+                                var aiMove = JSON.parse(body);
+                                // NOTE: AI uses "x" for rows (confusingly?)
+                                var boardUpdates = Game.makeMove(aiMove.y, aiMove.x, aiMove.c, game); 
+                                console.log("responding to query with " + boardUpdates);
+                                res.json(boardUpdates);
+                                res.end();
+                            }); 
     });
 
 });
@@ -80,16 +104,10 @@ app.post("/makeClientMove", function(req, res, next) {
                 db.close();
             }
 
-            // send client board updates
             res.json(boardUpdates);
-
-            // TODO: emit event if game.clientColor != game.turn && !hotseat to query AI
-            // Note: we need to actually respond to the client with a separate message instead of this one (to show the AI's move)
-            // since the clients must know if his/her move is legal and his/her timer stopped
-            // and the AI's timer started. The AI may take a while to query a legal move.
-            messageBus.emit('AI TURN', "data");
-
-
+            if (game.clienColor != game.turn && !game.hotseat) { //not in hotseat mode and its the AI's turn
+                messageBus.emit('AI TURN', game); // this will query the AI and respond to long poll request
+            }
             res.end();
         });
     });    

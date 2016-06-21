@@ -16,6 +16,7 @@ class Move {
         this.x = x;
         this.y = y; 
         this.color = color;
+        this.pass = false;
         this.capturedPieces = capturedPieces;
     }
 }
@@ -153,6 +154,28 @@ function makeMove(xPos, yPos, color, game) {
     return move; 
 }
 
+/**
+ * Returns true if the move is legal. False otherwise
+ */
+function isValidMove(xPos, yPos, color, game) {
+
+    if (color != game.turn) { // not player's turn
+        return false;
+    }
+
+    if (game.board[yPos][xPos] != COLOR.empty) { // spot is already occupied
+        return false;
+    } 
+
+    // TODO: check KO rule and suicide
+
+    return true;
+}
+
+
+/**
+ * Logs matrix representation of board to console with 0-empty, 1-black, 2-white
+ */
 function printBoard(board) {
     var boardString = "BOARD:\n";
     for (var i = 0; i < board.length; i++) {
@@ -172,5 +195,6 @@ function printBoard(board) {
 module.exports = {
     Game: Game,
     makeMove: makeMove,
-    GameException: GameException
+    GameException: GameException,
+    isValidMove: isValidMove
 };
