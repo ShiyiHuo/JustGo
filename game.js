@@ -8,16 +8,6 @@ var COLOR = {
 }
 
 /**
- * Returns a JSON "point". 
- * Used to create primitive values for points to 
- * allow lookup in Sets in constant time. 
- */
-function point(x, y) {
-    return JSON.stringify({"x": x, "y": y});
-}
-
-
-/**
  * Returned to client after a valid move. 
  * Contains information needed for view to update.
  */
@@ -40,9 +30,8 @@ class GameException {
 }
 
 function Game(size) {
-    
-    if (size == undefined) {
-        throw new GameException("Invalid GameDocument parameters: " + size);
+    if (!size || size % 2 == 0) {
+        throw new GameException("Invalid Game parameters: " + size);
     }
     this.board = [];
     this.turn = COLOR.black;
@@ -50,6 +39,8 @@ function Game(size) {
         this.board[i] = new Array(size).fill(COLOR.empty);
     }
     this.moveHistory = [];
+    this.hotseatMode = false;
+    this.clientColor = COLOR.black;
 }
 
 function makeMove(xPos, yPos, color, game) {
@@ -71,7 +62,7 @@ function makeMove(xPos, yPos, color, game) {
     for (var i = 0; i < game.board.length; i++) {
         for (var j = 0; j < game.board.length; j++) {
                 
-            if (game.board[i][j] != COLOR.empty) { // there is a piece on board        
+            if (game.board[i][j] != COLOR.empty) { // there is a piece on this board "tile"        
                                 
                 // perform depth first search to get armies connected to this piece
                 var army = new Set();       
@@ -82,10 +73,16 @@ function makeMove(xPos, yPos, color, game) {
                     if (x < 0 || x >= game.board.length || y < 0 || y >= game.board.length) { // out of bounds
                         return;
                     }
+
+                     // Returns a JSON-string representation of a "point". 
+                     // Strings are used to create primitive values for points to allow lookup in Sets in constant time. 
+                    function point(x, y) {
+                        return JSON.stringify({"x": x, "y": y});
+                    }
                     army.add(point(x, y));
                     
                     if (y + 1 < game.board.length && game.board[y + 1][x] == color && !army.has(point(x, y + 1))) {
-                        // North neighbor of the piece of same color and we haven't already added it to the army yet
+                        // north neighbor is piece of same color and we haven't added it to the army yet
                         getArmies(x, y + 1, color);
                     }
                     if (y - 1 >= 0 && game.board[y - 1][x] == color && !army.has(point(x, y - 1))) {
@@ -157,7 +154,7 @@ function makeMove(xPos, yPos, color, game) {
 }
 
 function printBoard(board) {
-    var boardString = "";
+    var boardString = "BOARD:\n";
     for (var i = 0; i < board.length; i++) {
         for (var j = 0; j < board.length; j++) {
             boardString += board[i][j] + " ";

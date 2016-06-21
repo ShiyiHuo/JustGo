@@ -41,36 +41,49 @@ app.post("/newGame", function(req, res, next) {
 });
 
 /**
+ * Period polling request from the client every 120 or so seconds.
+ * The request is responded to when the AI is querried
+ */
+app.post("/longpoll", function(req, res, next) {
+    console.log("longpoll request from client");
+
+
+});
+
+/**
  * Sent when the client clicks the board.
  * The request should be in the format {x: x, y: y, sessionID: sessionID}
  */
 app.post("/makeClientMove", function(req, res, next) {
     console.log("POST: /makeClientMove: ", JSON.stringify(req.body));
-
-    if (mode == "HOTSEAT") { // call makeMove with color equal to the current turn
+    
+    MongoClient.connect(url, function(err, db) {
+        assert.equal(null , err);
         
-        MongoClient.connect(url, function(err, db) {
-		    assert.equal(null , err);
-		    
-            // lookup game in database
-            var objectID = new ObjectID(req.body.sessionID);
-            db.collection('games').findOne({'_id' : objectID}, function(error, game) {
-                
-                // make requested move on game then replace game with updates in database
-                var boardUpdates = Game.makeMove(req.body.x, req.body.y, game.turn, game);        
-                db.collection('games').replaceOne(
-                    {'_id' : objectID}, game
-                ), 
-                function(error, results) { 
-                    console.log("Finished replacing: " + results);
-                    db.close();
-                }
+        // lookup game in database
+        var objectID = new ObjectID(req.body.sessionID);
+        db.collection('games').findOne({'_id' : objectID}, function(error, game) {
+            
+            // make requested move on game then replace game with updates in database
+            var boardUpdates = Game.makeMove(req.body.x, req.body.y, game.turn, game); // TODO: handle errors thown by makeMove
+            db.collection('games').replaceOne(
+                {'_id' : objectID}, game
+            ), 
+            function(error, results) { 
+                console.log("Finished replacing: " + results);
+                db.close();
+            }
 
-                // send client board updates
-                res.json(boardUpdates);
-                res.end();
-            });
-        });    
-    }
+            // send client board updates
+            res.json(boardUpdates);
+
+            // TODO: emit event if game.clientColor != game.turn && !hotseat to query AI
+            // Note: we need to actually respond to the client with a separate message instead of this one (to show the AI's move)
+            // since the clients must know if his/her move is legal and his/her timer stopped
+            // and the AI's timer started. The AI may take a while to query a legal move.
+
+            res.end();
+        });
+    });    
 
 });
