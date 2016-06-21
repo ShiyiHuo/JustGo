@@ -1,11 +1,12 @@
 // globals 
 gameBoard = undefined;
 
+// main
 window.onload = function() {
 
     // create new game button and append it
     newGameButton = document.createElement('button');
-    newGameButton.setAttribute("id","newGameButton");
+    newGameButton.setAttribute("id", "newGameButton");
     $("body").append(newGameButton);
     $("#newGameButton").html("New Game");
 

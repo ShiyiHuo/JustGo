@@ -39,138 +39,130 @@ class GameException {
     }
 }
 
-class Game {
+function Game(size) {
     
-    constructor() {
-        this.turn = COLOR.black; // whos turn it is (white or black)
-        this.clientColor = COLOR.black; // used to emit event to query AI: when (clientColor != turn)?
-        this.size = 9; // board size, should be odd
-        this.board = []; 
-        this.id = 1 // so server can handle multiple instances
-        this.moveHistory = []; // for ko rule and replay
-        for (var i = 0; i < this.size; i++) { // init board with empty
-            this.board[i] = new Array(this.size).fill(COLOR.empty);
-        }
+    if (size == undefined) {
+        throw new GameException("Invalid GameDocument parameters: " + size);
+    }
+    this.board = [];
+    this.turn = COLOR.black;
+    for (var i = 0; i < size; i++) { // init board with empty
+        this.board[i] = new Array(size).fill(COLOR.empty);
+    }
+    this.moveHistory = [];
+}
+
+function makeMove(xPos, yPos, color, game) {
+
+    /*
+    if (color != game.turn) {
+        throw new GameException("Not your turn.");
     }
 
-    /**
-     * make a move with given color. 
-     * Error is thrown if the move is illegal or not color's turn
-     */
-    makeMove(xPos, yPos, color) {
+    if (game.board[yPos][xPos] != COLOR.empty) {
+        throw new GameException("Occupied Place.");
+    } */
 
-        if (color != this.turn) {
-            throw new GameException("Not your turn.");
-        }
+    game.board[yPos][xPos] = color;  // update the board 
+    var capturedPieces = [];
 
-        if (this.board[yPos][xPos] != COLOR.empty) {
-            throw new GameException("Occupied Place.");
-        }
+    
+    // For all tiles with pieces on board, find armies to calculate liberties
+    // append to capturedPieces if an army has no liberties
+    for (var i = 0; i < game.board.length; i++) {
+        for (var j = 0; j < game.board.length; j++) {
+                
+            if (game.board[i][j] != COLOR.empty) { // there is a piece on board        
+                                
+                // perform depth first search to get armies connected to this piece
+                var army = new Set();       
+                var pieceColor = game.board[i][j];
 
-        this.board[yPos][xPos] = color;  // update the board 
-        var capturedPieces = [];
-
-        // For all tiles with pieces on board, find armies to calculate liberties
-        // append to capturedPieces if an army has no liberties
-        for (var i = 0; i < this.board.length; i++) {
-            for (var j = 0; j < this.board.length; j++) {
-                   
-                if (this.board[i][j] != COLOR.empty) { // there is a piece on board        
-                                 
-                    // perform depth first search to get armies connected to this piece
-                    var army = new Set();       
-                    var pieceColor = this.board[i][j];
-
-                    // recursive depth-first search for armies
-                    (function getArmies(x, y, color) {              
-                        if (x < 0 || x >= this.board.length || y < 0 || y >= this.board.length) { // out of bounds
-                            return;
-                        }
-                        army.add(point(x, y));
-                        
-                        if (y + 1 < this.board.length && this.board[y + 1][x] == color && !army.has(point(x, y + 1))) {
-                            getArmies.call(this, x, y + 1, color);
-                        }
-                        if (y - 1 >= 0 && this.board[y - 1][x] == color && !army.has(point(x, y - 1))) {
-                            getArmies.call(this, x, y - 1, color);
-                        } 
-                        if (x + 1 < this.board.length && this.board[y][x + 1] == color && !army.has(point(x + 1, y))) {
-                            getArmies.call(this, x + 1, y, color);
-                        }
-                        if (x - 1 >= 0 && this.board[y][x - 1] == color && !army.has(point(x - 1, y))) {
-                            getArmies.call(this, x - 1, y, color);
-                        }   
-                        
-                    }).call(this, j, i, pieceColor);
-
-                    // calculate army's liberties                
-                    var liberties = 0;
-                    for (var node of army) {
-                        node = JSON.parse(node);
-                        var x = node.x;
-                        var y = node.y;
-
-                        var rightLiberty = x + 1 < this.board.length && this.board[y][x + 1] == COLOR.empty;
-                        var leftLiberty = x - 1 >= 0 && this.board[y][x - 1] == COLOR.empty;
-                        var northLiberty = y + 1 < this.board.length && this.board[y + 1][x] == COLOR.empty;
-                        var southLiberty = y - 1 >= 0 && this.board[y - 1][x] == COLOR.empty;
-                        
-                        if ( rightLiberty || leftLiberty || northLiberty || southLiberty ) {
-                            liberties++;
-                        }
-                    } 
-
-                    // army is captured if it has no liberties
-                    if (liberties == 0) {
-                        capturedPieces = Array.from(army);
+                // recursive depth-first search for armies
+                (function getArmies(x, y, color) {              
+                    if (x < 0 || x >= game.board.length || y < 0 || y >= game.board.length) { // out of bounds
+                        return;
                     }
+                    army.add(point(x, y));
+                    
+                    if (y + 1 < game.board.length && game.board[y + 1][x] == color && !army.has(point(x, y + 1))) {
+                        getArmies(x, y + 1, color);
+                    }
+                    if (y - 1 >= 0 && game.board[y - 1][x] == color && !army.has(point(x, y - 1))) {
+                        getArmies(x, y - 1, color);
+                    } 
+                    if (x + 1 < game.board.length && game.board[y][x + 1] == color && !army.has(point(x + 1, y))) {
+                        getArmies(x + 1, y, color);
+                    }
+                    if (x - 1 >= 0 && game.board[y][x - 1] == color && !army.has(point(x - 1, y))) {
+                        getArmies(x - 1, y, color);
+                    }   
+                    
+                })(j, i, pieceColor);
 
+                // calculate army's liberties                
+                var liberties = 0;
+                for (var node of army) {
+                    node = JSON.parse(node);
+                    var x = node.x;
+                    var y = node.y;
+
+                    var rightLiberty = x + 1 < game.board.length && game.board[y][x + 1] == COLOR.empty;
+                    var leftLiberty = x - 1 >= 0 && game.board[y][x - 1] == COLOR.empty;
+                    var northLiberty = y + 1 < game.board.length && game.board[y + 1][x] == COLOR.empty;
+                    var southLiberty = y - 1 >= 0 && game.board[y - 1][x] == COLOR.empty;
+                    
+                    if ( rightLiberty || leftLiberty || northLiberty || southLiberty ) {
+                        liberties++;
+                    }
+                } 
+
+                // army is captured if it has no liberties
+                if (liberties == 0) {
+                    capturedPieces = Array.from(army);
                 }
+
             }
         }
-
-        // switch turn state to opposite color
-        if (this.turn == COLOR.black) {
-            this.turn = COLOR.white;
-        } else {
-            this.turn = COLOR.black;
-        }
-
-        // remove captured pieces from board
-        for (var piece of capturedPieces) {
-            piece = JSON.parse(piece);
-            this.board[piece.y][piece.x] = COLOR.empty;
-        }
-
-        // convert "point" to object
-        for (var i = 0; i < capturedPieces.length; i++) {
-            capturedPieces[i] = JSON.parse(capturedPieces[i]);
-        }
-
-        // TODO: append move to history
-        var move = new Move(xPos, yPos, color, capturedPieces);
-
-        this.printBoard();
-
-        return move;
     }
 
-    /**
-     * logs board to console (for debug)
-     */
-    printBoard() {
-        var boardString = "";
-        for (var i = 0; i < this.board.length; i++) {
-            for (var j = 0; j < this.board.length; j++) {
-                boardString += this.board[i][j] + " ";
-            }
-            if (i < this.board.length - 1) {
-                boardString += "\n";
-            }       
-        }
-        console.log(boardString);
+    // switch turn state to opposite color
+    if (game.turn == COLOR.black) {
+        game.turn = COLOR.white;
+    } else {
+        game.turn = COLOR.black;
     }
 
+    // remove captured pieces from board
+    for (var piece of capturedPieces) {
+        piece = JSON.parse(piece);
+        game.board[piece.y][piece.x] = COLOR.empty;
+    }
+
+    // convert "point" to object
+    for (var i = 0; i < capturedPieces.length; i++) {
+        capturedPieces[i] = JSON.parse(capturedPieces[i]);
+    }
+
+    var move = new Move(xPos, yPos, color, capturedPieces);
+    game.moveHistory.push(move);
+
+    printBoard(game.board);
+    
+    return move; 
+}
+
+function printBoard(board) {
+    var boardString = "";
+    for (var i = 0; i < board.length; i++) {
+        for (var j = 0; j < board.length; j++) {
+            boardString += board[i][j] + " ";
+        }
+        if (i < board.length - 1) {
+            boardString += "\n";
+        }       
+    }
+    console.log(boardString);
 }
 
 /**
@@ -178,5 +170,6 @@ class Game {
  */
 module.exports = {
     Game: Game,
+    makeMove: makeMove,
     GameException: GameException
 };
