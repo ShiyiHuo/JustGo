@@ -28,7 +28,8 @@ app.listen(30144, function() {
 app.post("/newGame", function(req, res, next) {
     console.log("Received request for new game", JSON.stringify(req.body));
 
-    var newGame = new Game.Game(9);
+    var size = 9;
+    var newGame = new Game.Game(size);
     
     MongoClient.connect(url, function(err, db) {
 		assert.equal(null , err);

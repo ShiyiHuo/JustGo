@@ -54,14 +54,13 @@ function Game(size) {
 
 function makeMove(xPos, yPos, color, game) {
 
-    /*
     if (color != game.turn) {
         throw new GameException("Not your turn.");
     }
 
     if (game.board[yPos][xPos] != COLOR.empty) {
         throw new GameException("Occupied Place.");
-    } */
+    } 
 
     game.board[yPos][xPos] = color;  // update the board 
     var capturedPieces = [];
@@ -86,15 +85,19 @@ function makeMove(xPos, yPos, color, game) {
                     army.add(point(x, y));
                     
                     if (y + 1 < game.board.length && game.board[y + 1][x] == color && !army.has(point(x, y + 1))) {
+                        // North neighbor of the piece of same color and we haven't already added it to the army yet
                         getArmies(x, y + 1, color);
                     }
                     if (y - 1 >= 0 && game.board[y - 1][x] == color && !army.has(point(x, y - 1))) {
+                        // south neighbor is piece of same color and we haven't added it to the army yet
                         getArmies(x, y - 1, color);
                     } 
                     if (x + 1 < game.board.length && game.board[y][x + 1] == color && !army.has(point(x + 1, y))) {
+                        // west neighbor is piece of same color and we haven't added it to army yet
                         getArmies(x + 1, y, color);
                     }
                     if (x - 1 >= 0 && game.board[y][x - 1] == color && !army.has(point(x - 1, y))) {
+                        // south neighbor is piece of same color and we haven't added it to army yet
                         getArmies(x - 1, y, color);
                     }   
                     
@@ -103,7 +106,7 @@ function makeMove(xPos, yPos, color, game) {
                 // calculate army's liberties                
                 var liberties = 0;
                 for (var node of army) {
-                    node = JSON.parse(node);
+                    node = JSON.parse(node); // convert back to object since army is composed of JSON strings 
                     var x = node.x;
                     var y = node.y;
 
@@ -112,7 +115,7 @@ function makeMove(xPos, yPos, color, game) {
                     var northLiberty = y + 1 < game.board.length && game.board[y + 1][x] == COLOR.empty;
                     var southLiberty = y - 1 >= 0 && game.board[y - 1][x] == COLOR.empty;
                     
-                    if ( rightLiberty || leftLiberty || northLiberty || southLiberty ) {
+                    if (rightLiberty || leftLiberty || northLiberty || southLiberty) {
                         liberties++;
                     }
                 } 
@@ -135,11 +138,12 @@ function makeMove(xPos, yPos, color, game) {
 
     // remove captured pieces from board
     for (var piece of capturedPieces) {
-        piece = JSON.parse(piece);
+        piece = JSON.parse(piece); // convert to object since army and captured pieces are JSON strings
         game.board[piece.y][piece.x] = COLOR.empty;
     }
 
-    // convert "point" to object
+    // convert the "point" JSON string back to object 
+    // TODO: could this be put into above loop?
     for (var i = 0; i < capturedPieces.length; i++) {
         capturedPieces[i] = JSON.parse(capturedPieces[i]);
     }
@@ -166,7 +170,7 @@ function printBoard(board) {
 }
 
 /**
- * This module's public interface
+ * This module's "public interface"
  */
 module.exports = {
     Game: Game,
