@@ -3,7 +3,6 @@ var express = require("express");
 var bodyParser = require("body-parser");
 var app = express();
 var mode = "HOTSEAT";
-var gameInstance;
 
 app.use(express.static("public"));
 app.use(bodyParser.urlencoded({extended: false}));
@@ -29,18 +28,15 @@ app.listen(30144, function() {
 app.post("/newGame", function(req, res, next) {
     console.log("Received request for new game", JSON.stringify(req.body));
 
-    res.write("Game #2");
-
     var newGame = new Game.Game(9);
-
+    
     MongoClient.connect(url, function(err, db) {
 		assert.equal(null , err);
 		db.collection('games').insertOne(newGame);
-		console.log("Posting: " + JSON.stringify(newGame) + " to games");
+        res.json(newGame._id);
+        res.end();
 	});
 
-    res.end(); // need to send ObjectID for the game created to be stored in cookie?
-    next();
 });
 
 /**
@@ -50,19 +46,17 @@ app.post("/newGame", function(req, res, next) {
 app.post("/makeClientMove", function(req, res, next) {
     console.log("POST: /makeClientMove: ", JSON.stringify(req.body));
 
-    var move = req.body;  
-
     if (mode == "HOTSEAT") { // call makeMove with color equal to the current turn
         
         MongoClient.connect(url, function(err, db) {
 		    assert.equal(null , err);
 		    
             // lookup game in database
-            var objectID = new ObjectID("5768b5dc5425e3092eb84038");
+            var objectID = new ObjectID(req.body.sessionID);
             db.collection('games').findOne({'_id' : objectID}, function(error, game) {
                 
                 // make requested move on game then replace game with updates in database
-                var boardUpdates = Game.makeMove(move.x, move.y, game.turn, game);        
+                var boardUpdates = Game.makeMove(req.body.x, req.body.y, game.turn, game);        
                 db.collection('games').replaceOne(
                     {'_id' : objectID}, game
                 ), 

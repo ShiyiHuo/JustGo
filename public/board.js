@@ -80,9 +80,6 @@ class Board {
      * Removes a list of "pieces". Pieces are objects with "x" and "y" attributes
      */
     removePieces(pieces) {
-        
-        console.log("removingPieces: " + JSON.stringify(pieces));
-        
         var context = this.context;
         var squareSize = this.squareSize;
 

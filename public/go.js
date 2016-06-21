@@ -16,7 +16,7 @@ window.onload = function() {
         $.post("/newGame", "Client wants new game", function(gameID, status) {
             if (status === "success" && gameID != undefined) {
                     console.log("Starting new game.");
-                    newGame(gameID);
+                    newGame(gameID); // TODO: store gameID in cookie?
             }
         });
     });
@@ -40,22 +40,16 @@ function newGame(gameID) {
  */
 function boardClicked(event) {
         var position = gameBoard.getIntersection(event.clientX, event.clientY);
-        var move = {"x": position[0], "y": position[1]};
+        var move = {"x": position[0], "y": position[1], "sessionID": gameBoard.gameID};
         
-        $.post("/makeClientMove", move, function(data) {
-            
-            if (data == "Illegal Move") {
+        $.post("/makeClientMove", move, function(data) {    
+            if (data == "Illegal Move") { // TODO: fix this to actually handle more errors
                 window.alert("Illegal Move. Try again");
             }
-            
-            var x = data.x;
-            var y = data.y;
-            var color = data.color;
-            var capturedPieces = data.capturedPieces;
-            gameBoard.placePiece(x, y, color);
+            gameBoard.placePiece(data.x, data.y, data.color);
 
-            if (capturedPieces) {
-                gameBoard.removePieces(capturedPieces);
+            if (data.capturedPieces) {
+                gameBoard.removePieces(data.capturedPieces);
             }
         });
 }
