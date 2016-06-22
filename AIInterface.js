@@ -20,8 +20,6 @@ var options = {
  */
 function queryAI(postData, callback) {
   var req = http.request(options, function(res) {
-    console.log('Status: ' + res.statusCode);
-    console.log('Headers: ' + JSON.stringify(res.headers));
     res.on('data', callback);
   });
 

@@ -52,37 +52,20 @@ function boardClicked(event) {
 
 function longpoll() {
     var sessionID = {"sessionID": gameBoard.gameID};
-    $.post("/longpoll", sessionID, function(data) {
-        console.log("Response to long poll with: " + JSON.stringify(data));
-
-        gameBoard.placePiece(data.x, data.y, data.color);
-
-        if (data.capturedPieces) {
-            gameBoard.removePieces(data.capturedPieces);
-        }
-        longpoll();
-    })
-}
-
-setInterval(longpoll, 30000);
-
-/**
- * long polling
- *
-(function longpoll() {   
-    setTimeout(function() {
-        var sessionID = {"sessionID": gameBoard.gameID};
-        $.post("/longpoll", sessionID, function(data) {
-            console.log("Response to long poll with: " + JSON.stringify(data));
-
+    
+    $.ajax({
+        method: 'POST',
+        url: '/longpoll',
+        data: sessionID,
+        success: function(data) {
             gameBoard.placePiece(data.x, data.y, data.color);
 
             if (data.capturedPieces) {
                 gameBoard.removePieces(data.capturedPieces);
             }
-
-            longpoll();
-        })
-    }, 30000) 
-})(); */
+        }, 
+        complete: longpoll,
+        timeout: 600000 // 1 hour time-out?
+    });
+} 
 

@@ -31,10 +31,11 @@ app.listen(30144, function() {
  * Create a new game state and store it in database
  */
 app.post("/newGame", function(req, res, next) {
-    console.log("Received request for new game", JSON.stringify(req.body));
+    console.log("POST: /newGame " + JSON.stringify(req.body));
 
     var size = 9;
     var newGame = new Game.Game(size);
+    
     // TODO: also check if it is hotseat play and not clients turn. 
     // In that case emit an 'AI TURN' event here aswell
     
@@ -52,43 +53,40 @@ app.post("/newGame", function(req, res, next) {
  * The request is responded to when the AI is querried
  */
 app.post("/longpoll", function(req, res, next) {
-    console.log("longpoll request from client with sessionID: " + req.body.sessionID);
-        
-    messageBus.once('AI TURN', function(game) {
+    console.log("POST: /longpoll from client with sessionID: " + req.body.sessionID);
+
+    // wait for 'AI TURN' event to query AI and respond to longpoll request    
+    messageBus.once('AI TURN ' + req.body.sessionID, function(game) { 
 
         var board = game.board;
         var size = game.board.length;
-        var lastMove = game.moveHistory.pop();
+        var lastMove = game.moveHistory[game.moveHistory.length - 1]; 
         
         // format the JSON-input to the AI server
         // NOTE: the AI uses x to represent the rows (confusingly?) and they must be switched
         var formattedAIInput = { size: size,
                                 board: board,
                                 last: {x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c : lastMove.color} }; 
-                            
-        AIInterface.queryAI(formattedAIInput, 
-                            function (body) { 
-                                console.log("AI RESPONDS WITH " + body);
-                                
-                                var aiMove = JSON.parse(body);
-                                // NOTE: AI uses "x" for rows (confusingly?)
-                                var boardUpdates = Game.makeMove(aiMove.y, aiMove.x, aiMove.c, game); 
-                               
-                                console.log("game = " + JSON.stringify(game));
 
-                                // update game in database after AI move
-                                MongoClient.connect(url, function(err, db) {
-                                    var objectID = new ObjectID(req.body.sessionID);
-                                    console.log("mongo connecting to document with objectID: " + objectID);
-                                    assert.equal(null, err);
-                                    db.collection('games').replaceOne({'_id': objectID}, game);
+        var aiDidRespond = function(body) {
+            console.log("AI RESPONDS WITH " + body);
+            
+            var aiMove = JSON.parse(body);
+            var boardUpdates = Game.makeMove(aiMove.y, aiMove.x, aiMove.c, game); // NOTE: AI uses "x" for rows (confusingly?)
 
-                                })
-                               
-                                console.log("responding to query with " + boardUpdates);
-                                res.json(boardUpdates);
-                                res.end();
-                            }); 
+            // update game in database after AI move
+            MongoClient.connect(url, function(err, db) {  
+                assert.equal(null, err);
+                var objectID = new ObjectID(req.body.sessionID);
+                db.collection('games').replaceOne({'_id': objectID}, game);
+            });
+            
+            // end response with board updates
+            res.json(boardUpdates);
+            res.end();
+        };
+
+        AIInterface.queryAI(formattedAIInput, aiDidRespond);
     });
 
 });
@@ -109,17 +107,14 @@ app.post("/makeClientMove", function(req, res, next) {
 
             // make requested move on game then replace game with updates in database
             var boardUpdates = Game.makeMove(req.body.x, req.body.y, game.clientColor, game); // TODO: handle errors thown by makeMove
-            
-            console.log("after client move replacing game in database with: " + JSON.stringify(game));
 
             db.collection('games').replaceOne({'_id' : objectID}, game);
 
             res.json(boardUpdates);
             if (game.clientColor != game.turn && !game.hotseat) { //not in hotseat mode and its the AI's turn
-                messageBus.emit('AI TURN', game); // this will query the AI and respond to long poll request
+                messageBus.emit('AI TURN ' + req.body.sessionID, game); // this will query the AI and respond to long poll request
             }
             res.end();
         });
     });    
-
 });

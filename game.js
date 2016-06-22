@@ -45,8 +45,6 @@ function Game(size) {
 }
 
 function makeMove(xPos, yPos, color, game) {
-
-    console.log("color is :" + color + " game turn is: " + game.turn);
     
     if (color != game.turn) {
         console.log("ERROR NOT YOUR TURN");
