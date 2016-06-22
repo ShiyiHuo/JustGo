@@ -41,7 +41,7 @@ app.listen(30144, function() {
 app.post("/newGame", function(req, res, next) {
 
     // TODO: allow for customizable sizes
-    // TODO: option to construct game with game.hotseat = true  
+    // TODO: option to construct game with game.hotseatMode = true  
 
     var size = 9;
     var newGame = new go.Game(size);
@@ -125,9 +125,9 @@ app.post("/makeClientMove", function(req, res, next) {
         var objectID = new ObjectID(req.body.sessionID);
         db.collection('games').findOne({'_id' : objectID}, function(error, game) {
 
-            var turn = game.hotseat? game.turn : game.clientColor;
+            var turn = game.hotseatMode? game.turn : game.clientColor;
 
-            // TODO: handle errors thown by Game.makeMove
+            // TODO: handle errors thown by go.makeMove
 
             // make requested move on game then replace game with updates in database
             var boardUpdates = go.makeMove(game, req.body.x, req.body.y, turn, false); 

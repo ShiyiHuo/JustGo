@@ -1,11 +1,5 @@
 "use strict";
-
-// enumerations
-var COLOR = {
-    white: 2,
-    black: 1,
-    empty: 0
-}
+const constants = require('./constants.js');
 
 /**
  * Returned to client after a valid move. 
@@ -26,22 +20,26 @@ class Move {
  */
 class GameException {
     constructor(message) {
+        console.log("GameException: " + message);
         this.message = message;
     }
 }
 
+/**
+ * Return new game object with size
+ */
 function Game(size) {
     if (!size || size % 2 == 0) {
         throw new GameException("Invalid Game parameters: " + size);
     }
     this.board = [];
-    this.turn = COLOR.black;
+    this.turn = constants.black;
     for (var i = 0; i < size; i++) { // init board with empty
-        this.board[i] = new Array(size).fill(COLOR.empty);
+        this.board[i] = new Array(size).fill(constants.empty);
     }
     this.moveHistory = [];
     this.hotseatMode = false;
-    this.clientColor = COLOR.black;
+    this.clientColor = constants.black;
 }
 
 function makeMove(game, xPos, yPos, color, pass) {
@@ -49,24 +47,27 @@ function makeMove(game, xPos, yPos, color, pass) {
     // TODO: implement pass
 
     if (color != game.turn) {
-        console.log("ERROR NOT YOUR TURN");
         throw new GameException("Not your turn.");
     }
 
-    if (game.board[yPos][xPos] != COLOR.empty) {
-        console.log("ERROR OCCUPIED INTERSECTION");
+    if (game.board[yPos][xPos] != constants.empty) {
         throw new GameException("Occupied Place.");
     }   
 
     game.board[yPos][xPos] = color;  // update the board 
-    var capturedPieces = [];
-  
+    
+    var visited = [];
+    for (var i = 0; i < game.board.length; i++) {
+        visited[i] = new Array(game.board.length).fill(false);
+    }
+
     // For all tiles with pieces on board, find armies to calculate liberties
     // append to capturedPieces if an army has no liberties
+    var capturedPieces = [];
     for (var i = 0; i < game.board.length; i++) {
         for (var j = 0; j < game.board.length; j++) {
                 
-            if (game.board[i][j] != COLOR.empty) { // there is a piece on this board "tile"  TODO: add auxillary matrix that stores if we've visited this piece so we don't have to do ever tile multiple times?     
+            if (game.board[i][j] != constants.empty && !visited[i][j]) { // there is a piece on this board "tile"  TODO: test auxillary matrix that stores if we've visited this piece so we don't have to do ever tile multiple times?     
                                 
                 // perform depth first search to get armies connected to this piece
                 var army = new Set();       
@@ -84,6 +85,7 @@ function makeMove(game, xPos, yPos, color, pass) {
                         return JSON.stringify({"x": x, "y": y});
                     }
                     army.add(point(x, y));
+                    visited[i][j] = true;
                     
                     if (y+1 < game.board.length && game.board[y+1][x] == color && !army.has(point(x, y+1))) {
                         // north neighbor is piece of same color and we haven't added it to the army yet
@@ -111,10 +113,10 @@ function makeMove(game, xPos, yPos, color, pass) {
                     var x = node.x;
                     var y = node.y;
 
-                    var rightLiberty = x + 1 < game.board.length && game.board[y][x + 1] == COLOR.empty;
-                    var leftLiberty = x - 1 >= 0 && game.board[y][x - 1] == COLOR.empty;
-                    var northLiberty = y + 1 < game.board.length && game.board[y + 1][x] == COLOR.empty;
-                    var southLiberty = y - 1 >= 0 && game.board[y - 1][x] == COLOR.empty;
+                    var rightLiberty = x + 1 < game.board.length && game.board[y][x + 1] == constants.empty;
+                    var leftLiberty = x - 1 >= 0 && game.board[y][x - 1] == constants.empty;
+                    var northLiberty = y + 1 < game.board.length && game.board[y + 1][x] == constants.empty;
+                    var southLiberty = y - 1 >= 0 && game.board[y - 1][x] == constants.empty;
                     
                     if (rightLiberty || leftLiberty || northLiberty || southLiberty) {
                         liberties++;
@@ -131,16 +133,16 @@ function makeMove(game, xPos, yPos, color, pass) {
     }
 
     // switch turn state to opposite color
-    if (game.turn == COLOR.black) {
-        game.turn = COLOR.white;
+    if (game.turn == constants.black) {
+        game.turn = constants.white;
     } else {
-        game.turn = COLOR.black;
+        game.turn = constants.black;
     }
 
     // remove captured pieces from board
     for (var piece of capturedPieces) {
         piece = JSON.parse(piece); // convert to object since army and captured pieces are JSON strings
-        game.board[piece.y][piece.x] = COLOR.empty;
+        game.board[piece.y][piece.x] = constants.empty;
     }
 
     // convert the "point" JSON string back to object 
@@ -164,7 +166,7 @@ function isValidMove(xPos, yPos, color, game) {
         return false;
     }
 
-    if (game.board[yPos][xPos] != COLOR.empty) { // spot is already occupied
+    if (game.board[yPos][xPos] != constants.empty) { // spot is already occupied
         return false;
     } 
 
