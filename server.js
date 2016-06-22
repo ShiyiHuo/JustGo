@@ -50,7 +50,8 @@ app.post("/newGame", function(req, res, next) {
 
 /**
  * Period polling request from the client every 30 seconds.
- * The request is responded to when the AI is querried
+ * The request is responded to with move data when the AI is querried.
+ * The AI is querried when 'AI TURN <sessionID>' events are emitted
  */
 app.post("/longpoll", function(req, res, next) {
     console.log("POST: /longpoll from client with sessionID: " + req.body.sessionID);
@@ -58,13 +59,9 @@ app.post("/longpoll", function(req, res, next) {
     var aiTurnEvent = 'AI TURN ' + req.body.sessionID;  
     
     function onAiTurnEvent(game) { 
-
         var board = game.board;
         var size = game.board.length;
         var lastMove = game.moveHistory[game.moveHistory.length - 1]; 
-        
-        // format the JSON-input to the AI server
-        // NOTE: the AI uses x to represent the rows (confusingly?) and they must be switched
         var formattedAIInput = { size: size,
                                 board: board,
                                 last: {x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c : lastMove.color} }; 
@@ -73,7 +70,7 @@ app.post("/longpoll", function(req, res, next) {
             console.log("AI RESPONDS WITH " + body);
             
             var aiMove = JSON.parse(body);
-            var boardUpdates = Game.makeMove(aiMove.y, aiMove.x, aiMove.c, game); // NOTE: AI uses "x" for rows (confusingly?)
+            var boardUpdates = Game.makeMove(aiMove.y, aiMove.x, aiMove.c, game); // NOTE: the AI API uses "x" for rows (confusingly?)
 
             // update game in database after AI move
             MongoClient.connect(url, function(err, db) {  
@@ -86,14 +83,13 @@ app.post("/longpoll", function(req, res, next) {
             res.json(boardUpdates);
             res.end();
         };
-
         AIInterface.queryAI(formattedAIInput, aiDidRespond);
     }
     
     // wait for 'AI TURN <sessionID>' event to query AI and respond to longpoll request    
     messageBus.once(aiTurnEvent, onAiTurnEvent);
 
-    /* remove the event listener after 30 seconds. NOTE: This period NEEDS to match long-polling timeout on client */
+    // remove the event listener after 30 seconds. NOTE: This period NEEDS to match long-polling timeout on client 
     setTimeout(function() {
         messageBus.removeListener(aiTurnEvent, onAiTurnEvent);
         res.end();
@@ -115,14 +111,17 @@ app.post("/makeClientMove", function(req, res, next) {
         var objectID = new ObjectID(req.body.sessionID);
         db.collection('games').findOne({'_id' : objectID}, function(error, game) {
 
+            var turn = game.hotseat? game.turn : game.clientColor;
+
             // make requested move on game then replace game with updates in database
-            var boardUpdates = Game.makeMove(req.body.x, req.body.y, game.clientColor, game); // TODO: handle errors thown by makeMove
+            var boardUpdates = Game.makeMove(req.body.x, req.body.y, turn, game); // TODO: handle errors thown by makeMove
 
             db.collection('games').replaceOne({'_id' : objectID}, game);
 
             res.json(boardUpdates);
-            if (game.clientColor != game.turn && !game.hotseat) { //not in hotseat mode and its the AI's turn
-                messageBus.emit('AI TURN ' + req.body.sessionID, game); // emmit 'AI TURN <sessionID> event to query the AI and respond to long poll request
+            if (game.clientColor != game.turn && !game.hotseat) { // not in hotseat mode and it is the AI's turn
+                var aiTurnEvent = 'AI TURN ' + req.body.sessionID; // format for AI TURN event string is 'AI TURN <sessionID'
+                messageBus.emit(aiTurnEvent, game); // emmit 'AI TURN <sessionID> event to query the AI and respond to long poll request
             }
             res.end();
         });
