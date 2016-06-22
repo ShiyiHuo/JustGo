@@ -138,8 +138,6 @@ function makeMove(xPos, yPos, color, game) {
         game.turn = COLOR.black;
     }
 
-    console.log("TURN IS NOW: " + game.turn);
-
     // remove captured pieces from board
     for (var piece of capturedPieces) {
         piece = JSON.parse(piece); // convert to object since army and captured pieces are JSON strings
@@ -155,7 +153,7 @@ function makeMove(xPos, yPos, color, game) {
     var move = new Move(xPos, yPos, color, capturedPieces);
     game.moveHistory.push(move);
 
-    printBoard(game.board);
+    //printBoard(game.board);
     
     return move; 
 }

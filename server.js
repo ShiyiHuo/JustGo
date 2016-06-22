@@ -81,11 +81,7 @@ app.post("/longpoll", function(req, res, next) {
                                     var objectID = new ObjectID(req.body.sessionID);
                                     console.log("mongo connecting to document with objectID: " + objectID);
                                     assert.equal(null, err);
-                                    db.collection('games').replaceOne({'_id': objectID, game}, 
-                                                                      function(error, results) {
-                                                                          console.log("Finished replacing: " + results);
-                                                                          db.close();
-                                                                      });
+                                    db.collection('games').replaceOne({'_id': objectID}, game);
 
                                 })
                                
@@ -114,13 +110,9 @@ app.post("/makeClientMove", function(req, res, next) {
             // make requested move on game then replace game with updates in database
             var boardUpdates = Game.makeMove(req.body.x, req.body.y, game.clientColor, game); // TODO: handle errors thown by makeMove
             
-            db.collection('games').replaceOne(
-                {'_id' : objectID, game}
-            ), 
-            function(error, results) { 
-                console.log("Finished replacing: " + results);
-                db.close();
-            }
+            console.log("after client move replacing game in database with: " + JSON.stringify(game));
+
+            db.collection('games').replaceOne({'_id' : objectID}, game);
 
             res.json(boardUpdates);
             if (game.clientColor != game.turn && !game.hotseat) { //not in hotseat mode and its the AI's turn
