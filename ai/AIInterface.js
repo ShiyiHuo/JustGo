@@ -18,7 +18,7 @@ var options = {
  *   
  * callback is executed when the AI returns a move
  */
-function queryAI(postData, callback) {
+function query(postData, callback) {
     var req = http.request(options, function(res) {
       res.on('data', callback);
     });
@@ -32,5 +32,5 @@ function queryAI(postData, callback) {
 }
 
 module.exports = {
-  queryAI : queryAI
+  query : query
 }

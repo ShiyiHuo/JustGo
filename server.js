@@ -86,7 +86,7 @@ app.post("/longpoll", function(req, res, next) {
                                 board: board,
                                 last: {x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c : lastMove.color} }; 
 
-        AIInterface.queryAI(formattedAIInput, onAiResponse);
+        AIInterface.query(formattedAIInput, onAiResponse);
 
         function onAiResponse(body) {    
             var aiMove = JSON.parse(body);
