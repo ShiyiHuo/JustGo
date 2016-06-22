@@ -1,38 +1,34 @@
 // globals 
 gameBoard = undefined;
 
-// main
+/**
+ * Create New Game button and append
+ */
 window.onload = function() {
-
-    // create new game button and append it
     newGameButton = document.createElement('button');
     newGameButton.setAttribute("id", "newGameButton");
     $("body").append(newGameButton);
     $("#newGameButton").html("New Game");
-
-    // clicking new game calls new game function
-    $("#newGameButton").click(function() {
-        $("#newGameButton").hide();
-        $.post("/newGame", "Client wants new game", function(gameID, status) {
-            if (status === "success" && gameID != undefined) {
-                    console.log("Starting new game.");
-                    newGame(gameID); // TODO: store gameID in cookie?
-            }
-        });
-    });
+    $("#newGameButton").click(newGame);
 }
 
 /**
- * Create gameBoard
+ * Create gameBoard and start long poll
  */
-function newGame(gameID) {
-    canvas = document.createElement('canvas');
-    $("body").append(canvas);
+function newGame() {
+    $("#newGameButton").hide();
+    $.post("/newGame", "Client wants new game", function(gameID, status) { 
+        
+        if (gameID) { // if there server returns a session/game ID create and display board
+            canvas = document.createElement('canvas');
+            $("body").append(canvas);
+            gameBoard = new Board(9, 50, canvas, gameID);
+            $("canvas").click(boardClicked);
+            gameBoard.drawBoard();
 
-    gameBoard = new Board(9, 50, canvas, gameID);
-
-    $("canvas").click(boardClicked);
-    gameBoard.drawBoard();
+            longpoll();
+        }
+    });
 }
 
 /**
@@ -54,9 +50,25 @@ function boardClicked(event) {
         });
 }
 
+function longpoll() {
+    var sessionID = {"sessionID": gameBoard.gameID};
+    $.post("/longpoll", sessionID, function(data) {
+        console.log("Response to long poll with: " + JSON.stringify(data));
+
+        gameBoard.placePiece(data.x, data.y, data.color);
+
+        if (data.capturedPieces) {
+            gameBoard.removePieces(data.capturedPieces);
+        }
+        longpoll();
+    })
+}
+
+setInterval(longpoll, 30000);
+
 /**
  * long polling
- */
+ *
 (function longpoll() {   
     setTimeout(function() {
         var sessionID = {"sessionID": gameBoard.gameID};
@@ -71,6 +83,6 @@ function boardClicked(event) {
 
             longpoll();
         })
-    }, 5000) 
-})();
+    }, 30000) 
+})(); */
 

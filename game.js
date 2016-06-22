@@ -46,13 +46,17 @@ function Game(size) {
 
 function makeMove(xPos, yPos, color, game) {
 
+    console.log("color is :" + color + " game turn is: " + game.turn);
+    
     if (color != game.turn) {
+        console.log("ERROR NOT YOUR TURN");
         throw new GameException("Not your turn.");
     }
 
     if (game.board[yPos][xPos] != COLOR.empty) {
+        console.log("ERROR OCCUPIED INTERSECTION");
         throw new GameException("Occupied Place.");
-    } 
+    }   
 
     game.board[yPos][xPos] = color;  // update the board 
     var capturedPieces = [];
@@ -133,6 +137,8 @@ function makeMove(xPos, yPos, color, game) {
     } else {
         game.turn = COLOR.black;
     }
+
+    console.log("TURN IS NOW: " + game.turn);
 
     // remove captured pieces from board
     for (var piece of capturedPieces) {

@@ -20,7 +20,6 @@ MongoClient.connect(url, function(err, db) {
 	db.close();
 });
 
-
 /**
  * Set up server
  */
@@ -36,6 +35,8 @@ app.post("/newGame", function(req, res, next) {
 
     var size = 9;
     var newGame = new Game.Game(size);
+    // TODO: also check if it is hotseat play and not clients turn. 
+    // In that case emit an 'AI TURN' event here aswell
     
     MongoClient.connect(url, function(err, db) {
 		assert.equal(null , err);
@@ -72,6 +73,22 @@ app.post("/longpoll", function(req, res, next) {
                                 var aiMove = JSON.parse(body);
                                 // NOTE: AI uses "x" for rows (confusingly?)
                                 var boardUpdates = Game.makeMove(aiMove.y, aiMove.x, aiMove.c, game); 
+                               
+                                console.log("game = " + JSON.stringify(game));
+
+                                // update game in database after AI move
+                                MongoClient.connect(url, function(err, db) {
+                                    var objectID = new ObjectID(req.body.sessionID);
+                                    console.log("mongo connecting to document with objectID: " + objectID);
+                                    assert.equal(null, err);
+                                    db.collection('games').replaceOne({'_id': objectID, game}, 
+                                                                      function(error, results) {
+                                                                          console.log("Finished replacing: " + results);
+                                                                          db.close();
+                                                                      });
+
+                                })
+                               
                                 console.log("responding to query with " + boardUpdates);
                                 res.json(boardUpdates);
                                 res.end();
@@ -89,15 +106,16 @@ app.post("/makeClientMove", function(req, res, next) {
     
     MongoClient.connect(url, function(err, db) {
         assert.equal(null , err);
-        
+
         // lookup game in database
         var objectID = new ObjectID(req.body.sessionID);
         db.collection('games').findOne({'_id' : objectID}, function(error, game) {
-            
+
             // make requested move on game then replace game with updates in database
-            var boardUpdates = Game.makeMove(req.body.x, req.body.y, game.turn, game); // TODO: handle errors thown by makeMove
+            var boardUpdates = Game.makeMove(req.body.x, req.body.y, game.clientColor, game); // TODO: handle errors thown by makeMove
+            
             db.collection('games').replaceOne(
-                {'_id' : objectID}, game
+                {'_id' : objectID, game}
             ), 
             function(error, results) { 
                 console.log("Finished replacing: " + results);
@@ -105,7 +123,7 @@ app.post("/makeClientMove", function(req, res, next) {
             }
 
             res.json(boardUpdates);
-            if (game.clienColor != game.turn && !game.hotseat) { //not in hotseat mode and its the AI's turn
+            if (game.clientColor != game.turn && !game.hotseat) { //not in hotseat mode and its the AI's turn
                 messageBus.emit('AI TURN', game); // this will query the AI and respond to long poll request
             }
             res.end();
