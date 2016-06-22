@@ -135,7 +135,7 @@ app.post("/makeClientMove", function(req, res, next) {
             db.collection('games').replaceOne({'_id' : objectID}, game);
 
             res.json(boardUpdates);
-            if (game.clientColor != game.turn && !game.hotseat) { // not in hotseat mode and it is the AI's turn
+            if (game.clientColor != game.turn && !game.hotseatMode) { // not in hotseat mode and it is the AI's turn
                 var aiTurnEvent = 'AI TURN ' + req.body.sessionID; // format for AI TURN event string is 'AI TURN <sessionID'
                 messageBus.emit(aiTurnEvent, game); // emmit 'AI TURN <sessionID> event to query the AI and respond to long poll request
             }
