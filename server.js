@@ -128,6 +128,7 @@ app.post("/makeClientMove", function(req, res, next) {
             var turn = game.hotseatMode? game.turn : game.clientColor;
 
             // TODO: handle errors thown by go.makeMove
+            // BUG: if player commits suicide (which is currently allowed), AI will be querried with an invalid board state (last move (x, y) but no token on (x,y))
 
             // make requested move on game then replace game with updates in database
             var boardUpdates = go.makeMove(game, req.body.x, req.body.y, turn, false); 
