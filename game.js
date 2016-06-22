@@ -150,8 +150,6 @@ function makeMove(xPos, yPos, color, game) {
 
     var move = new Move(xPos, yPos, color, capturedPieces);
     game.moveHistory.push(move);
-
-    //printBoard(game.board);
     
     return move; 
 }

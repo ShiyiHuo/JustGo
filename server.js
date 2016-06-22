@@ -55,8 +55,9 @@ app.post("/newGame", function(req, res, next) {
 app.post("/longpoll", function(req, res, next) {
     console.log("POST: /longpoll from client with sessionID: " + req.body.sessionID);
 
-    // wait for 'AI TURN' event to query AI and respond to longpoll request    
-    messageBus.once('AI TURN ' + req.body.sessionID, function(game) { 
+    var aiTurnEvent = 'AI TURN ' + req.body.sessionID;  
+    
+    function onAiTurnEvent(game) { 
 
         var board = game.board;
         var size = game.board.length;
@@ -68,7 +69,7 @@ app.post("/longpoll", function(req, res, next) {
                                 board: board,
                                 last: {x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c : lastMove.color} }; 
 
-        var aiDidRespond = function(body) {
+        function aiDidRespond(body) {
             console.log("AI RESPONDS WITH " + body);
             
             var aiMove = JSON.parse(body);
@@ -87,7 +88,16 @@ app.post("/longpoll", function(req, res, next) {
         };
 
         AIInterface.queryAI(formattedAIInput, aiDidRespond);
-    });
+    }
+    
+    // wait for 'AI TURN <sessionID>' event to query AI and respond to longpoll request    
+    messageBus.once(aiTurnEvent, onAiTurnEvent);
+
+    /* remove the event listener after 30 seconds. NOTE: This period NEEDS to match long-polling timeout on client */
+    setTimeout(function() {
+        messageBus.removeListener(aiTurnEvent, onAiTurnEvent);
+        res.end();
+    }, 30000); 
 
 });
 
@@ -112,7 +122,7 @@ app.post("/makeClientMove", function(req, res, next) {
 
             res.json(boardUpdates);
             if (game.clientColor != game.turn && !game.hotseat) { //not in hotseat mode and its the AI's turn
-                messageBus.emit('AI TURN ' + req.body.sessionID, game); // this will query the AI and respond to long poll request
+                messageBus.emit('AI TURN ' + req.body.sessionID, game); // emmit 'AI TURN <sessionID> event to query the AI and respond to long poll request
             }
             res.end();
         });

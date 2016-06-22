@@ -65,7 +65,7 @@ function longpoll() {
             }
         }, 
         complete: longpoll,
-        timeout: 600000 // 1 hour time-out?
+        timeout: 30000 
     });
 } 
 
