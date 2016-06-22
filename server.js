@@ -2,7 +2,7 @@ var express = require("express");
 var bodyParser = require("body-parser");
 var assert = require('assert');
 var EventEmitter = require('events').EventEmitter;
-var Game = require('./game/game.js')
+var go = require('./game/go.js')
 var AIInterface = require('./ai/AIInterface.js');
 
 var app = express();
@@ -44,7 +44,7 @@ app.post("/newGame", function(req, res, next) {
     // TODO: option to construct game with game.hotseat = true  
 
     var size = 9;
-    var newGame = new Game.Game(size);
+    var newGame = new go.Game(size);
 
     // TODO: also check if it is hotseat play and not clients turn. 
     // In that case emit an 'AI TURN' event here aswell
@@ -90,9 +90,9 @@ app.post("/longpoll", function(req, res, next) {
 
         function onAiResponse(body) {    
             var aiMove = JSON.parse(body);
-            var boardUpdates = Game.makeMove(aiMove.y, aiMove.x, aiMove.c, game); // NOTE: the AI API uses "x" for rows (confusingly?)
+            var boardUpdates = go.makeMove(game, aiMove.y, aiMove.x, aiMove.c, aiMove.pass); // NOTE: the AI API uses "x" for rows (confusingly?)
 
-            // TODO: handle errors thown by Game.makeMove 
+            // TODO: handle errors thown by go.makeMove 
             // TODO: check AI legal move and requry if not legal
 
             // update game in database after AI move
@@ -130,7 +130,7 @@ app.post("/makeClientMove", function(req, res, next) {
             // TODO: handle errors thown by Game.makeMove
 
             // make requested move on game then replace game with updates in database
-            var boardUpdates = Game.makeMove(req.body.x, req.body.y, turn, game); 
+            var boardUpdates = go.makeMove(game, req.body.x, req.body.y, turn, false); 
 
             db.collection('games').replaceOne({'_id' : objectID}, game);
 

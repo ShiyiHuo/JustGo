@@ -44,7 +44,7 @@ function Game(size) {
     this.clientColor = COLOR.black;
 }
 
-function makeMove(xPos, yPos, color, game, pass) {
+function makeMove(game, xPos, yPos, color, pass) {
     
     // TODO: implement pass
 
