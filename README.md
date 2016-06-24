@@ -4,12 +4,20 @@ This application is meant to allow users to play the Go board game
 with friends through networked-play or in hotseat mode 
 (... or with an AI if the user has no friends.)
 
+Implemented using NodeJS, ExpressJS, and MongoDB
+
+Excellent Team Members:
+* Martin Wan
+* David Mitchell
+* Shiyi Huo
+* Yuan Shao
+
 ### Screenshots
 
 ![Screenshots](/doc/gameplay.png)
 
-### Ongoing Project Notice
-Note this project is far from complete and the files here are to demonstrate our 
+### *** Ongoing Project Notice ***
+Note this project is FAR from complete and the files here are to demonstrate our 
 planned architecture. Development is underway with the following in course deadlines: 
 
     June 26 -- Milestone 3 (Peer Review Designs)
