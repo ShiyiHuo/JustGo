@@ -8,15 +8,15 @@ with friends through networked-play or in hotseat mode
 
 ![Screenshots](/doc/gameplay.png)
 
-## Ongoing Project Notice
+### Ongoing Project Notice
 Note this project is far from complete and the files here are to demonstrate our 
 planned architecture. Development is underway with the following in course deadlines: 
 
-June 26 -- Milestone 3 (Peer Review Designs)
-July 21 -- Milestone 4a (Implementation)
-July 28 -- Milestone 4b (Final Report) 
+    June 26 -- Milestone 3 (Peer Review Designs)
+    July 21 -- Milestone 4a (Implementation)
+    July 28 -- Milestone 4b (Final Report) 
 
-## Use
+### Use
 
 Two servers need to be run (one for application, one for course instructor's "AI")
 
