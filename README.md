@@ -2,9 +2,7 @@
 
 This application is meant to allow users to play the Go board game
 with friends through networked-play or in hotseat mode 
-(... or with an AI if the user has no friends.)
-
-Implemented using NodeJS, ExpressJS, and MongoDB
+(... or with an AI if the user has no friends.) Implemented using NodeJS, ExpressJS, and MongoDB
 
 Excellent Team Members:
 * Martin Wan
