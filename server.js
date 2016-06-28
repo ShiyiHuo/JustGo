@@ -64,7 +64,7 @@ app.post("/newGame", function(req, res, next) {
  * 
  * @param req should be in form { sessionID : string } 
  * 
- * response (if not empty) is a Move object
+ * @return response (if not empty) is a Move object
  */
 app.post("/longpoll", function(req, res, next) {
 
@@ -114,7 +114,7 @@ app.post("/longpoll", function(req, res, next) {
  * Sent when the client clicks the board.
  * @param req should be in form { x: int, y: int, sessionID: int, pass: boolean }
  * 
- * Response is a Move object
+ * @return response is a Move object
  */
 app.post("/makeClientMove", function(req, res, next) {
     

@@ -11,12 +11,13 @@ var options = {
 
 /**
  * Post request to AI Server
- * postData should be in the format: 
+ * 
+ * @param postData should be in the format: 
     { board: [[1,0,0],[0,0,0],[0,0,0]],
       size: 3,
       last: {x:0, y:0, pass : false, c : 1} };
  *   
- * callback is executed when the AI returns a move
+ * @param callback is executed when the AI returns a move
  */
 function query(postData, callback) {
     var req = http.request(options, function(res) {

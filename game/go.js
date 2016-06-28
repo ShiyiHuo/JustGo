@@ -26,7 +26,8 @@ class GameException {
 }
 
 /**
- * Return new game object with size
+ * Return new game object with size. 
+ * Think of this is a "struct" since it is stored in mongo
  */
 function Game(size) {
     if (!size || size % 2 == 0) {
@@ -42,6 +43,17 @@ function Game(size) {
     this.clientColor = constants.black;
 }
 
+/**
+ * Make move on a game
+ * 
+ * @param game is a "Game" object
+ * @param xPos is the row of the move
+ * @param yPos is the column of the move
+ * @param color is either black or white 
+ * @param pass is bool
+ * 
+ * @return is a Move object
+ */
 function makeMove(game, xPos, yPos, color, pass) {
     
     // TODO: implement pass
@@ -159,8 +171,16 @@ function makeMove(game, xPos, yPos, color, pass) {
 
 /**
  * Returns true if the move is legal. False otherwise
+ * 
+ * @param game is a "Game" object
+ * @param xPos is the row of the move
+ * @param yPos is the colum nof the move
+ * @param color is either white/black
+ * @game pass is boolean
+ * 
+ * @ return boolean
  */
-function isValidMove(xPos, yPos, color, game) {
+function isValidMove(game, xPos, yPos, color, pass) {
 
     if (color != game.turn) { // not player's turn
         return false;
