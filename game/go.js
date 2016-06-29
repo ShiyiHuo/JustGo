@@ -1,5 +1,6 @@
 "use strict";
 const constants = require('./constants.js');
+const timer = require('./timer.js')
 
 /**
  * Returned to client after a valid move. 
@@ -26,10 +27,15 @@ class GameException {
 }
 
 /**
- * Return new game object with size. 
+ * @param size is the board size
+ * @param hotseatMode is boolean
+ * @param 
+ *  
+ * @return a new Game struct
+ * 
  * Think of this is a "struct" since it is stored in mongo
  */
-function Game(size) {
+function Game(size, hotseatMode) {
     if (!size || size % 2 == 0) {
         throw new GameException("Invalid Game parameters: " + size);
     }
@@ -39,7 +45,7 @@ function Game(size) {
         this.board[i] = new Array(size).fill(constants.empty);
     }
     this.moveHistory = [];
-    this.hotseatMode = false;
+    this.hotseatMode = hotseatMode;
     this.clientColor = constants.black;
 }
 
@@ -61,13 +67,12 @@ function makeMove(game, xPos, yPos, color, pass) {
     if (color != game.turn) {
         throw new GameException("Not your turn.");
     }
-
     if (game.board[yPos][xPos] != constants.empty) {
         throw new GameException("Occupied Place.");
     }   
 
     game.board[yPos][xPos] = color;  // update the board 
-    
+
     var visited = [];
     for (var i = 0; i < game.board.length; i++) {
         visited[i] = new Array(game.board.length).fill(false);
