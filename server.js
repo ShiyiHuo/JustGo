@@ -112,7 +112,7 @@ app.post("/longpoll", function(req, res, next) {
 
 /**
  * Sent when the client clicks the board.
- * @param req should be in form { x: int, y: int, sessionID: int, pass: boolean }
+ * @param req should be in form { x: int, y: int, sessionID: int, pass: boolean, resign: boolean }
  * 
  * @return response is a Move object
  */

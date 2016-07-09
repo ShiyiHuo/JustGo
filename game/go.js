@@ -63,9 +63,9 @@ function Game(size, hotseatMode) {
 function makeMove(game, xPos, yPos, color, pass) {
     
     // TODO: implement pass
-
     if (color != game.turn) {
         throw new GameException("Not your turn.");
+        
     }
     if (game.board[yPos][xPos] != constants.empty) {
         throw new GameException("Occupied Place.");

@@ -58,6 +58,7 @@ function longpoll() {
         url: '/longpoll',
         data: sessionID,
         success: function(data) {
+            
             gameBoard.placePiece(data.x, data.y, data.color);
 
             if (data.capturedPieces) {
