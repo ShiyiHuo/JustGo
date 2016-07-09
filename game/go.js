@@ -27,29 +27,6 @@ class GameException {
 }
 
 /**
- * @param size is the board size
- * @param hotseatMode is boolean
- * @param 
- *  
- * @return a new Game struct
- * 
- * Think of this is a "struct" since it is stored in mongo
- */
-function Game(size, hotseatMode) {
-    if (!size || size % 2 == 0) {
-        throw new GameException("Invalid Game parameters: " + size);
-    }
-    this.board = [];
-    this.turn = constants.black;
-    for (var i = 0; i < size; i++) { // init board with empty
-        this.board[i] = new Array(size).fill(constants.empty);
-    }
-    this.moveHistory = [];
-    this.hotseatMode = hotseatMode;
-    this.clientColor = constants.black;
-}
-
-/**
  * Make move on a game
  * 
  * @param game is a "Game" object
@@ -198,22 +175,6 @@ function isValidMove(game, xPos, yPos, color, pass) {
     // TODO: check KO rule and suicide
 
     return true;
-}
-
-/**
- * Logs matrix representation of board to console with 0-empty, 1-black, 2-white
- */
-function printBoard(board) {
-    var boardString = "BOARD:\n";
-    for (var i = 0; i < board.length; i++) {
-        for (var j = 0; j < board.length; j++) {
-            boardString += board[i][j] + " ";
-        }
-        if (i < board.length - 1) {
-            boardString += "\n";
-        }       
-    }
-    console.log(boardString);
 }
 
 /**

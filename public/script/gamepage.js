@@ -36,7 +36,7 @@ function newGame() {
  */
 function boardClicked(event) {
         var position = gameBoard.getIntersection(event.clientX, event.clientY);
-        var move = {"x": position[0], "y": position[1], "sessionID": gameBoard.gameID};
+        var move = {"x": position[0], "y": position[1], gameID: gameBoard.gameID};
         
         $.post("/makeClientMove", move, function(data) {    
             if (data == "Illegal Move") { // TODO: fix this to actually handle more errors
@@ -51,12 +51,12 @@ function boardClicked(event) {
 }
 
 function longpoll() {
-    var sessionID = {"sessionID": gameBoard.gameID};
+    var gameID = {gameID: gameBoard.gameID};
     
     $.ajax({
         method: 'POST',
         url: '/longpoll',
-        data: sessionID,
+        data: gameID,
         success: function(data) {
             
             gameBoard.placePiece(data.x, data.y, data.color);
