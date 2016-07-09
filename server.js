@@ -47,8 +47,9 @@ app.post("/newGame", function(req, res, next) {
 });
 
 /**
- * Period polling request from the client every 30 seconds.
- * The request is responded to with move data when the AI is querried on 'AI TURN <sessionID>' events 
+ * Periodic polling request from the client every 30 seconds.
+ * The request is responded to with move data when the AI is querried 
+ * The AI is querried on events with string "AI TURN <sessionID>" events 
  * 
  * @param req should be in form { sessionID : string } 
  * 

@@ -8,8 +8,7 @@ var Game;
 
 class MongoInterface {
 
-    constructor() {
-        
+    constructor() {    
         // init database
         mongoose.connect('mongodb://localhost/GoData');
         this.db = mongoose.connection;
@@ -28,31 +27,11 @@ class MongoInterface {
             hotseatMode: Boolean,
             clientColor: Number,
         });
-
-        gameSchema.statics.makeMoveOnGameWithID = function(id, x, y, turn, pass, callback) {
-            this.findById(id, function(err, game) {
-                if (err) return console.error(err);
-                if (!game) return console.error("Could not find game with id: " + id);
-                
-                if (turn == constants.clientColor) {
-                    turn = game.clientColor;
-                }
-
-                var boardUpdates = go.makeMove(game, x, y, turn, pass);
-                game.markModified('board');
-                game.save(function(err, game) {
-                    if (err) return console.error(err);
-                    if (!game) return console.error("could not find gamew with id: " + id);
-                    callback(game, boardUpdates);
-                });
-            });
-        }
         
         Game = mongoose.model('Game', gameSchema);
     }
     
     newGame(size, hotseatMode, callback) {
-    
         var board = [];
         for (var i = 0; i < size; i++) {
             board[i] = new Array(size).fill(constants.empty);
@@ -74,7 +53,22 @@ class MongoInterface {
     }
 
     makeMoveOnGameWithID(id, x, y, turn, pass, callback) {
-        Game.makeMoveOnGameWithID(id, x, y, turn, pass, callback);
+        Game.findById(id, function(err, game) {
+            if (err) return console.error(err);
+            if (!game) return console.error("Could not find game with id: " + id);
+            
+            if (turn == constants.clientColor) {
+                turn = game.clientColor;
+            }
+
+            var boardUpdates = go.makeMove(game, x, y, turn, pass);
+            game.markModified('board'); // needed to let mongoose know the nested array was modified
+            game.save(function(err, game) {
+                if (err) return console.error(err);
+                if (!game) return console.error("could not find game with id: " + id);
+                callback(game, boardUpdates);
+            });
+        });
     }
 }
 
