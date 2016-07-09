@@ -2,8 +2,11 @@ var express = require("express");
 var bodyParser = require("body-parser");
 var assert = require('assert');
 var EventEmitter = require('events').EventEmitter;
-var go = require('./game/go.js')
+var go = require('./game/go.js');
+var constants = require('./game/constants.js');
 var AIInterface = require('./ai/AIInterface.js');
+var MongoInterface = require('./MongoInterface');
+
 
 var app = express();
 var messageBus = new EventEmitter();
@@ -12,24 +15,11 @@ app.use(express.static("public"));
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 
-// mongodb configuration
-var ObjectID = require('mongodb').ObjectID;
-var MongoClient = require('mongodb').MongoClient;
-var url = 'mongodb://localhost:27017/GoData';
 
 /**
  * Set up server
  */
 app.listen(30144, function() {
-
-    MongoClient.connect(url, function(err, db) {
-        if (err) {
-            console.log("ERROR connecting to mongodb: " + err);
-        }
-	    console.log("Connected correctly to mongodb server");
-	    db.close();
-    });
-
     console.log("Express listening on port 30144");
 }); 
 
@@ -49,12 +39,10 @@ app.post("/newGame", function(req, res, next) {
     // TODO: also check if it is hotseat play and not clients turn. 
     // In that case emit an 'AI TURN' event here aswell
     
-    MongoClient.connect(url, function(err, db) {
-		assert.equal(null , err);
-		db.collection('games').insertOne(newGame);
-        res.json(newGame._id);
+    MongoInterface.newGame(size, false, function(gameID) {
+        res.json(gameID);
         res.end();
-	});
+    });
 
 });
 
@@ -96,15 +84,20 @@ app.post("/longpoll", function(req, res, next) {
             // TODO: check AI legal move and requry if not legal
 
             // update game in database after AI move
-            MongoClient.connect(url, function(err, db) {  
-                assert.equal(null, err);
-                var objectID = new ObjectID(req.body.sessionID);
-                db.collection('games').replaceOne({'_id': objectID}, game);
-            });
-            
-            // end response with board updates
-            res.json(boardUpdates);
-            res.end();
+
+            MongoInterface.makeMoveOnGameWithID(
+                req.body.sessionID,
+                aiMove.y,
+                aiMove.x,
+                aiMove.c,
+                aiMove.pass,
+                function() {
+                    // end response with board updates
+                    res.json(boardUpdates);
+                    res.end();
+                }
+            );
+
         }   
     }
 
@@ -118,29 +111,22 @@ app.post("/longpoll", function(req, res, next) {
  */
 app.post("/makeClientMove", function(req, res, next) {
     
-    MongoClient.connect(url, function(err, db) {
-        assert.equal(null , err);
-
-        // lookup game in database
-        var objectID = new ObjectID(req.body.sessionID);
-        db.collection('games').findOne({'_id' : objectID}, function(error, game) {
-
-            var turn = game.hotseatMode? game.turn : game.clientColor;
-
-            // TODO: handle errors thown by go.makeMove
-            // BUG: if player commits suicide (which is currently allowed), AI will be querried with an invalid board state (last move (x, y) but no token on (x,y))
-
-            // make requested move on game then replace game with updates in database
-            var boardUpdates = go.makeMove(game, req.body.x, req.body.y, turn, false); 
-
-            db.collection('games').replaceOne({'_id' : objectID}, game);
-
+    MongoInterface.makeMoveOnGameWithID(
+        req.body.sessionID, 
+        req.body.x, 
+        req.body.y, 
+        constants.clientColor, 
+        false, 
+        function(game, boardUpdates) {
+            
             res.json(boardUpdates);
             if (game.clientColor != game.turn && !game.hotseatMode) { // not in hotseat mode and it is the AI's turn
                 var aiTurnEvent = 'AI TURN ' + req.body.sessionID; // format for AI TURN event string is 'AI TURN <sessionID'
                 messageBus.emit(aiTurnEvent, game); // emmit 'AI TURN <sessionID> event to query the AI and respond to long poll request
             }
             res.end();
-        });
-    });    
+
+        }
+    );
+
 });

@@ -19,25 +19,31 @@ class MongoInterface {
         });
 
         // init schema
+        var ObjectId = mongoose.Schema.Types.ObjectId;
+
         var gameSchema = new mongoose.Schema({
             board: Array,
             turn: Number,
             moveHistory: Array,
             hotseatMode: Boolean,
             clientColor: Number,
-            sessionID: String
         });
 
-        gameSchema.statics.makeMoveOnGameWithSessionID = function(sessionID, x, y, turn, pass) {
-            this.findOne({sessionID: sessionID}, function(err, game) {
-                if (err) throw new Error(err);
-                if (!game) throw new Error("Could not find game with sessionID");
+        gameSchema.statics.makeMoveOnGameWithID = function(id, x, y, turn, pass, callback) {
+            this.findById(id, function(err, game) {
+                if (err) return console.error(err);
+                if (!game) return console.error("Could not find game with id: " + id);
                 
-                go.makeMove(game, x, y, turn, pass);
+                if (turn == constants.clientColor) {
+                    turn = game.clientColor;
+                }
+
+                var boardUpdates = go.makeMove(game, x, y, turn, pass);
                 game.markModified('board');
                 game.save(function(err, game) {
                     if (err) return console.error(err);
-                    if (game) console.log("made turn and saved game " + game);
+                    if (!game) return console.error("could not find gamew with id: " + id);
+                    callback(game, boardUpdates);
                 });
             });
         }
@@ -45,7 +51,7 @@ class MongoInterface {
         Game = mongoose.model('Game', gameSchema);
     }
     
-    newGame(size, hotseatMode, sessionID) {
+    newGame(size, hotseatMode, callback) {
     
         var board = [];
         for (var i = 0; i < size; i++) {
@@ -57,23 +63,20 @@ class MongoInterface {
             turn: constants.black,
             moveHistory: [],
             hotseatMode: hotseatMode,
-            clientColor: constants.black,
-            sessionID: sessionID
+            clientColor: constants.black
         });
 
         game.save(function (err, game) {
             if (err) return console.error(err);
-            console.log("saved game " +  game);
+            callback(game._id.id);
         });
+        
     }
 
-    makeMoveOnGameWithSessionID(sessionID, x, y, turn, pass, callback) {
-        Game.makeMoveOnGameWithSessionID(sessionID, x, y, turn, callback);
+    makeMoveOnGameWithID(id, x, y, turn, pass, callback) {
+        Game.makeMoveOnGameWithID(id, x, y, turn, pass, callback);
     }
 }
 
-
-
-
-module.exports = MongoInterface
+module.exports = new MongoInterface();
 
