@@ -181,7 +181,6 @@ function isValidMove(game, xPos, yPos, color, pass) {
  * This module's "public interface"
  */
 module.exports = {
-    Game: Game,
     makeMove: makeMove,
     GameException: GameException,
     isValidMove: isValidMove

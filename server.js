@@ -36,7 +36,6 @@ app.post("/newGame", function(req, res, next) {
     // TODO: option to construct game with game.hotseatMode = true  
 
     var size = 9;
-    var newGame = new go.Game(size);
 
     // TODO: also check if it is hotseat play and not clients turn. 
     // In that case emit an 'AI TURN' event here aswell
