@@ -9,6 +9,7 @@ $(document).ready(function() {
 //show the welcome page
 function showWelcome() {
 
+    showMenuBar();
 
     $('body').append('<h1>Welcome to Go by DeepFriedMilk</h1>');
     $('body').append('<h2>Select game mode</h2>');
@@ -19,7 +20,7 @@ function showWelcome() {
 
         data = JSON.parse(data);
         if (data.login == "yes") {
-                showLogout();
+                showLogout();   //show menu bar here
                 console.log("Logged in");
         }
     });
@@ -132,3 +133,28 @@ function showLogout() {
         });
     });
 }
+
+//show menu bar
+function showMenuBar() {
+    $('body').append('<ul>' +
+                     '<li><a href="#">Home</a></li>' +
+                     '<li><a href="#">News</a></li>' +
+                     '<li><a href="#">Contact</a></li>' +
+                     '<li><a href="#">About</a></li>' +
+                     '</ul>');
+    
+    
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
