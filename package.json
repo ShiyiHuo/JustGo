@@ -1,0 +1,29 @@
+{
+  "name": "login",
+  "version": "1.0.0",
+  "description": "login page",
+  "main": "server.js",
+  "dependencies": {
+    "blanket": "^1.2.3",
+    "body-parser": "^1.15.2",
+    "client-sessions": "^0.7.0",
+    "express": "^4.14.0",
+    "mongodb": "^2.1.18"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "keywords": [],
+  "config": {
+    "blanket": {
+      "pattern": [
+        "lib.js"
+      ],
+      "data-cover-never": "node_modules"
+    }
+  }
+}

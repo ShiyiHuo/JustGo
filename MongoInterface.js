@@ -16,7 +16,7 @@ class MongoInterface {
         this.db.once('open', function() {
             console.log("succesfully connected to mongo");
         });
-
+        
         // define a game schema
         var gameSchema = new mongoose.Schema({
             board: Array,
