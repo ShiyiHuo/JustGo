@@ -74,54 +74,28 @@ app.post('/playAIB', function(req, res) {
 
 //user attempts to login
 app.post('/login', function(req,res) {
-    //write login attempt to console
-    console.log("Received login post");
-    console.log("Username is " + req.body.username);
-    console.log("Password is "+ req.body.password);
+
     //store user as submitted username and password
     var user = {'username': req.body.username, 'password': req.body.password};
 
-    MongoClient.connect(url, function(err,db) {
-        if (err) {
-            console.log("Couldn't connect to database");
-            db.close();
+    MongoInterface.loginUser(req.body.username, req.body.password, function(successful) {
+        if (successful) {
+            req.session.user = user;
+            res.write(JSON.stringify({
+                redirect: '/gamepage.html',
+                status: 'OK',
+                login: 'yes'
+            }));        
+        } else {
+            res.write(JSON.stringify({
+                redirect: '',
+                status: 'invalidLogin',
+                login: 'no'
+            }));
         }
-        else {
-            db.collection('users').findOne({'username': user.username}, function (err, results) {
-                if (err) {
-                    console.log(err);
-                //if user doesn't exist, prompt invalid login
-                } else if (results == null) {
-                    console.log("Invalid login");
-                    res.write(JSON.stringify({
-                        redirect: '',
-                        status: 'invalidLogin',
-                        login: 'no'
-                    }));
-                } else {
-                    //if username and password match, store session and direct to gamepage
-                    if (results.password == user.password) {
-                        console.log('Logged in ' + user.username + ' and redirected to gamepage');
-                        req.session.user = user;
-                        res.write(JSON.stringify({
-                            redirect: '/gamepage.html',
-                            status: 'OK',
-                            login: 'yes'
-                        }));
-                    }
-                    else {
-                        //if username doesn't match password, prompt invalid login
-                        console.log("Invalid login");
-                        res.write(JSON.stringify({redirect: 'invalidLogin'}));
-                    }
-                }
-
-                //close response and database
-                res.end();
-                db.close();
-            });
-        }
+        res.end();
     });
+
 });
 
 //client logs out

@@ -99,6 +99,22 @@ class MongoInterface {
         });
     }
 
+    loginUser(username, password, callback) {
+        var query = User.findOne({username: username, password: password});
+        query.exec(function(err, person) {
+            if (err) {
+                callback(false);
+                return console.error(err);
+            }
+            if (person) {
+                callback(true);
+            } else {
+                callback(false);
+            }
+        });
+        
+    }
+
 }
 
 module.exports = new MongoInterface();
