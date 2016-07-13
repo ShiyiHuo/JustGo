@@ -184,6 +184,8 @@ function showMenuBar(login) {
                          '<li><a href="#">User Center</a></li>' +
                          '</ul>');
         
+        
+        
     }
     
     else {
