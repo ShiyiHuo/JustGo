@@ -4,11 +4,11 @@ const constants = require('./game/constants');
 const go = require('./game/go');
 
 var Game;
+var User;
 
 class MongoInterface {
 
     constructor() {    
-        
         // connect to mongodb
         mongoose.connect('mongodb://localhost/GoData');
         this.db = mongoose.connection;
@@ -28,6 +28,15 @@ class MongoInterface {
         
         // model the game schema
         Game = mongoose.model('Game', gameSchema);
+
+        // define user schema
+        var userSchema = new mongoose.Schema({
+            username: {type: String, index: {unique: true}},
+            password: String
+        })
+
+        // model user schema
+        User = mongoose.model('User', userSchema);
     }
     
     /**
@@ -77,6 +86,19 @@ class MongoInterface {
             });
         });
     }
+
+    signUpUser(username, password, callback) {
+        var user = new User({username: username, password: password});
+        
+        user.save(function(err, user) {
+            if (err) {
+                callback(false);
+                return console.error(err);
+            }
+            callback(true);
+        });
+    }
+
 }
 
 module.exports = new MongoInterface();

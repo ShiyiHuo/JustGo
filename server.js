@@ -146,7 +146,6 @@ app.post('/getStatus', function(req,res){
             login: 'yes'
         }));
         console.log("User logged in.")
-
     } else {
         res.write(JSON.stringify({
             redirect: '',
@@ -161,56 +160,27 @@ app.post('/getStatus', function(req,res){
 //user attempts to sign up
 app.post('/signUp', function(req,res) {
 
-    //log sign up attempt to console
-    console.log("Received sign up post");
-    console.log("Username is " + req.body.username);
-    console.log("Password is "+ req.body.password);
+    var user = {username: req.body.username, password: req.body.password};
 
-    //store submitted username and password as user
-    var user = {'username': req.body.username, 'password': req.body.password};
-    MongoClient.connect(url, function(err,db) {
-        if (err) {
-            console.log("Couldn't connect to database");
-            db.close();
-        }
-        else {
-            db.collection('users').findOne({'username': user.username}, function (err, results){
-                if (err) {
-                    console.log(err);
-                    db.close();
-                // if username is not taken, create in database, store session, direct to gamepage
-                } else if (results == null) {
-                    db.collection('users').insertOne(user, function (err, results) {
-                        if (err) {
-                            console.log(err);
-                            db.close();
-                        } else {
-                            console.log("Inserted user " + user.username + " " + results);
-                            req.session.user = user;
-                            res.write(JSON.stringify({
-                                redirect: '/gamepage.html',
-                                status: 'OK',
-                                login: 'yes'
-                            }));
-                            res.end();
-                            db.close();
-                        }
-                    });
-                //if username is taken, prompt user
-                } else {
-                    console.log("Invalid sign up name");
-                    res.write(JSON.stringify({
-                        redirect: '',
-                        status: 'invalidUsername',
-                        login: 'no'
-                    }));
-                    res.end();
-                    db.close();
-
-                }
-            });
+    MongoInterface.signUpUser(req.body.username, req.body.password, function(successful) {
+        if (successful) {
+            req.session.user = user;
+            res.write(JSON.stringify({
+                redirect: '/gamepage.html',
+                status: 'OK',
+                login: 'yes'
+            }));
+            res.end();            
+        } else {
+            res.write(JSON.stringify({
+                redirect: '',
+                status: 'invalidUsername',
+                login: 'no'
+            }));  
+            res.end();          
         }
     });
+
 });
 
 
