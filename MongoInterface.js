@@ -87,11 +87,16 @@ class MongoInterface {
         });
     }
 
+    /**
+     * Signs up user with username and password.
+     * Callback is executed with true parameter if no error is thrown 
+     * Callback is executed with false parameter if error is thrown (e.g. username already exists)
+     */
     signUpUser(username, password, callback) {
         var user = new User({username: username, password: password});
         
         user.save(function(err, user) {
-            if (err) {
+            if (err) { // if duplicates
                 callback(false);
                 return console.error(err);
             }
@@ -99,6 +104,11 @@ class MongoInterface {
         });
     }
 
+    /**
+     * Logs in user with username and password
+     * Callback is executed with true parameter if no error is thrown 
+     * Callback is executed with false parameter if error is thrown (e.g. invalid username/password)
+     */
     loginUser(username, password, callback) {
         var query = User.findOne({username: username, password: password});
         query.exec(function(err, person) {
@@ -112,7 +122,7 @@ class MongoInterface {
                 callback(false);
             }
         });
-        
+
     }
 
 }
