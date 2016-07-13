@@ -1,16 +1,11 @@
 var express = require("express");
 var bodyParser = require("body-parser");
-var assert = require('assert');
 var EventEmitter = require('events').EventEmitter;
-var go = require('./game/go.js');
-var constants = require('./game/constants.js');
-var AIInterface = require('./ai/AIInterface.js');
-var MongoInterface = require('./MongoInterface');
-
-// login modules
 var sessions = require('client-sessions');
-var mongodb = require('mongodb');
-
+var go = require('./game/go');
+var constants = require('./game/constants');
+var AIInterface = require('./ai/AIInterface');
+var MongoInterface = require('./MongoInterface');
 
 var app = express();
 var messageBus = new EventEmitter();
@@ -18,8 +13,6 @@ var messageBus = new EventEmitter();
 app.use(express.static("public"));
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
-
-// login
 app.use(sessions({
     cookieName: 'session',
     secret: 'sh',
@@ -31,10 +24,6 @@ app.use(sessions({
 app.get('/', function(req,res) {
     res.redirect('/login.html');
 });
-
-//connect with mongoclient
-var MongoClient = mongodb.MongoClient;
-var url = "mongodb://localhost:27017/GoData";
 
 /**
  * Set up server
@@ -52,17 +41,13 @@ app.get('/', function(req,res) {
 //if logged in route to gamepage else route to login
 app.post('/playAIB', function(req, res) {
     if (req.session && req.session.user){
-            console.log("Session active: directing " + req.session.user.username + " to gamepage");
-            res.write(JSON.stringify({
-                redirect: '/gamepage.html',
-                status: 'OK',
-                login: 'yes'
-            }));
-            res.end();
-
-    }
-    else {
-        console.log("No session active: directing to login");
+        res.write(JSON.stringify({
+            redirect: '/gamepage.html',
+            status: 'OK',
+            login: 'yes'
+        }));
+        res.end();
+    } else {
         res.write(JSON.stringify({
             redirect: '',
             status: 'noSession',
