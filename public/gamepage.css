@@ -1,0 +1,55 @@
+#container {
+    position: relative;
+    border-style: solid;
+    border-color: red;
+
+    min-height: 700px;
+    min-width: 700px;
+
+    width: 98vw;
+    height: 97vh;
+}
+
+#gameContainer {
+
+    position: absolute;
+    border-style: solid;
+    border-color: yellow;
+    min-width: 700px;
+    width: 70vw;
+    min-height: 700px;
+    height: inherit;
+}
+
+#boardContainer {
+
+    position: absolute;
+    border-style: solid;
+    border-color: green;
+    width: 650px;
+    height: 650px;
+    margin-left: auto;
+    margin-right: auto;
+    left: 0;
+    right: 0;
+
+}
+
+#dataContainer {
+    position: absolute;
+    right: -300px;
+    border-style: solid;
+    border-color: blue;
+    width: 300px;
+    min-height: 700px;
+
+    height: inherit;
+}
+
+
+
+* {
+  -webkit-box-sizing: border-box;
+     -moz-box-sizing: border-box;
+          box-sizing: border-box;
+}
