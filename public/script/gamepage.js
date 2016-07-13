@@ -17,18 +17,16 @@ window.onload = function() {
  */
 function newGame() {
     $("#newGameButton").hide();
-    $.post("/newGame", "Client wants new game", function(gameID, status) { 
-        
-        if (gameID) { // if there server returns a session/game ID create and display board
-            canvas = document.createElement('canvas');
-            $("body").append(canvas);
-            gameBoard = new Board(9, 50, canvas, gameID);
-            $("canvas").click(boardClicked);
-            gameBoard.drawBoard();
+    $.post("/newGame", "Client wants new game", function(status) { 
 
-            longpoll();
-        }
-    });
+        canvas = document.createElement('canvas');
+        $("body").append(canvas);
+        gameBoard = new Board(9, 50, canvas);
+        $("canvas").click(boardClicked);
+        gameBoard.drawBoard();
+
+        longpoll();
+    })
 }
 
 /**
@@ -36,7 +34,7 @@ function newGame() {
  */
 function boardClicked(event) {
         var position = gameBoard.getIntersection(event.clientX, event.clientY);
-        var move = {"x": position[0], "y": position[1], gameID: gameBoard.gameID};
+        var move = {"x": position[0], "y": position[1]};
         
         $.post("/makeClientMove", move, function(data) {    
             if (data == "Illegal Move") { // TODO: fix this to actually handle more errors
@@ -51,12 +49,11 @@ function boardClicked(event) {
 }
 
 function longpoll() {
-    var gameID = {gameID: gameBoard.gameID};
     
     $.ajax({
         method: 'POST',
         url: '/longpoll',
-        data: gameID,
+        data: {},
         success: function(data) {
             
             gameBoard.placePiece(data.x, data.y, data.color);

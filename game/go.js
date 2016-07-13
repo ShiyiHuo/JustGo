@@ -177,6 +177,10 @@ function isValidMove(game, xPos, yPos, color, pass) {
     return true;
 }
 
+function getScore(game) {
+    
+}
+
 /**
  * This module's "public interface"
  */

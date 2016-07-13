@@ -7,7 +7,7 @@ var COLOR = {
 
 class Board {
 
-    constructor(boardSize, squareSize, canvas, gameID) {
+    constructor(boardSize, squareSize, canvas) {
         
         //create the board based on boardSize
         this.squareSize = squareSize; // pixel width of board squares
@@ -16,7 +16,6 @@ class Board {
         this.width = this.squareSize * (boardSize - 1);
         this.height = this.squareSize * (boardSize - 1);
         this.lineSize = 3;
-        this.gameID = gameID;
         this.boardState;
 
         //change the canvas attributes

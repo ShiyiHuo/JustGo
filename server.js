@@ -162,9 +162,12 @@ app.post("/newGame", function(req, res, next) {
     
     // create new game in database, respond with game id
     MongoInterface.newGame(size, false, function(gameID) {
-        res.json(gameID); // NOTE: won't need to send game id in the future, will just pair a gameID with the user's session
+        req.session.gameID = gameID;
+        //res.json(gameID); // NOTE: won't need to send game id in the future, will just pair a gameID with the user's session
         res.end();
     });
+
+    debugger;
 
 });
 
@@ -180,7 +183,7 @@ app.post("/newGame", function(req, res, next) {
 app.post("/longpoll", function(req, res, next) {
 
     // wait for 'AI TURN <gameID>' event to query AI and respond to longpoll request
-    var aiTurnEvent = 'AI TURN ' + req.body.gameID; 
+    var aiTurnEvent = 'AI TURN ' + req.session.gameID; 
     messageBus.once(aiTurnEvent, onAiTurnEvent);
 
     // remove the event listener after 30 seconds. NOTE: This period NEEDS to match long-polling timeout period on client 
@@ -208,7 +211,7 @@ app.post("/longpoll", function(req, res, next) {
 
             // update game in database after AI move
             MongoInterface.makeMoveOnGameWithID(
-                req.body.gameID,
+                req.session.gameID,
                 aiMove.y,
                 aiMove.x,
                 aiMove.c,
@@ -233,9 +236,10 @@ app.post("/longpoll", function(req, res, next) {
  */
 app.post("/makeClientMove", function(req, res, next) {
     
+    debugger;
     // find game in database and make move then respond with Move object
     MongoInterface.makeMoveOnGameWithID(
-        req.body.gameID, // NOTE: in the future, gameID will be looked up based on the user's session (will pair user sessions with active games) 
+        req.session.gameID, // NOTE: in the future, gameID will be looked up based on the user's session (will pair user sessions with active games) 
         req.body.x, 
         req.body.y, 
         constants.clientColor, 
@@ -246,7 +250,7 @@ app.post("/makeClientMove", function(req, res, next) {
             
             // see if we need to query AI
             if (game.clientColor != game.turn && !game.hotseatMode) { // not in hotseat mode and it is the AI's turn
-                var aiTurnEvent = 'AI TURN ' + req.body.gameID; // format for AI TURN event string is 'AI TURN <gameID'
+                var aiTurnEvent = 'AI TURN ' + req.session.gameID; // format for AI TURN event string is 'AI TURN <gameID'
                 messageBus.emit(aiTurnEvent, game); // emmit 'AI TURN <gameID> event to query the AI and respond to long poll request
             }
         }
