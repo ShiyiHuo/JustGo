@@ -148,7 +148,7 @@ function makeMove(game, xPos, yPos, color, pass) {
     var move = new Move(xPos, yPos, color, capturedPieces);
     game.moveHistory.push(move);
     
-    return move; 
+    return { board: game.board, capturedPieces: capturedPieces }; 
 }
 
 /**

@@ -16,7 +16,7 @@ app.use(bodyParser.json());
 app.use(sessions({
     cookieName: 'session',
     secret: 'sh',
-    duration: 60*1000,
+    duration: 60 * 1000,
     activeDuration: 0
 }));
 
@@ -163,7 +163,6 @@ app.post("/newGame", function(req, res, next) {
     // create new game in database, respond with game id
     MongoInterface.newGame(size, false, function(gameID) {
         req.session.gameID = gameID;
-        //res.json(gameID); // NOTE: won't need to send game id in the future, will just pair a gameID with the user's session
         res.end();
     });
 
@@ -236,7 +235,6 @@ app.post("/longpoll", function(req, res, next) {
  */
 app.post("/makeClientMove", function(req, res, next) {
     
-    debugger;
     // find game in database and make move then respond with Move object
     MongoInterface.makeMoveOnGameWithID(
         req.session.gameID, // NOTE: in the future, gameID will be looked up based on the user's session (will pair user sessions with active games) 
