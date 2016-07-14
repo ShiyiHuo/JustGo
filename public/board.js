@@ -7,7 +7,7 @@ var COLOR = {
 
 class Board {
 
-    constructor(boardSize, canvasSize, canvas, gameID) {
+    constructor(boardSize, canvasSize, canvas) {
 
         this.boardSize = boardSize;
 
@@ -33,8 +33,6 @@ class Board {
 
         this.context = canvas.getContext("2d");
         this.lineSize = 2; // the width of the grid lines
-
-        this.gameID = gameID;
     }
 
     calibrate(canvas, canvasSize) {

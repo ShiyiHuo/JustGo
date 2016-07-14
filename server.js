@@ -10,14 +10,13 @@ var MongoInterface = require('./MongoInterface');
 var app = express();
 var messageBus = new EventEmitter();
 
-app.use(express.static("public"));
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use(sessions({
     cookieName: 'session',
     secret: 'sh',
-    duration: 60 * 1000,
-    activeDuration: 0
+    duration: 5 * 60 * 1000,
+    activeDuration: 1 * 60 * 1000
 }));
 
 //redirect requests to the login page
@@ -30,11 +29,21 @@ app.get('/', function(req,res) {
  */
 app.listen(30144, function() {
     console.log("Express listening on port 30144");
-}); 
+});
 
 //redirect requests to the login page
 app.get('/', function(req,res) {
     res.redirect('/login.html');
+});
+
+app.get('/gamepage.html', function (req,res,next){
+    if (req.session && req.session.user) {
+        next();
+    } else {
+        res.redirect('/login.html');
+        res.end();
+
+   }
 });
 
 //user selects to play AI
@@ -70,7 +79,7 @@ app.post('/login', function(req,res) {
                 redirect: '/gamepage.html',
                 status: 'OK',
                 login: 'yes'
-            }));        
+            }));
         } else {
             res.write(JSON.stringify({
                 redirect: '',
@@ -129,14 +138,14 @@ app.post('/signUp', function(req,res) {
                 status: 'OK',
                 login: 'yes'
             }));
-            res.end();            
+            res.end();
         } else {
             res.write(JSON.stringify({
                 redirect: '',
                 status: 'invalidUsername',
                 login: 'no'
-            }));  
-            res.end();          
+            }));
+            res.end();
         }
     });
 
@@ -145,21 +154,21 @@ app.post('/signUp', function(req,res) {
 
 /**
  * Create a new game state and store it in database
- * 
+ *
  * @param req should be in form { size : int, hotseat : boolean }
- * 
- * @return response is a gameID 
+ *
+ * @return response is a gameID
  */
 app.post("/newGame", function(req, res, next) {
 
     // TODO: allow for customizable sizes
-    // TODO: option to construct game with game.hotseatMode = true  
+    // TODO: option to construct game with game.hotseatMode = true
 
     var size = 9;
 
-    // TODO: also check if it is hotseat play and not clients turn. 
+    // TODO: also check if it is hotseat play and not clients turn.
     // In that case emit an 'AI TURN' event here aswell
-    
+
     // create new game in database, respond with game id
     MongoInterface.newGame(size, false, function(gameID) {
         req.session.gameID = gameID;
@@ -172,40 +181,40 @@ app.post("/newGame", function(req, res, next) {
 
 /**
  * Periodic polling request from the client every 30 seconds.
- * The request is responded to with move data when the AI is querried 
+ * The request is responded to with move data when the AI is querried
  * The AI is querried when events with string "AI TURN <gameID>" are emitted
- * 
- * @param req should be in form { gameID : string } 
- * 
+ *
+ * @param req should be in form { gameID : string }
+ *
  * @return response (if not empty) is a Move object
  */
 app.post("/longpoll", function(req, res, next) {
 
     // wait for 'AI TURN <gameID>' event to query AI and respond to longpoll request
-    var aiTurnEvent = 'AI TURN ' + req.session.gameID; 
+    var aiTurnEvent = 'AI TURN ' + req.session.gameID;
     messageBus.once(aiTurnEvent, onAiTurnEvent);
 
-    // remove the event listener after 30 seconds. NOTE: This period NEEDS to match long-polling timeout period on client 
+    // remove the event listener after 30 seconds. NOTE: This period NEEDS to match long-polling timeout period on client
     setTimeout(function() {
         messageBus.removeListener(aiTurnEvent, onAiTurnEvent);
         res.end();
-    }, 30000); 
+    }, 30000);
 
-    function onAiTurnEvent(game) { 
+    function onAiTurnEvent(game) {
         var board = game.board;
         var size = game.board.length;
-        var lastMove = game.moveHistory[game.moveHistory.length - 1]; 
+        var lastMove = game.moveHistory[game.moveHistory.length - 1];
         var formattedAIInput = { size: size,
                                 board: board,
-                                last: {x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c : lastMove.color} }; 
+                                last: {x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c : lastMove.color} };
 
         AIInterface.query(formattedAIInput, onAiResponse);
 
-        function onAiResponse(body) {    
+        function onAiResponse(body) {
             var aiMove = JSON.parse(body);
             var boardUpdates = go.makeMove(game, aiMove.y, aiMove.x, aiMove.c, aiMove.pass); // NOTE: the AI API uses "x" for rows (confusingly?)
 
-            // TODO: handle errors thown by go.makeMove 
+            // TODO: handle errors thown by go.makeMove
             // TODO: check AI legal move and requry if not legal
 
             // update game in database after AI move
@@ -222,7 +231,7 @@ app.post("/longpoll", function(req, res, next) {
                 }
             );
 
-        }   
+        }
     }
 
 });
@@ -230,22 +239,22 @@ app.post("/longpoll", function(req, res, next) {
 /**
  * Sent when the client clicks the board.
  * @param req should be in form { x: int, y: int, gameID: int, pass: boolean, resign: boolean }
- * 
+ *
  * @return response is a Move object
  */
 app.post("/makeClientMove", function(req, res, next) {
-    
+
     // find game in database and make move then respond with Move object
     MongoInterface.makeMoveOnGameWithID(
-        req.session.gameID, // NOTE: in the future, gameID will be looked up based on the user's session (will pair user sessions with active games) 
-        req.body.x, 
-        req.body.y, 
-        constants.clientColor, 
-        false, 
+        req.session.gameID, // NOTE: in the future, gameID will be looked up based on the user's session (will pair user sessions with active games)
+        req.body.x,
+        req.body.y,
+        constants.clientColor,
+        false,
         function(game, boardUpdates) {
             res.json(boardUpdates);
             res.end();
-            
+
             // see if we need to query AI
             if (game.clientColor != game.turn && !game.hotseatMode) { // not in hotseat mode and it is the AI's turn
                 var aiTurnEvent = 'AI TURN ' + req.session.gameID; // format for AI TURN event string is 'AI TURN <gameID'
@@ -255,3 +264,5 @@ app.post("/makeClientMove", function(req, res, next) {
     );
 
 });
+
+app.use(express.static("public"));
