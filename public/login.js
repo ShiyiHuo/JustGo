@@ -9,42 +9,72 @@ $(document).ready(function() {
 //show the welcome page
 function showWelcome() {
 
-
-    $('body').append('<h1>Welcome to Go by DeepFriedMilk</h1>');
-    $('body').append('<h2>Select game mode</h2>');
-    $('body').append('<button type="button" class="button" id="playAIB">Player vs AI</button><br>');
-    $('body').append('<button type="button" class="button" id="playHSB">Player vs Player</button><br>');
-
+    
     $.post("/getStatus", function(data,status) {
-
+           
         data = JSON.parse(data);
         if (data.login == "yes") {
-                showLogout();
-                console.log("Logged in");
+           showMenuBar("logged in");
+          // showLogout();
+           console.log("Logged in");
+        } else {
+           showMenuBar();
         }
+           
+           $('body').append('<h1>Welcome to Go by DeepFriedMilk</h1>');
+           //$('body').append('<h2>Select game mode</h2>');
+           $('body').append('<button type="button" class="button" id="playAIB">Player vs AI</button><br>');
+           $('body').append('<button type="button" class="button" id="playHSB">Player vs Player</button><br>');
+           
+           
+           
+           
+           $('#playAIB').on('click', function() {
+                $.post("/playAIB", function(data, status) {
+                    data = JSON.parse(data);
+                    if (data.status == "noSession") {
+                        $('body').children().remove();
+                        showSignOptions();
+                    }
+                    else {
+                        window.location = data.redirect;
+                    }
+                });
+            });
+           
+           
+           $('#playHSB').on('click', function() {
+                $.post("/playHSB", function(data, status) {
+                    data = JSON.parse(data);
+                    if (data.status == "noSession") {
+                        $('body').children().remove();
+                        showSignOptions();
+                    }
+                    else {
+                        window.location = data.redirect;
+                    }
+                });
+            });
+           
     });
+    
 
-
-    $('#playAIB').on('click', function() {
-        $.post("/playAIB", function(data, status) {
-            data = JSON.parse(data);
-            if (data.status == "noSession") {
-                $('body').children().remove();
-                showSignOptions();
-            }
-            else {
-                window.location = data.redirect;
-            }
-        });
-    });
+ 
 
 }
 
 function showSignOptions () {
+    $('body').append('<button class="backButton" id="signOptionsGoBack">Go Back</button><br>');
+    
     $('body').append('<button type="button" class="button" id="loginOptionB">Login</button><br>');
     $('body').append('<button type="button" class="button" id="signOptionB">Sign up</button><br>');
     $('body').append('<button type="button" class="button" id="guestOptionB">Proceed as guest</button><br>');
-
+    
+    $('#signOptionsGoBack').on('click', function() {
+        $('body').children().remove();
+        showWelcome();
+    });
+    
     $('#loginOptionB').on('click', function() {
         $('body').children().remove();
         showLogin();
@@ -64,16 +94,22 @@ function showSignOptions () {
 
 //show the signup page
 function showSignUp() {
-    $('body').append('<h2>Sign Up</h2>');
-    $('body').append('<h3>Username</h3>');
-    $('body').append('<input type=text id="username"><br>')
-    $('body').append('<h3>Password</h3>');
-    $('body').append('<input type=text id="password"><br>');
-    $('body').append('<button type="button" class="button" id="signUpSubmitB">submit</button>');
+    $('body').append('<button class="backButton" id="signUpGoBack">Go Back</button>');
+    
+    $('body').append('<p class="username_label" id="usern_signup_label">Username</p>');
+    $('body').append('<input type=text id="usern_signup_textbox"><br>')
+    $('body').append('<p class="password_label" id="pw_signup_label">Password</p>');
+    $('body').append('<input type=text id="pw_signup_textbox"><br>');
+    $('body').append('<button type="button" class="button" id="signUpSubmitB">Sign up</button>');
+    
+    $('#signUpGoBack').on('click', function() {
+        $('body').children().remove();
+        showSignOptions();
+    });
 
     $('#signUpSubmitB').on('click', function() {
-        var username = $('#username').val();
-        var password = $('#password').val();
+        var username = $('#usern_signup_textbox').val();
+        var password = $('#pw_signup_textbox').val();
         var signUpData = {
             'username' : username,
             'password' : password
@@ -93,16 +129,21 @@ function showSignUp() {
 
 //show the login page
 function showLogin() {
-    $('body').append('<h2>Login</h2>');
-    $('body').append('<h3>Username</h3>');
-    $('body').append('<input type=text id="username"><br>')
-    $('body').append('<h3>Password</h3>');
-    $('body').append('<input type=text id="password"><br>');
-    $('body').append('<button type="button" class="button" id="loginSubmitB">submit</button>');
-
+    $('body').append('<button class="backButton" id="loginGoBack">Go Back</button>');
+    $('body').append('<p class="username_label" id="usern_login_label">Username</p>');
+    $('body').append('<input type=text id="usern_login_textbox"><br>')
+    $('body').append('<p class="password_label" id="pw_login_label">Password</p>');
+    $('body').append('<input type=text id="pw_login_textbox"><br>');
+    $('body').append('<button type="button" class="button" id="loginSubmitB">Log in</button>');
+    
+    $('#loginGoBack').on('click', function() {
+                          $('body').children().remove();
+                          showSignOptions();
+                          });
+    
     $('#loginSubmitB').on('click', function() {
-        var username = $('#username').val();
-        var password = $('#password').val();
+        var username = $('#usern_login_textbox').val();
+        var password = $('#pw_login_textbox').val();
         var loginData = {
             'username' : username,
             'password' : password
@@ -132,3 +173,45 @@ function showLogout() {
         });
     });
 }
+
+//show menu bar
+function showMenuBar(login) {
+
+    if (login == "logged in") {
+ 
+        $('body').append('<ul>' +
+                         '<li><a href="#">Log Out</a></li>' +
+                         '<li><a href="#">User Center</a></li>' +
+                         '</ul>');
+        
+        
+        
+    }
+    
+    else {
+        
+        $('body').append('<ul>' +
+                         '<li><a href="#">User Center</a></li>' +
+                         '</ul>');
+        
+    }
+
+    
+    
+}
+
+
+//back button
+function goBack() {
+    window.history.back();
+}
+
+
+
+
+
+
+
+
+
+
