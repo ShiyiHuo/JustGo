@@ -179,6 +179,52 @@ function isValidMove(game, xPos, yPos, color, pass) {
 
 function getScore(game) {
     
+    var blackScore = 0;
+    var whiteScore = 0;
+    var influence = [];
+    for (var i = 0; i < game.board.length; i++) {
+        influence[i] = new Array(game.board.length).fill(0);
+    }
+    
+    for (var i = 0; i < game.board.length; i++) {
+        for (var j = 0; j < game.board.length; j++) {
+            if (game.board[i][j] == constants.black) {
+                createBlackInfluence(i, j);    
+            } 
+            if (game.board[i][j] == constants.white) {
+                createWhiteInfluence(i, j);
+            }
+        }
+    }
+
+    for (var i = 0; i < influence.length; i++) {
+        for (var j = 0; j < influence.length; j++) {
+            if (influence[i][j] > 0) {
+                blackScore++;
+            } else if (influence[i][j] < 0) {
+                whiteScore++;
+            }
+        }
+    }
+
+    function createBlackInfluence(i, j) {
+        for (var y = 0; y < influence.length; y++) {
+            for (var x = 0; x < influence.length; x++) {
+                influence[y][x] += Math.round(game.board.length - Math.sqrt((x-i)*(x-i) + (y-i)*(y-i)));
+            }
+        }
+    }
+
+    function createWhiteInfluence(i, j) {
+        for (var y = 0; y < influence.length; y++) {
+            for (var x = 0; x < influence.length; x++) {
+                influence[y][x] += Math.round(-game.board.length + Math.sqrt((x-i)*(x-i) + (y-i)*(y-i)));
+            }
+        }
+    }
+    
+    return {whiteScore: whiteScore, blackScore: blackScore};
+
 }
 
 /**
@@ -187,5 +233,6 @@ function getScore(game) {
 module.exports = {
     makeMove: makeMove,
     GameException: GameException,
-    isValidMove: isValidMove
+    isValidMove: isValidMove,
+    getScore: getScore
 };
