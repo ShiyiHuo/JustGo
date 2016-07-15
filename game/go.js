@@ -57,7 +57,7 @@ function makeMove(game, xPos, yPos, color, pass) {
 
     // For all tiles with pieces on board, find armies to calculate liberties
     // append to capturedPieces if an army has no liberties
-    var capturedPieces = [];
+    var capturedPieces = new Set();
     for (var i = 0; i < game.board.length; i++) {
         for (var j = 0; j < game.board.length; j++) {
                 
@@ -117,15 +117,21 @@ function makeMove(game, xPos, yPos, color, pass) {
 
                 // army is captured if it has no liberties
                 if (liberties == 0) {
-                    capturedPieces = Array.from(army);
+                    army.forEach((element) => {
+                        capturedPieces.add(element);
+                    });
                 }
 
             }
         }
     }
-    if (capturedPieces.indexOf(point(xPos, yPos)) != -1) {
+    
+    console.log(capturedPieces);
+    console.log(pointPlain(xPos, yPos));
+    console.log('has ' + capturedPieces.has(pointPlain(xPos, yPos)));
+    if (capturedPieces.has(pointPlain(xPos, yPos))) {
         throw new GameException("You cannot commit suicide.");
-    }
+    } 
 
     // switch turn state to opposite color
     if (game.turn == constants.black) {
@@ -140,12 +146,6 @@ function makeMove(game, xPos, yPos, color, pass) {
         game.board[piece.y][piece.x] = constants.empty;
     }
 
-    // convert the "point" JSON string back to object 
-    // TODO: could this be put into above loop?
-    for (var i = 0; i < capturedPieces.length; i++) {
-        capturedPieces[i] = JSON.parse(capturedPieces[i]);
-    }
-
     var move = new Move(xPos, yPos, color, capturedPieces);
     game.moveHistory.push(move);
 
@@ -153,8 +153,12 @@ function makeMove(game, xPos, yPos, color, pass) {
     
     return { board: game.board, capturedPieces: capturedPieces, whiteScore: scores.whiteScore, blackScore: scores.blackScore }; 
 
+    function pointPlain(x, y) {
+        return '{"x":' + x + ',"y":' + y + '}';
+    }
+
     function point(x, y) {
-        return JSON.stringify({"x": x, "y": y});
+        return JSON.stringify({x: x, y: y});
     }
 }
 

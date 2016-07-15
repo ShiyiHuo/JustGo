@@ -192,7 +192,6 @@ app.get("/longpoll", function(req, res, next) {
 
     const aiTurnEvent = events.aiTurn(req.session.gameID);
     const gameOverEvent = events.gameOver(req.session.gameID);
-    debugger;
     messageBus.once(aiTurnEvent, onAiTurnEvent);
     messageBus.once(gameOverEvent, onGameOverEvent);
 
@@ -215,7 +214,6 @@ app.get("/longpoll", function(req, res, next) {
     }
 
     function onAiTurnEvent(game) {
-        console.log("AI TURN EVENT");
         var board = game.board;
         var size = game.board.length;
         var lastMove = game.moveHistory[game.moveHistory.length - 1];
@@ -242,7 +240,6 @@ app.get("/longpoll", function(req, res, next) {
                 aiMove.pass,
                 function() {
                     // end response with board updates
-                    console.log("AI MOVE: " + JSON.stringify(aiMove));
                     res.json(boardUpdates);
                     res.end();
                     messageBus.removeAllListeners(aiTurnEvent);
@@ -293,17 +290,16 @@ app.post("/makeClientMove", function(req, res, next) {
         false,
         function(err, game, boardUpdates) {
             
-            /*if (err) {
+            if (err) {
                 res.write(String(err));
                 res.end();
                 return;
-            } */
+            } 
             
             res.json(boardUpdates);
             res.end();
-           debugger;
+         
             if (game.clientColor != game.turn && !game.hotseatMode) { // see if we need to query AI
-                debugger;
                 messageBus.emit(events.aiTurn(req.session.gameID), game); // emit event to respond to longpoll
             }
         }
