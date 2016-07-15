@@ -4,12 +4,22 @@ $(document).ready(function() {
 
     $.post("/newGame", "Client wants new game", function(data, status) {
 
+            //create the canvas append it and pass it to the board object
             var canvas = document.createElement("CANVAS");
             canvas.id = "canvas";
             canvas.width = $('#boardContainer').width();
             canvas.height = $('#boardContainer').height();
-            $(canvas).click(boardClicked);
+            $(canvas).click(boardClicked);             //give the canvas a click event
             $('#boardContainer').append(canvas);
+
+            //create the pass and resign buttons and append them to the board
+
+            $('#boardContainer').append('<button type="button" class="button" id="passB">PASS</button><br>');
+            $('#boardContainer').append('<button type="button" class="button" id="resignB">RESIGN</button><br>');
+            $('#passB').click(passBClicked);
+            $('#resignB').click(resignBClicked);
+
+
             gameboard = new Board(9,$('#boardContainer').width(),canvas);
             gameboard.drawCurrentBoard();
             $(window).resize(windowResized);
@@ -39,6 +49,14 @@ function boardClicked(event) {
             gameboard.updateBoard(data.board);
         });
     }
+}
+
+function passBClicked(event){
+    console.log("Pass button clicked");
+}
+
+function resignBClicked(event) {
+    console.log("Resigned button clicked");
 }
 
 function longpoll() {
