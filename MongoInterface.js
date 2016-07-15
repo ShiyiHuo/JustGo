@@ -94,9 +94,11 @@ class MongoInterface {
             var boardUpdates;
             try {
                 boardUpdates = go.makeMove(game, x, y, turn, pass);
+                console.log(game);
             } catch (err) {
                 if (err instanceof go.GameException) {
                     callback(err);
+                    return;
                 }
             }
 

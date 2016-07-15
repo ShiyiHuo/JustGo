@@ -279,7 +279,7 @@ app.get("/game", function(req, res) {
  * @return response is { board: Array, capturedPieces: Array, whiteScore: Number, blackScore: Number }
  */
 app.post("/makeClientMove", function(req, res, next) {
-
+    console.log("POST: " + JSON.stringify(req.body));
     // find game in database and make move then respond with board updates
     MongoInterface.makeMoveOnGameWithID(
         req.session.gameID, 
@@ -288,6 +288,12 @@ app.post("/makeClientMove", function(req, res, next) {
         constants.clientColor,
         false,
         function(err, game, boardUpdates) {
+            if (err) {
+                res.write(String(err));
+                res.end();
+                return;
+            }
+            
             res.json(boardUpdates);
             res.end();
             
