@@ -24,7 +24,7 @@ app.use(sessions({
     activeDuration: 0
 }));
 
-//redirect requests to the login page
+// redirect requests to the login page
 app.get('/', function(req,res) {
     res.redirect('/login.html');
 });
