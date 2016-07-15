@@ -103,10 +103,10 @@ class Board {
 
     drawCurrentBoard() {
         this.drawEmptyBoard();
-        for (var i = 0; i < this.board.length; i++){
-            for (var j = 0; j < this.board[i].length; j++) {
-                if (this.board[i][j] != 0) {
-                    this.drawPiece(i,j,this.board[i][j]);
+        for (var y = 0; y < this.board.length; y++){
+            for (var x = 0; x < this.board.length; x++) {
+                if (this.board[y][x] != 0) {
+                    this.drawPiece(x, y, this.board[y][x]);
                 }
             }
         }
@@ -134,7 +134,7 @@ class Board {
             ypos = closestYGL;
         }
         if (xpos != -1 && ypos != -1) {
-            return [xpos, ypos];
+            return {x: xpos, y: ypos};
         } else {
             return;
         }

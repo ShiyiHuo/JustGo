@@ -188,9 +188,11 @@ app.post("/newGame", function(req, res, next) {
  * @return response (if not empty) is a Move object
  */
 app.get("/longpoll", function(req, res, next) {
+    console.log("GET to /longpoll");
 
     const aiTurnEvent = events.aiTurn(req.session.gameID);
     const gameOverEvent = events.gameOver(req.session.gameID);
+    debugger;
     messageBus.once(aiTurnEvent, onAiTurnEvent);
     messageBus.once(gameOverEvent, onGameOverEvent);
 
@@ -213,6 +215,7 @@ app.get("/longpoll", function(req, res, next) {
     }
 
     function onAiTurnEvent(game) {
+        console.log("AI TURN EVENT");
         var board = game.board;
         var size = game.board.length;
         var lastMove = game.moveHistory[game.moveHistory.length - 1];
@@ -280,6 +283,7 @@ app.get("/game", function(req, res) {
  */
 app.post("/makeClientMove", function(req, res, next) {
     console.log("POST: " + JSON.stringify(req.body));
+   
     // find game in database and make move then respond with board updates
     MongoInterface.makeMoveOnGameWithID(
         req.session.gameID, 
@@ -288,16 +292,18 @@ app.post("/makeClientMove", function(req, res, next) {
         constants.clientColor,
         false,
         function(err, game, boardUpdates) {
-            if (err) {
+            
+            /*if (err) {
                 res.write(String(err));
                 res.end();
                 return;
-            }
+            } */
             
             res.json(boardUpdates);
             res.end();
-            
+           debugger;
             if (game.clientColor != game.turn && !game.hotseatMode) { // see if we need to query AI
+                debugger;
                 messageBus.emit(events.aiTurn(req.session.gameID), game); // emit event to respond to longpoll
             }
         }

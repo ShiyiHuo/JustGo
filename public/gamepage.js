@@ -44,11 +44,12 @@ function windowResized(event) {
 function boardClicked(event) {
 
     var position = gameboard.getIntersection(event.clientX, event.clientY);
+    console.log(position);
 
-    if (gameboard.board[position[0]][position[1]] != 0) {
+    if (gameboard.board[position.y][position.x] != 0) {
         console.log("You cannot place a piece here");
     } else {
-        var move = {x: position[1], y: position[0]};
+        var move = {x: position.x, y: position.y};
         $.post("/makeClientMove", move, function(data,status) {
             gameboard.updateBoard(data.board);
         });
