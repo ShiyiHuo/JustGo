@@ -91,12 +91,20 @@ class MongoInterface {
                 turn = game.clientColor;
             }
 
-            var boardUpdates = go.makeMove(game, x, y, turn, pass);
+            var boardUpdates;
+            try {
+                boardUpdates = go.makeMove(game, x, y, turn, pass);
+            } catch (err) {
+                if (err instanceof go.GameException) {
+                    callback(err);
+                }
+            }
+
             game.markModified('board'); // needed to let mongoose know the nested array was modified
             game.save(function(err, game) {
                 if (err) return console.error(err);
                 if (!game) return console.error("could not find game with id: " + id);
-                callback(game, boardUpdates);
+                callback(null, game, boardUpdates);
             });
         });
     }

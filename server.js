@@ -287,7 +287,7 @@ app.post("/makeClientMove", function(req, res, next) {
         req.body.y,
         constants.clientColor,
         false,
-        function(game, boardUpdates) {
+        function(err, game, boardUpdates) {
             res.json(boardUpdates);
             res.end();
             
