@@ -21,7 +21,7 @@ app.use(sessions({
     cookieName: 'session',
     secret: 'sh',
     duration: 5 * 60 * 1000,
-    activeDuration: 1 * 60 * 1000
+    activeDuration: 0
 }));
 
 //redirect requests to the login page
@@ -185,6 +185,7 @@ app.post("/newGame", function(req, res, next) {
  * @return response (if not empty) is are board updates, scores
  */
 app.get("/longpoll", function(req, res, next) {
+    console.log("GET: /longpoll");
     const aiTurnEvent = events.aiTurn(req.session.gameID);
     const gameOverEvent = events.gameOver(req.session.gameID);
     messageBus.once(aiTurnEvent, onAiTurnEvent);
@@ -219,11 +220,13 @@ app.get("/longpoll", function(req, res, next) {
         AIInterface.query(formattedAIInput, onAiResponse);
 
         function onAiResponse(body) {
+            debugger;
             var aiMove = JSON.parse(body);
             
             var boardUpdates;
             
             try {
+                debugger;
                 boardUpdates = go.makeMove(game, aiMove.y, aiMove.x, aiMove.c, aiMove.pass); // NOTE: the AI API uses "x" for rows (confusingly?)
             } catch (err) {
                 if (err instanceof go.GameException) {
@@ -245,6 +248,7 @@ app.get("/longpoll", function(req, res, next) {
                 aiMove.pass,
                 function() {
                     // end response with board updates
+                    debugger;
                     res.json(boardUpdates);
                     res.end();
                     messageBus.removeAllListeners(aiTurnEvent);
@@ -306,6 +310,7 @@ app.post("/makeClientMove", function(req, res, next) {
             res.end();
          
             if (game.clientColor != game.turn && !game.hotseatMode) { // see if we need to query AI
+                debugger;
                 messageBus.emit(events.aiTurn(req.session.gameID), game); // emit event to respond to longpoll
             }
         }
