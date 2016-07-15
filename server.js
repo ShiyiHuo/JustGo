@@ -10,6 +10,7 @@ var MongoInterface = require('./MongoInterface');
 var app = express();
 var messageBus = new EventEmitter();
 
+app.use(express.static("public"));
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use(sessions({
@@ -94,7 +95,6 @@ app.post('/login', function(req,res) {
 
 //client logs out
 app.post('/logout', function(req,res) {
-    console.log("Received request to logout from " + req.session.user.username);
     req.session.reset();
     res.write(JSON.stringify({
         redirect: '/',
@@ -106,21 +106,18 @@ app.post('/logout', function(req,res) {
 
 //client requests current status
 app.post('/getStatus', function(req,res){
-    console.log("Received request to get status");
     if (req.session && req.session.user) {
         res.write(JSON.stringify({
             redirect: '',
             status: 'OK',
             login: 'yes'
         }));
-        console.log("User logged in.")
     } else {
         res.write(JSON.stringify({
             redirect: '',
             status: 'OK',
             login: 'no'
         }));
-        console.log("User not logged in.")
     }
     res.end();
 });
@@ -175,8 +172,6 @@ app.post("/newGame", function(req, res, next) {
         res.end();
     });
 
-    debugger;
-
 });
 
 /**
@@ -201,6 +196,7 @@ app.post("/longpoll", function(req, res, next) {
     }, 30000);
 
     function onAiTurnEvent(game) {
+        debugger;
         var board = game.board;
         var size = game.board.length;
         var lastMove = game.moveHistory[game.moveHistory.length - 1];
@@ -230,10 +226,25 @@ app.post("/longpoll", function(req, res, next) {
                     res.end();
                 }
             );
-
         }
     }
 
+});
+
+/**
+ * Get game state of the client
+ */
+app.get("/game", function(req, res) {
+    if (req.session.gameID) {
+        MongoInterface.getGameWithID(req.session.gameID, function(game) {
+            res.json(game);
+            res.end();
+        })
+        messageBus.removeAllListeners('AI TURN ' + req.session.gameID);
+
+    } else {
+        res.end();
+    }
 });
 
 /**
@@ -253,16 +264,16 @@ app.post("/makeClientMove", function(req, res, next) {
         false,
         function(game, boardUpdates) {
             res.json(boardUpdates);
-            res.end();
-
+            
+            debugger;
             // see if we need to query AI
             if (game.clientColor != game.turn && !game.hotseatMode) { // not in hotseat mode and it is the AI's turn
                 var aiTurnEvent = 'AI TURN ' + req.session.gameID; // format for AI TURN event string is 'AI TURN <gameID'
                 messageBus.emit(aiTurnEvent, game); // emmit 'AI TURN <gameID> event to query the AI and respond to long poll request
             }
+            res.end();
         }
     );
 
 });
 
-app.use(express.static("public"));

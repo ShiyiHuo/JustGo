@@ -1,22 +1,31 @@
 var gameboard = undefined;
 
 $(document).ready(function() {
-
-    $.post("/newGame", "Client wants new game", function(data, status) {
-
-            var canvas = document.createElement("CANVAS");
-            canvas.id = "canvas";
-            canvas.width = $('#boardContainer').width();
-            canvas.height = $('#boardContainer').height();
-            $(canvas).click(boardClicked);
-            $('#boardContainer').append(canvas);
-            gameboard = new Board(9,$('#boardContainer').width(),canvas);
-            gameboard.drawCurrentBoard();
-            $(window).resize(windowResized);
-            longpoll();
+    $.get("/game", function(data, status) {
+        if (data) {
+            initBoard(data.board.length);
+            gameboard.updateBoard(data.board);
+        } else {
+            $.post("/newGame", "Client wants new game", function(data, status) {
+                initBoard(9);
+            });
+        }            
     });
-
 });
+
+
+function initBoard(size) {
+    var canvas = document.createElement("CANVAS");
+    canvas.id = "canvas";
+    canvas.width = $('#boardContainer').width();
+    canvas.height = $('#boardContainer').height();
+    $(canvas).click(boardClicked);
+    $('#boardContainer').append(canvas);
+    gameboard = new Board(size, $('#boardContainer').width(),canvas);
+    gameboard.drawCurrentBoard();
+    $(window).resize(windowResized);
+    longpoll();
+}
 
 function windowResized(event) {
 

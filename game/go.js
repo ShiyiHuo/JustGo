@@ -41,8 +41,7 @@ function makeMove(game, xPos, yPos, color, pass) {
     
     // TODO: implement pass
     if (color != game.turn) {
-        throw new GameException("Not your turn.");
-        
+        throw new GameException("Not your turn. " + "color = " + color + " game.turngame.turn = " + game.turn);  
     }
     if (game.board[yPos][xPos] != constants.empty) {
         throw new GameException("Occupied Place.");
@@ -224,7 +223,6 @@ function getScore(game) {
     }
     
     return {whiteScore: whiteScore, blackScore: blackScore};
-
 }
 
 /**

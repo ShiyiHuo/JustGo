@@ -87,6 +87,13 @@ class MongoInterface {
         });
     }
 
+    getGameWithID(id, callback) {
+        Game.findById(id, function(err, game) {
+            if (err) return console.error(err);
+            callback(game);
+        })
+    }
+
     /**
      * Signs up user with username and password.
      * Callback is executed with true parameter if no error is thrown 
