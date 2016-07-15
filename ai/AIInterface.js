@@ -9,6 +9,8 @@ var options = {
   }
 };
 
+const paths = ['/ai/maxlibs', '/ai/attackEnemy', '/ai/formEyes'];
+
 /**
  * Post request to AI Server
  * 
@@ -20,6 +22,9 @@ var options = {
  * @param callback is executed when the AI returns a move
  */
 function query(postData, callback) {
+    var randomIndex = Math.floor(Math.random() * (paths.length - 1));
+    options.path = paths[randomIndex];
+
     var req = http.request(options, function(res) {
       res.on('data', callback);
     });

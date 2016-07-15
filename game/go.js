@@ -127,6 +127,7 @@ function makeMove(game, xPos, yPos, color, pass) {
     }
     
     if (capturedPieces.has(point(xPos, yPos))) {
+        game.board[yPos][xPos] = constants.empty; // undo the board update
         throw new GameException("You cannot commit suicide.");
     } 
 

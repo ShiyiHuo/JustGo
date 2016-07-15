@@ -185,7 +185,6 @@ app.post("/newGame", function(req, res, next) {
  * @return response (if not empty) is are board updates, scores
  */
 app.get("/longpoll", function(req, res, next) {
-
     const aiTurnEvent = events.aiTurn(req.session.gameID);
     const gameOverEvent = events.gameOver(req.session.gameID);
     messageBus.once(aiTurnEvent, onAiTurnEvent);
@@ -222,8 +221,18 @@ app.get("/longpoll", function(req, res, next) {
         function onAiResponse(body) {
             var aiMove = JSON.parse(body);
             
-            var boardUpdates = go.makeMove(game, aiMove.y, aiMove.x, aiMove.c, aiMove.pass); // NOTE: the AI API uses "x" for rows (confusingly?)
-
+            var boardUpdates;
+            
+            try {
+                boardUpdates = go.makeMove(game, aiMove.y, aiMove.x, aiMove.c, aiMove.pass); // NOTE: the AI API uses "x" for rows (confusingly?)
+            } catch (err) {
+                if (err instanceof go.GameException) {
+                    console.log("AI Made an illegal move: " + JSON.stringify(aiMove));
+                    onAiTurnEvent(game);
+                    return;
+                }
+            } 
+            
             // TODO: handle errors thown by go.makeMove
             // TODO: check AI legal move and requery if not legal
 
@@ -260,8 +269,12 @@ app.get("/game", function(req, res) {
         MongoInterface.getGameWithID(req.session.gameID, function(game) {
             res.json(game);
             res.end();
+            if (game.clientColor != game.turn && !game.hotseatMode) {
+                messageBus.emit(events.aiTurn(req.session.gameID));
+            }  
         });
         messageBus.removeAllListeners(events.aiTurn(req.session.gameID));
+        messageBus.removeAllListeners(events.gameOver(req.session.gameID));
 
     } else {
         res.end();

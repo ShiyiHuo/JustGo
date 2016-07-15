@@ -3,19 +3,21 @@ var gameboard = undefined;
 $(document).ready(function() {
     $.get("/game", function(data, status) {
         if (data) {
+            longpoll();
             initBoard(data.board.length);
             gameboard.updateBoard(data.board);
         } else {
             $.post("/newGame", "Client wants new game", function(data, status) {
                 initBoard(9);
+                longpoll();
             });
-        }            
+        }         
     });
 });
 
 function resign() {
     $.get("/resign", function(data) {
-        
+        window.alert(data);
     });
 }
 
@@ -29,7 +31,6 @@ function initBoard(size) {
     gameboard = new Board(size, $('#boardContainer').width(),canvas);
     gameboard.drawCurrentBoard();
     $(window).resize(windowResized);
-    longpoll();
 }
 
 function windowResized(event) {
