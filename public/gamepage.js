@@ -13,6 +13,11 @@ $(document).ready(function() {
     });
 });
 
+function resign() {
+    $.get("/resign", function(data) {
+        
+    });
+}
 
 function initBoard(size) {
     var canvas = document.createElement("CANVAS");
@@ -43,7 +48,7 @@ function boardClicked(event) {
     if (gameboard.board[position[0]][position[1]] != 0) {
         console.log("You cannot place a piece here");
     } else {
-        var move = {"x": position[1], "y": position[0], gameID: gameboard.gameID};
+        var move = {x: position[1], y: position[0]};
         $.post("/makeClientMove", move, function(data,status) {
             gameboard.updateBoard(data.board);
         });
@@ -51,14 +56,20 @@ function boardClicked(event) {
 }
 
 function longpoll() {
-    var gameID = {gameID: gameboard.gameID};
 
     $.ajax({
-        method: 'POST',
+        method: 'GET',
         url: '/longpoll',
-        data: gameID,
         success: function(data) {
-            gameboard.updateBoard(data.board);
+            
+            if (data.board) { // AI has made move
+                gameboard.updateBoard(data.board);
+            } 
+            if (data.winner) { // game has ended
+                var winner = data.winner == 1? "Black" : "White"; 
+                window.alert("winner is: " + winner + " whiteScore: " + data.whiteScore + " blackScore: " + data.blackScore);
+            }
+            
         },
         complete: longpoll,
         timeout: 30000

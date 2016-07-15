@@ -97,17 +97,35 @@ class MongoInterface {
         })
     }
 
-    endgameWithID(id, callback) {
+    endgameWithID(id, username, callback) {
         Game.findById(id, function(err, game) {
             if (err) return console.error(err);
             
-            var scores = go.getScore(game);
+            var endGame = go.endGame(game);
+            if (endGame.winner == game.clientColor) {
+                //this.updateUserWithWin(true, username);
+            } else {
+                //this.updateUserWithWin(false, username);
+            }
             game.save(function(err, game) {
-                
-            })
-            callback(scores);
-
+                if (err) return console.error(err);
+                callback(endGame.winner, endGame.scores);
+            });
+            
         });
+    }
+
+
+    /**
+     * 
+     */
+    updateUserWithWin(win, username) {
+        /*
+        if (win) {
+
+        } else {
+
+        } */
     }
 
     /**

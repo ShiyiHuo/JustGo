@@ -184,17 +184,32 @@ app.post("/newGame", function(req, res, next) {
  *
  * @return response (if not empty) is a Move object
  */
-app.post("/longpoll", function(req, res, next) {
+app.get("/longpoll", function(req, res, next) {
 
     // wait for 'AI TURN <gameID>' event to query AI and respond to longpoll request
     var aiTurnEvent = 'AI TURN ' + req.session.gameID;
     messageBus.once(aiTurnEvent, onAiTurnEvent);
 
+    var gameOverEvent = 'GAME OVER ' + req.session.gameID;
+    messageBus.once(gameOverEvent, onGameOverEvent);
+
     // remove the event listener after 30 seconds. NOTE: This period NEEDS to match long-polling timeout period on client
     setTimeout(function() {
-        messageBus.removeListener(aiTurnEvent, onAiTurnEvent);
+        messageBus.removeAllListeners(aiTurnEvent);
+        messageBus.removeAllListeners(gameOverEvent);
         res.end();
     }, 30000);
+
+    function onGameOverEvent() {
+        MongoInterface.endgameWithID(req.session.gameID, req.session.username, function(winner, scores) {
+            var responseData = { winner: winner, whiteScore: scores.white, blackScore: scores.black }
+            
+            res.json(responseData);
+            res.end();
+            messageBus.removeAllListeners(aiTurnEvent);
+            messageBus.removeAllListeners(gameOverEvent);
+        })
+    }
 
     function onAiTurnEvent(game) {
         var board = game.board;
@@ -224,6 +239,8 @@ app.post("/longpoll", function(req, res, next) {
                     // end response with board updates
                     res.json(boardUpdates);
                     res.end();
+                    messageBus.removeAllListeners(aiTurnEvent);
+                    messageBus.removeAllListeners(gameOverEvent);
                 }
             );
         }
@@ -231,8 +248,10 @@ app.post("/longpoll", function(req, res, next) {
 
 });
 
-app.get("/endgame", function(req, res) {
-    
+app.get("/resign", function(req, res) {
+    var gameOverEvent = 'GAME OVER ' + req.session.gameID;
+    messageBus.emit(gameOverEvent);
+    res.end();
 });
 
 /**

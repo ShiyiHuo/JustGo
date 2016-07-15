@@ -224,8 +224,22 @@ function getScore(game) {
         }
     }
     
-    return {whiteScore: whiteScore, blackScore: blackScore};
+    return { white: whiteScore, black: blackScore };
 }
+
+/**
+ * "Ends"" a game document. 
+ *  Returns { winner: winner, scores: { black: int, white: int } }
+ */
+function endGame(game) {
+
+    game.active = false;
+    var scores = getScore(game);
+    var winner = scores.white > scores.black ? constants.white : constants.black;
+
+    return { winner: winner, scores: scores };
+}
+
 
 /**
  * This module's "public interface"
@@ -234,5 +248,6 @@ module.exports = {
     makeMove: makeMove,
     GameException: GameException,
     isValidMove: isValidMove,
-    getScore: getScore
+    getScore: getScore,
+    endGame: endGame
 };
