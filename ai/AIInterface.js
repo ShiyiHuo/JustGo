@@ -2,7 +2,7 @@ var http = require("http");
 var options = {
   hostname: '127.0.0.1',
   port: 3000,
-  path: '/ai/maxLibs',
+  path: '/ai/attackEnemy',
   method: 'POST',
   headers: {
       'Content-Type': 'application/json',

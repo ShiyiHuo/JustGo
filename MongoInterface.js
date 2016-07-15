@@ -24,7 +24,9 @@ class MongoInterface {
             moveHistory: Array,
             hotseatMode: Boolean,
             clientColor: Number,
-            active: Boolean
+            active: Boolean,
+            whiteEndTime: Date,
+            blackEndTime: Date
         });
         
         // model the game schema
@@ -52,12 +54,21 @@ class MongoInterface {
             board[i] = new Array(size).fill(constants.empty);
         }
         
+        var whiteEndTime = new Date();
+        whiteEndTime.setMinutes(whiteEndTime.getMinutes() + 15);
+
+        var blackEndTime = new Date();
+        blackEndTime.setMinutes(blackEndTime.getMinutes() + 15);
+
         var game = new Game({
             board: board,
             turn: constants.black,
             moveHistory: [],
             hotseatMode: hotseatMode,
-            clientColor: constants.black
+            clientColor: constants.black,
+            active: true,
+            whiteEndTime: whiteEndTime,
+            blackEndTime: blackEndTime
         });
 
         game.save(function (err, game) {
@@ -94,7 +105,7 @@ class MongoInterface {
         Game.findById(id, function(err, game) {
             if (err) return console.error(err);
             callback(game);
-        })
+        });
     }
 
     endgameWithID(id, username, callback) {

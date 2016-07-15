@@ -1,6 +1,6 @@
 "use strict";
 const constants = require('./constants.js');
-const timer = require('./timer.js')
+const timer = require('../Timer.js')
 
 /**
  * Returned to client after a valid move. 
@@ -21,7 +21,7 @@ class Move {
  */
 class GameException {
     constructor(message) {
-        console.log("GameException: " + message);
+        console.error("GameException: " + message);
         this.message = message;
     }
 }
@@ -40,12 +40,13 @@ class GameException {
 function makeMove(game, xPos, yPos, color, pass) {
     
     // TODO: implement pass
-    if (color != game.turn) {
-        throw new GameException("Not your turn. " + "color = " + color + " game.turngame.turn = " + game.turn);  
-    }
+
     if (game.board[yPos][xPos] != constants.empty) {
         throw new GameException("Occupied Place.");
-    }   
+    }  
+    if (color != game.turn) {
+        throw new GameException("Not your turn. " + " color = " + color + " game.turn = " + game.turn);  
+    }
 
     game.board[yPos][xPos] = color;  // update the board 
 
@@ -74,9 +75,7 @@ function makeMove(game, xPos, yPos, color, pass) {
 
                      // Returns a JSON-string representation of a "point". 
                      // Strings are used to create primitive values for points to allow lookup in Sets in constant time. 
-                    function point(x, y) {
-                        return JSON.stringify({"x": x, "y": y});
-                    }
+
                     army.add(point(x, y));
                     visited[i][j] = true;
                     
@@ -124,6 +123,9 @@ function makeMove(game, xPos, yPos, color, pass) {
             }
         }
     }
+    if (capturedPieces.indexOf(point(xPos, yPos)) != -1) {
+        throw new GameException("You cannot commit suicide.");
+    }
 
     // switch turn state to opposite color
     if (game.turn == constants.black) {
@@ -150,6 +152,10 @@ function makeMove(game, xPos, yPos, color, pass) {
     var scores = getScore(game);
     
     return { board: game.board, capturedPieces: capturedPieces, whiteScore: scores.whiteScore, blackScore: scores.blackScore }; 
+
+    function point(x, y) {
+        return JSON.stringify({"x": x, "y": y});
+    }
 }
 
 /**

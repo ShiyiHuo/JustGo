@@ -6,10 +6,13 @@ var go = require('./game/go');
 var constants = require('./game/constants');
 var AIInterface = require('./ai/AIInterface');
 var MongoInterface = require('./MongoInterface');
+var events = require('./events');
 
 var app = express();
 var messageBus = new EventEmitter();
 messageBus.setMaxListeners(200);
+
+const Timers = {};
 
 app.use(express.static("public"));
 app.use(bodyParser.urlencoded({extended: false}));
@@ -186,17 +189,15 @@ app.post("/newGame", function(req, res, next) {
  */
 app.get("/longpoll", function(req, res, next) {
 
-    // wait for 'AI TURN <gameID>' event to query AI and respond to longpoll request
-    var aiTurnEvent = 'AI TURN ' + req.session.gameID;
+    const aiTurnEvent = events.aiTurn(req.session.gameID);
+    const gameOverEvent = events.gameOver(req.session.gameID);
     messageBus.once(aiTurnEvent, onAiTurnEvent);
-
-    var gameOverEvent = 'GAME OVER ' + req.session.gameID;
     messageBus.once(gameOverEvent, onGameOverEvent);
 
     // remove the event listener after 30 seconds. NOTE: This period NEEDS to match long-polling timeout period on client
     setTimeout(function() {
-        messageBus.removeAllListeners(aiTurnEvent);
-        messageBus.removeAllListeners(gameOverEvent);
+        messageBus.removeAllListeners(events.aiTurn(req.sessionID));
+        messageBus.removeAllListeners(events.gameOver(req.sessionID));
         res.end();
     }, 30000);
 
@@ -223,6 +224,7 @@ app.get("/longpoll", function(req, res, next) {
 
         function onAiResponse(body) {
             var aiMove = JSON.parse(body);
+            
             var boardUpdates = go.makeMove(game, aiMove.y, aiMove.x, aiMove.c, aiMove.pass); // NOTE: the AI API uses "x" for rows (confusingly?)
 
             // TODO: handle errors thown by go.makeMove
@@ -237,6 +239,7 @@ app.get("/longpoll", function(req, res, next) {
                 aiMove.pass,
                 function() {
                     // end response with board updates
+                    console.log("AI MOVE: " + JSON.stringify(aiMove));
                     res.json(boardUpdates);
                     res.end();
                     messageBus.removeAllListeners(aiTurnEvent);
@@ -249,8 +252,7 @@ app.get("/longpoll", function(req, res, next) {
 });
 
 app.get("/resign", function(req, res) {
-    var gameOverEvent = 'GAME OVER ' + req.session.gameID;
-    messageBus.emit(gameOverEvent);
+    messageBus.emit(events.gameOver(req.session.gameID));
     res.end();
 });
 
@@ -263,7 +265,7 @@ app.get("/game", function(req, res) {
             res.json(game);
             res.end();
         })
-        messageBus.removeAllListeners('AI TURN ' + req.session.gameID);
+        messageBus.removeAllListeners(events.aiTurn(req.session.gameID));
 
     } else {
         res.end();
@@ -274,13 +276,13 @@ app.get("/game", function(req, res) {
  * Sent when the client clicks the board.
  * @param req should be in form { x: int, y: int, gameID: int, pass: boolean, resign: boolean }
  *
- * @return response is a Move object
+ * @return response is { board: Array, capturedPieces: Array, whiteScore: Number, blackScore: Number }
  */
 app.post("/makeClientMove", function(req, res, next) {
 
-    // find game in database and make move then respond with Move object
+    // find game in database and make move then respond with board updates
     MongoInterface.makeMoveOnGameWithID(
-        req.session.gameID, // NOTE: in the future, gameID will be looked up based on the user's session (will pair user sessions with active games)
+        req.session.gameID, 
         req.body.x,
         req.body.y,
         constants.clientColor,
@@ -288,11 +290,9 @@ app.post("/makeClientMove", function(req, res, next) {
         function(game, boardUpdates) {
             res.json(boardUpdates);
             res.end();
-
-            // see if we need to query AI
-            if (game.clientColor != game.turn && !game.hotseatMode) { 
-                var aiTurnEvent = 'AI TURN ' + req.session.gameID; 
-                messageBus.emit(aiTurnEvent, game); // emmit 'AI TURN <gameID> event to query the AI and respond to long poll request
+            
+            if (game.clientColor != game.turn && !game.hotseatMode) { // see if we need to query AI
+                messageBus.emit(events.aiTurn(req.session.gameID), game); // emit event to respond to longpoll
             }
         }
     );
