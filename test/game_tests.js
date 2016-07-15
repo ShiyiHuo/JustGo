@@ -2,10 +2,11 @@ var assert = require('chai').assert;
 var go = require('../game/go.js');
 var constants = require('../game/constants.js')
 
-function Game(size, hotseatMode) {
+
+function GameDocument(size, hotseatMode) {
   this.board = [];
   for (var i = 0; i < size; i++) {
-    this.board = new Array(size).fill(constants.empty);
+    this.board[i] = new Array(size).fill(constants.empty);
   }
   this.turn = constants.black;
   this.moveHistory = [];
@@ -16,28 +17,34 @@ function Game(size, hotseatMode) {
 
 describe('Game of size 3: turn/color checking', function() {
 
-  var game = new Game(3, false);
-
   describe('makeMove()', function () {
-    it('should start off with black\'s move', function() {
+    it('should start off with black move then switch to white', function() {
+      var game = new GameDocument(3, false);
       assert.equal(game.turn, constants.black);
-    });
-
-    it('should allow black move without exception', function() {
-      assert.equal(game.board[0][0], constants.empty);
       go.makeMove(game, 0, 0, constants.black, false);
-      assert.equal(game.board[0][0], constants.black);
+      assert.equal(game.turn, constants.white);
+      
     });
 
-    it('should change to white\'s move now', function() {
-      assert.equal(game.turn, constants.white);
-    })
+    
+    it('should update the board', function() {
+      for (var y = 0; y < 3; y++) {
+        for (var x = 0; x < 3; x++) {
+          var game = new GameDocument(3, false);
+          assert.equal(game.board[y][x], constants.empty);
+          go.makeMove(game, x, y, constants.black, false);
+          assert.equal(game.board[y][x], constants.black);
+        }
+      }
+    });
 
-    it('should not allow move from black again', function() {
-      assert.equal(game.turn, constants.white);
+    it('should not allow move from black twice in a row', function() {
+      var game = new GameDocument(3, false);
+      go.makeMove(game, 0, 0, constants.black, false);
+      
       var gameExceptionThrown = false;
       try {
-        go.makeMove(game, 0, 0, constants.black, false);
+        go.makeMove(game, 1, 1, constants.black, false);
       } catch (e) {
         if (e instanceof go.GameException) {
           gameExceptionThrown = true; 
@@ -45,15 +52,19 @@ describe('Game of size 3: turn/color checking', function() {
       }
       assert(gameExceptionThrown);
     });
-    
-    it('should allow move from white', function() {
-      assert.equal(game.turn, constants.white);
-      go.makeMove(game, 1, 1, constants.white, false);
-      assert.equal(game.turn, constants.black);
+
+    it('should allow move from white after black', function() {
+      var game = new GameDocument(3, false);
+      go.makeMove(game, 0, 0, constants.black);
+      go.makeMove(game, 1, 1, constants.white);
+      assert.equal(game.turn ,constants.black);
     });
 
     it('should not allow move onto occupied place', function() { // this test doesn't work
       var gameExceptionThrown = false;
+      var game = new GameDocument(3, false);
+      game.board[0][0] = constants.black;
+
       try {
         go.makeMove(game, 0, 0, constants.black, false);
       } catch (e) {
@@ -62,7 +73,7 @@ describe('Game of size 3: turn/color checking', function() {
         }
       } 
       assert(gameExceptionThrown);
-    });
+    }); 
   });
 });
 
@@ -70,7 +81,7 @@ describe("Game of size 5", function() {
 
   describe('makeMove() capture pieces testing', function() {
     it('Should capture piece at (1, 1)', function() {
-      var game = new Game(5, false);
+      var game = new GameDocument(5, false);
       var W = constants.white;
       var B = constants.black;
       game.board = [[0, B, 0, 0, 0],
@@ -84,7 +95,7 @@ describe("Game of size 5", function() {
     });
 
     it('Should capture pieces at (3, 1) and (2, 1)', function() {
-      var game = new Game(5, false);
+      var game = new GameDocument(5, false);
       var W = constants.white;
       var B = constants.black;
       game.board = [[0, B, B, 0, 0],
@@ -100,7 +111,7 @@ describe("Game of size 5", function() {
   });
 
   describe("isValidMove() determines if move is legal", function() {
-    var game = new Game(5, false);
+    var game = new GameDocument(5, false);
 
     var W = constants.white;
     var B = constants.black;
@@ -149,10 +160,13 @@ describe("Game of size 5", function() {
       assert(exceptionThrown);
     });
 
+  });
+});
 
-
-
+describe('Game of Size 9', function() {
+    
     it('should not allow suicide on a large board', function() {
+      var game = new GameDocument(9, false);
      game.board = [ [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
                     [ 0, 0, 0, 0, 2, 0, 0, 0, 0 ],
                     [ 0, 1, 1, 2, 0, 2, 0, 0, 0 ],
@@ -164,25 +178,24 @@ describe("Game of size 5", function() {
                     [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ] ];
       var exceptionThrown = false;
       try {
-        go.makeMove(game, 4, 2, 1, false);
+        go.makeMove(game, 4, 2, constants.black, false);
       } catch (err) {
         if (err instanceof go.GameException) {
           exceptionThrown = true;
         }
       }
       assert(exceptionThrown);
-    });
-
-    it('should not allow suicide on large board 2', function() {
+      assert.equal(game.turn, constants.black);
+ 
       game.board = [[ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
-      [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
-      [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
-      [ 2, 2, 0, 0, 0, 0, 0, 0, 0 ],
-      [ 0, 0, 2, 2, 1, 0, 0, 0, 0 ],
-      [ 0, 2, 1, 0, 0, 0, 0, 0, 0 ],
-      [ 0, 2, 1, 0, 0, 0, 0, 0, 0 ],
-      [ 2, 0, 2, 1, 0, 0, 0, 0, 0 ],
-     [ 0, 2, 0, 0, 0, 0, 0, 0, 0 ] ];
+                    [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                    [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+                    [ 2, 2, 0, 0, 0, 0, 0, 0, 0 ],
+                    [ 0, 0, 2, 2, 1, 0, 0, 0, 0 ],
+                    [ 0, 2, 1, 0, 0, 0, 0, 0, 0 ],
+                    [ 2, 2, 1, 0, 0, 0, 0, 0, 0 ],
+                    [ 1, 0, 2, 1, 0, 0, 0, 0, 0 ],
+                    [ 2, 2, 0, 0, 0, 0, 0, 0, 0 ] ];
      var ethrown = false;
      try {
       go.makeMove(game, 1, 7, constants.black, false);
@@ -190,42 +203,13 @@ describe("Game of size 5", function() {
        ethrown = true;
      }
      assert(ethrown)
+     assert.equal(game.turn, constants.black);
 
-    })
-
-    game.board = [[0, 0, W, 0, 0],
-                  [0, W, 0, W, 0],
-                  [0, 0, W, 0, 0],
-                  [0, 0, 0, 0, 0]
-                  [0, 0, 0, 0, 0]];
+    });
 
     it('should not allow repated move (KO)', function() {
       assert(false); // how to test again?
     })    
-  });
 });
 
-describe("Game of size 7 doing timer tests", function() {
-  var game = new Game(7, false);
-  var W = constants.white;
-  var B = constants.black;
 
-  it('should keep track of black player time', function() {
-    game.blackTimer.getTime();
-    setTimeout(function() {
-      go.makeMove(game, 0, 0, B);
-      game.blackTimer.getTime();
-      done();
-    }, 5000);
-  });
-
-  it('should keep track of white player time', function() {
-    game.whiteTimer.getTime();
-    setTimeout(function() {
-      go.makeMove(game, 1, 1, W);
-      game.whiteTimer.getTime();
-      done();
-    }, 5000);
-  });
-
-})

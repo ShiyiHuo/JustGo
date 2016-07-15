@@ -180,12 +180,9 @@ app.post("/newGame", function(req, res, next) {
 
 /**
  * Periodic polling request from the client every 30 seconds.
- * The request is responded to with move data when the AI is querried
- * The AI is querried when events with string "AI TURN <gameID>" are emitted
+ * The request is responded to with data if an event occurs (e.g. AI Makes Move)
  *
- * @param req should be in form { gameID : string }
- *
- * @return response (if not empty) is a Move object
+ * @return response (if not empty) is are board updates, scores
  */
 app.get("/longpoll", function(req, res, next) {
 
