@@ -126,10 +126,7 @@ function makeMove(game, xPos, yPos, color, pass) {
         }
     }
     
-    console.log(capturedPieces);
-    console.log(pointPlain(xPos, yPos));
-    console.log('has ' + capturedPieces.has(pointPlain(xPos, yPos)));
-    if (capturedPieces.has(pointPlain(xPos, yPos))) {
+    if (capturedPieces.has(point(xPos, yPos))) {
         throw new GameException("You cannot commit suicide.");
     } 
 
@@ -153,12 +150,8 @@ function makeMove(game, xPos, yPos, color, pass) {
     
     return { board: game.board, capturedPieces: capturedPieces, whiteScore: scores.whiteScore, blackScore: scores.blackScore }; 
 
-    function pointPlain(x, y) {
-        return '{"x":' + x + ',"y":' + y + '}';
-    }
-
     function point(x, y) {
-        return JSON.stringify({x: x, y: y});
+        return '{"x":' + x + ',"y":' + y + '}';
     }
 }
 

@@ -188,7 +188,6 @@ app.post("/newGame", function(req, res, next) {
  * @return response (if not empty) is a Move object
  */
 app.get("/longpoll", function(req, res, next) {
-    console.log("GET to /longpoll");
 
     const aiTurnEvent = events.aiTurn(req.session.gameID);
     const gameOverEvent = events.gameOver(req.session.gameID);
@@ -264,7 +263,7 @@ app.get("/game", function(req, res) {
         MongoInterface.getGameWithID(req.session.gameID, function(game) {
             res.json(game);
             res.end();
-        })
+        });
         messageBus.removeAllListeners(events.aiTurn(req.session.gameID));
 
     } else {
@@ -274,12 +273,11 @@ app.get("/game", function(req, res) {
 
 /**
  * Sent when the client clicks the board.
- * @param req should be in form { x: int, y: int, gameID: int, pass: boolean, resign: boolean }
+ * @param req should be in form { x: int, y: int, pass: boolean, resign: boolean }
  *
  * @return response is { board: Array, capturedPieces: Array, whiteScore: Number, blackScore: Number }
  */
 app.post("/makeClientMove", function(req, res, next) {
-    console.log("POST: " + JSON.stringify(req.body));
    
     // find game in database and make move then respond with board updates
     MongoInterface.makeMoveOnGameWithID(
@@ -289,13 +287,11 @@ app.post("/makeClientMove", function(req, res, next) {
         constants.clientColor,
         false,
         function(err, game, boardUpdates) {
-            
             if (err) {
-                res.write(String(err));
+                res.write(err.message);
                 res.end();
                 return;
-            } 
-            
+            }
             res.json(boardUpdates);
             res.end();
          
