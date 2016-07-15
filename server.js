@@ -9,6 +9,7 @@ var MongoInterface = require('./MongoInterface');
 
 var app = express();
 var messageBus = new EventEmitter();
+messageBus.setMaxListeners(200);
 
 app.use(express.static("public"));
 app.use(bodyParser.urlencoded({extended: false}));
@@ -71,7 +72,7 @@ app.post('/playAIB', function(req, res) {
 app.post('/login', function(req,res) {
 
     //store user as submitted username and password
-    var user = {'username': req.body.username, 'password': req.body.password};
+    var user = {username: req.body.username, password: req.body.password};
 
     MongoInterface.loginUser(req.body.username, req.body.password, function(successful) {
         if (successful) {
@@ -196,7 +197,6 @@ app.post("/longpoll", function(req, res, next) {
     }, 30000);
 
     function onAiTurnEvent(game) {
-        debugger;
         var board = game.board;
         var size = game.board.length;
         var lastMove = game.moveHistory[game.moveHistory.length - 1];
@@ -211,7 +211,7 @@ app.post("/longpoll", function(req, res, next) {
             var boardUpdates = go.makeMove(game, aiMove.y, aiMove.x, aiMove.c, aiMove.pass); // NOTE: the AI API uses "x" for rows (confusingly?)
 
             // TODO: handle errors thown by go.makeMove
-            // TODO: check AI legal move and requry if not legal
+            // TODO: check AI legal move and requery if not legal
 
             // update game in database after AI move
             MongoInterface.makeMoveOnGameWithID(
@@ -229,6 +229,10 @@ app.post("/longpoll", function(req, res, next) {
         }
     }
 
+});
+
+app.get("/endgame", function(req, res) {
+    
 });
 
 /**
@@ -264,14 +268,13 @@ app.post("/makeClientMove", function(req, res, next) {
         false,
         function(game, boardUpdates) {
             res.json(boardUpdates);
-            
-            debugger;
+            res.end();
+
             // see if we need to query AI
-            if (game.clientColor != game.turn && !game.hotseatMode) { // not in hotseat mode and it is the AI's turn
-                var aiTurnEvent = 'AI TURN ' + req.session.gameID; // format for AI TURN event string is 'AI TURN <gameID'
+            if (game.clientColor != game.turn && !game.hotseatMode) { 
+                var aiTurnEvent = 'AI TURN ' + req.session.gameID; 
                 messageBus.emit(aiTurnEvent, game); // emmit 'AI TURN <gameID> event to query the AI and respond to long poll request
             }
-            res.end();
         }
     );
 

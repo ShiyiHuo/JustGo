@@ -146,8 +146,10 @@ function makeMove(game, xPos, yPos, color, pass) {
 
     var move = new Move(xPos, yPos, color, capturedPieces);
     game.moveHistory.push(move);
+
+    var scores = getScore(game);
     
-    return { board: game.board, capturedPieces: capturedPieces }; 
+    return { board: game.board, capturedPieces: capturedPieces, whiteScore: scores.whiteScore, blackScore: scores.blackScore }; 
 }
 
 /**

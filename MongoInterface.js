@@ -24,6 +24,7 @@ class MongoInterface {
             moveHistory: Array,
             hotseatMode: Boolean,
             clientColor: Number,
+            active: Boolean
         });
         
         // model the game schema
@@ -32,7 +33,9 @@ class MongoInterface {
         // define user schema
         var userSchema = new mongoose.Schema({
             username: {type: String, index: {unique: true}},
-            password: String
+            password: String,
+            wins: Number,
+            losses: Number
         })
 
         // model user schema
@@ -92,6 +95,19 @@ class MongoInterface {
             if (err) return console.error(err);
             callback(game);
         })
+    }
+
+    endgameWithID(id, callback) {
+        Game.findById(id, function(err, game) {
+            if (err) return console.error(err);
+            
+            var scores = go.getScore(game);
+            game.save(function(err, game) {
+                
+            })
+            callback(scores);
+
+        });
     }
 
     /**
