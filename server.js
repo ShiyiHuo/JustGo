@@ -27,6 +27,7 @@ app.use(sessions({
 // redirect requests to the login page
 app.get('/', function(req,res) {
     res.redirect('/login.html');
+    res.end();
 });
 
 /**
@@ -39,9 +40,10 @@ app.listen(30144, function() {
 //redirect requests to the login page
 app.get('/', function(req,res) {
     res.redirect('/login.html');
+    res.end();
 });
 
-app.get('/gamepage.html', function (req,res,next){
+app.get('/gamepage.html', function (req, res, next){
     if (req.session && req.session.user) {
         next();
     } else {
@@ -53,6 +55,26 @@ app.get('/gamepage.html', function (req,res,next){
 //user selects to play AI
 //if logged in route to gamepage else route to login
 app.post('/playAIB', function(req, res) {
+    if (req.session && req.session.user){
+        res.write(JSON.stringify({
+            redirect: '/gamepage.html',
+            status: 'OK',
+            login: 'yes'
+        }));
+        res.end();
+    } else {
+        res.write(JSON.stringify({
+            redirect: '',
+            status: 'noSession',
+            login: 'no'
+        }));
+        res.end();
+    }
+});
+
+//user selects to play AI
+//if logged in route to gamepage else route to login
+app.post('/playHSB', function(req, res) {
     if (req.session && req.session.user){
         res.write(JSON.stringify({
             redirect: '/gamepage.html',

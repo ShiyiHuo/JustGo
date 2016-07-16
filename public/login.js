@@ -1,14 +1,13 @@
 $(document).ready(function() {
-
     showWelcome();
-
-
-
 });
+
+const globals = {
+    wantsHotseat: false 
+};
 
 //show the welcome page
 function showWelcome() {
-
     $.post("/getStatus", function(data,status) {
            
         data = JSON.parse(data);
@@ -23,14 +22,14 @@ function showWelcome() {
            $('body').append('<h1>Welcome to Go by DeepFriedMilk</h1>');
            //$('body').append('<h2>Select game mode</h2>');
            $('body').append('<button type="button" class="button" id="playAIB">Player vs AI</button><br>');
-           $('body').append('<button type="button" class="button" id="playHSB">Player vs Player</button><br>');
-               
+           $('body').append('<button type="button" class="button" id="playHSB">Player vs Player</button><br>');         
            $('#playAIB').on('click', function() {
                 $.post("/playAIB", function(data, status) {
                     data = JSON.parse(data);
                     if (data.status == "noSession") {
                         $('body').children().remove();
                         showSignOptions();
+                        globals.wantsHotseat = false;
                     }
                     else {
                         window.location = data.redirect;
@@ -38,13 +37,13 @@ function showWelcome() {
                 });
             });
            
-           
            $('#playHSB').on('click', function() {
                 $.post("/playHSB", function(data, status) {
                     data = JSON.parse(data);
                     if (data.status == "noSession") {
                         $('body').children().remove();
                         showSignOptions();
+                        globals.wantsHotseat = true;
                     }
                     else {
                         window.location = data.redirect;
@@ -54,9 +53,6 @@ function showWelcome() {
            
     });
     
-
- 
-
 }
 
 function showSignOptions () {
@@ -73,7 +69,6 @@ function showSignOptions () {
         }
            
         $('body').append('<button class="backButton" id="signOptionsGoBack">Go Back</button><br>');
-        
         $('body').append('<button type="button" class="button" id="loginOptionB">Login</button><br>');
         $('body').append('<button type="button" class="button" id="signOptionB">Sign up</button><br>');
         $('body').append('<button type="button" class="button" id="guestOptionB">Proceed as guest</button><br>');
@@ -197,7 +192,6 @@ function showLogin() {
                     //window.location = data.redirect;
                     $('body').children().remove();
                     showMainMenu();
-                   
                 }
             });
         });
@@ -223,7 +217,7 @@ function showMenuBar(login) {
 
     if (login == "logged in") {
         $('body').append('<ul>' +
-                         '<li><a href="#" id="logoutB">Log Out</a></li>' +
+                         '<li><a id="logoutB">Log Out</a></li>' +
                          '<li><a id="userCenter">User Center</a></li>' +
                          '<li><a id="aboutUs">About Us</a></li>' +
                          '</ul>');
@@ -254,7 +248,7 @@ function showMenuBar(login) {
     
     else {
         $('body').append('<ul>' +
-                         '<li><a href="#">About Us</a></li>' +
+                         '<li><a id="aboutUs">About Us</a></li>' +
                          '</ul>');
     }
 
@@ -274,8 +268,7 @@ function showUserCenter() {
            showMenuBar();
        }
            
-        $('body').append('<button class="backButton" id="userCenterGoBack">Go Back</button>');
-           
+        $('body').append('<button class="backButton" id="userCenterGoBack">Go Back</button>');       
         $('body').append('<p class="usercenter_label">Username</p>');
         $('body').append('<input type=text><br>')
         $('body').append('<p class="usercenter_label">Score</p>');
@@ -332,7 +325,7 @@ function showMainMenu() {
        }
            
         $('body').append('<button class="backButton" id="mainMenuGoBack">Go Back</button>');
-           
+   
         $('body').append('<p class="mainmenu_label" id="mainmenu_top_label">Select board size</p>');
         $('body').append('<input class="input-checkbox" type="checkbox">9*9');
         $('body').append('<input class="individual_checkbox" type="checkbox">13*13');
@@ -348,6 +341,27 @@ function showMainMenu() {
         $('body').append('<input class="input-checkbox" type="checkbox">Yellow');
         $('body').append('<input class="individual_checkbox" type="checkbox">White');
         $('body').append('<input class="individual_checkbox" type="checkbox">Pink');
+           
+        $('body').append('<button class="button" id="startGameB">Start Game</button>');
+        
+           
+       $('#startGameB').on('click', function() {
+            window.location = "/gamepage.html";
+
+            // TODO: Shiyi make this take sizes based on the page options
+            var newGameParameters = {size: 19, hotseat: globals.wantsHotseat};
+
+            $.post("/newGame", newGameParameters, function(data, status) {
+                window.location = JSON.parse(data).redirect;
+            })
+
+        });
+        
+    
+       $('#mainMenuGoBack').on('click', function() {
+            $('body').children().remove();
+            showSignOptions();
+        });
        
     });
 }
