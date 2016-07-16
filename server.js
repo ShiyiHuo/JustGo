@@ -192,7 +192,14 @@ app.post("/newGame", function(req, res, next) {
         
         req.session.gameID = gameID;
         
-        gameTimers[gameID] = new GameTimer(messageBus);
+        const onBlackTimeout = () => {
+            messageBus.emit(events.gameOver(req.session.gameID));
+        }
+        const onWhiteTimeout = () => {
+            messageBus.emit(events.gameOver(req.session.gameID));
+        }
+
+        gameTimers[gameID] = new GameTimer(onBlackTimeout, onWhiteTimeout);
         if (game.turn == constants.black) 
             gameTimers[gameID].startBlackTimer();
         else 
@@ -211,15 +218,18 @@ app.post("/newGame", function(req, res, next) {
  * @return response (if not empty) is are board updates, scores
  */
 app.get("/longpoll", function(req, res, next) {
+
     const aiTurnEvent = events.aiTurn(req.session.gameID);
     const gameOverEvent = events.gameOver(req.session.gameID);
+    messageBus.removeAllListeners(aiTurnEvent);
+    messageBus.removeAllListeners(gameOverEvent);
     messageBus.once(aiTurnEvent, onAiTurnEvent);
     messageBus.once(gameOverEvent, onGameOverEvent);
 
     // remove the event listener after 30 seconds. NOTE: This period NEEDS to match long-polling timeout period on client
     setTimeout(function() {
-        messageBus.removeAllListeners(events.aiTurn(req.sessionID));
-        messageBus.removeAllListeners(events.gameOver(req.sessionID));
+        messageBus.removeAllListeners(aiTurnEvent);
+        messageBus.removeAllListeners(gameOverEvent);
         res.end();
     }, 30000);
 
@@ -255,15 +265,28 @@ app.get("/longpoll", function(req, res, next) {
                 aiMove.c,
                 aiMove.pass,
                 function(err, game, boardUpdates, gameID) {
-                    debugger;
                     if (err instanceof go.GameException) {
                         console.log("AI made an illegal move: " + JSON.stringify(aiMove));
                         onAiTurnEvent(game);
                         return;
                     }
-                    debugger;
+
+                    // switch from 
+                    const gameTimer = gameTimers[gameID];
+                    if (game.turn == constants.black) {
+                        gameTimer.startBlackTimer();
+                        gameTimer.stopWhiteTimer();
+                    } else {
+                        gameTimer.startWhiteTimer();
+                        gameTimer.stopBlackTimer();
+                    }
+
+                    boardUpdates.whiteTime = gameTimer.getWhiteTime();
+                    boardUpdates.blackTime = gameTimer.getBlackTime();
+                    
                     res.json(boardUpdates);
                     res.end();
+                    
                     messageBus.removeAllListeners(aiTurnEvent);
                     messageBus.removeAllListeners(gameOverEvent);
                 }
@@ -307,7 +330,6 @@ app.get('/moveHistory', function(req,res) {
     if (req.session && req.session.gameID) {
         MongoInterface.getGameWithID(req.sessionID, function(err, game) {
             if (err) return res.status(400).send("Error finding game with id: " + req.session.id);
-
             return res.json(game.moveHistory);
         });
     } else {
@@ -329,16 +351,31 @@ app.post("/makeClientMove", function(req, res, next) {
         req.body.x,
         req.body.y,
         constants.clientColor,
-        false,
-        function(err, game, boardUpdates) {
+        false, // TODO: implement passing
+        function(err, game, boardUpdates, gameID) {
+
             if (err) {
                 res.write(err.message);
                 res.end();
                 return;
             }
+
+            const gameTimer = gameTimers[gameID];
+            if (game.turn == constants.black) {
+                gameTimer.startBlackTimer();
+                gameTimer.stopWhiteTimer();
+            } else { 
+                gameTimer.startWhiteTimer();
+                gameTimer.stopBlackTimer();
+            }
+            boardUpdates.whiteTime = gameTimer.getWhiteTime();
+            boardUpdates.blackTime = gameTimer.getBlackTime();
+            
             res.json(boardUpdates);
             res.end();
+            
             if (game.clientColor != game.turn && !game.hotseatMode) { // see if we need to query AI
+                debugger;
                 messageBus.emit(events.aiTurn(req.session.gameID), game); // emit event to respond to longpoll
             }
         }

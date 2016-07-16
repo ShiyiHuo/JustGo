@@ -5,6 +5,7 @@ const constants = require('./game/constants')
 
 class Timer {
     constructor(msRemaining, onTimeout) {
+        debugger;
         this.msRemaining = msRemaining;
         this.onTimeout = onTimeout;
     }
@@ -13,6 +14,7 @@ class Timer {
         this.timeoutID = setInterval(() => {
             this.msRemaining = this.endTime - Date.now(); 
             if (this.msRemaining <= 0) {
+                debugger;
                 this.onTimeout();
                 clearInterval(this.timeoutID);
             }
@@ -25,18 +27,14 @@ class Timer {
 }
 
 class GameTimer {
-    constructor(messageBus, gameID) {
-        this.blackTimer = new Timer(constants.startingTimePool, onTimeout);
-        this.whiteTimer = new Timer(constants.startingTimePool, onTimeout); 
-        this.messageBus = messageBus;
-        function onTimeout(event) {
-            this.messageBus.emit(events.gameOver(gameID)); // TODO will need to take parameters on who's winner
-        }
+    constructor(onBlackTimeout, onWhiteTimeout) {
+        this.blackTimer = new Timer(constants.startingTimePool, onBlackTimeout);
+        this.whiteTimer = new Timer(constants.startingTimePool, onWhiteTimeout); 
     }
     startBlackTimer() {
         this.blackTimer.start();
     }
-    startWhitetimer() {
+    startWhiteTimer() {
         this.whiteTimer.start();
     }
     stopBlackTimer() {
@@ -45,11 +43,11 @@ class GameTimer {
     stopWhiteTimer() {
         this.whiteTimer.stop();
     }
-    getTimes() {
-        return { 
-            whiteTimeLeft: this.whiteTimer.msRemaining, 
-            blackTimeLeft: this.blackTimer.msRemaining 
-        }
+    getWhiteTime() {
+        return this.whiteTimer.msRemaining;
+    }
+    getBlackTime() {
+        return this.blackTimer.msRemaining;
     }
 }
 

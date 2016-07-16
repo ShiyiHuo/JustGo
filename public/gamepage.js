@@ -54,11 +54,11 @@ function boardClicked(event) {
         var move = {x: position.x, y: position.y};
         $.post("/makeClientMove", move, function(data,status) {
             if (!data.board) {
-                window.alert(data);
+                window.alert(data); // ??????
             } else {
                 gameboard.updateBoard(data.board);
+                $('#dataContainer').append("whiteTime: " + data.whiteTime + " blackTime: " + data.blackTime + "\n");
             }   
-            
         });
     }
 }
