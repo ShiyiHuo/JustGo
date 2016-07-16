@@ -3,6 +3,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const EventEmitter = require('events').EventEmitter;
 const sessions = require('client-sessions');
+
 const go = require('./game/go');
 const constants = require('./game/constants');
 const AIInterface = require('./ai/AIInterface');
@@ -252,14 +253,13 @@ app.get("/longpoll", function(req, res, next) {
 
     // in this open request wait until aiTurnEvent to respond
     messageBus.once(aiTurnEvent, function onAiTurnEvent(game) {
-
         const lastMove = game.moveHistory[game.moveHistory.length - 1];
 
         AIInterface.query({
             size: game.board.length,
             board: game.board,
             last: {x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c: lastMove.color } // x's and y's inverted because prof's API uses x's as "rows" and y's for columns
-        }, function (body) {
+        }, function (body) { // on ai response
             var aiMove = JSON.parse(body);
                         
             // update game in database after AI move
@@ -289,7 +289,6 @@ app.get("/longpoll", function(req, res, next) {
 
                     boardUpdates.whiteTime = gameTimer.getWhiteTime();
                     boardUpdates.blackTime = gameTimer.getBlackTime();
-                    
                     res.json(boardUpdates);
                     res.end();
                     
@@ -388,7 +387,7 @@ app.post("/makeClientMove", function(req, res, next) {
         req.body.x,
         req.body.y,
         constants.clientColor,
-        false, // TODO: implement passing
+        req.pass, // TODO: implement passing
         function(err, game, boardUpdates, gameID) {
 
             if (err) {

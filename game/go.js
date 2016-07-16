@@ -6,22 +6,32 @@ const constants = require('./constants.js');
  * Contains information needed for view to update.
  */
 class Move {
-    constructor(x, y, color, capturedPieces) {
+    constructor(x, y, color, capturedPieces, board, whiteScore, blackScore, pass) {
         this.x = x;
         this.y = y; 
         this.color = color;
         this.pass = false;
         this.capturedPieces = capturedPieces;
+        this.board = board;
+        this.whiteScore = whiteScore;
+        this.blackScore = blackScore;
+        this.pass = pass;
     }
 }
 
 /**
- * Provides an exception class for Game 
+ * Provides a base exception class for Game 
  */
 class GameException {
     constructor(message) {
         console.error("GameException: " + message);
         this.message = message;
+    }
+}
+
+class DoublePassException extends GameException {
+    constructor() {
+        super("Two passes occured in a row. The game is over.");
     }
 }
 
@@ -38,7 +48,29 @@ class GameException {
  */
 function makeMove(game, xPos, yPos, color, pass) {
     
-    // TODO: implement pass
+    if (pass) {
+
+        // switch turn state to opposite color
+        if (game.turn == constants.black) {
+            game.turn = constants.white;
+        } else {
+            game.turn = constants.black;
+        } 
+
+        if (game.moveHistory.length > 0) {
+            const lastMove = game.moveHistory[game.moveHistory.length - 1];
+            if (lastMove.pass) {
+                throw new DoublePassException();
+            }
+        }
+
+        const scores = getScore(game);
+        const move = new Move(NaN, NaN, color, [], game.board, scores.whiteScore, scores.blackScore, true)
+
+        game.moveHistory.push(move);
+
+        return move;
+    }
 
     if (game.board[yPos][xPos] != constants.empty) {
         throw new GameException("Occupied Place.");
@@ -143,42 +175,17 @@ function makeMove(game, xPos, yPos, color, pass) {
         game.board[piece.y][piece.x] = constants.empty;
     }
 
-    var move = new Move(xPos, yPos, color, capturedPieces);
+    const scores = getScore(game);
+    const move = new Move(xPos, yPos, color, capturedPieces, game.board, scores.white, scores.black);
     game.moveHistory.push(move);
-
-    var scores = getScore(game);
     
-    return { board: game.board, capturedPieces: capturedPieces, whiteScore: scores.whiteScore, blackScore: scores.blackScore }; 
+    return move;
 
+    // JSON representation of a point. We use string addition here because 
+    // JSON.stringify seems inconsistent with adding quotation marks around the values (e.g. '{"foo":"3"}' vs '{"foo":3}' )
     function point(x, y) {
         return '{"x":' + x + ',"y":' + y + '}';
     }
-}
-
-/**
- * Returns true if the move is legal. False otherwise
- * 
- * @param game is a "Game" object
- * @param xPos is the row of the move
- * @param yPos is the colum nof the move
- * @param color is either white/black
- * @game pass is boolean
- * 
- * @ return boolean
- */
-function isValidMove(game, xPos, yPos, color, pass) {
-
-    if (color != game.turn) { // not player's turn
-        return false;
-    }
-
-    if (game.board[yPos][xPos] != constants.empty) { // spot is already occupied
-        return false;
-    } 
-
-    // TODO: check KO rule and suicide
-
-    return true;
 }
 
 function getScore(game) {
@@ -250,7 +257,7 @@ function endGame(game) {
 module.exports = {
     makeMove: makeMove,
     GameException: GameException,
-    isValidMove: isValidMove,
+    DoublePassException: DoublePassException,
     getScore: getScore,
     endGame: endGame
 };
