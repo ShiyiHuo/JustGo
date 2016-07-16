@@ -7,8 +7,10 @@ $(document).ready(function() {
             initBoard(data.board.length);
             gameboard.updateBoard(data.board);
         } else {
-            $.post("/newGame", "Client wants new game", function(data, status) {
-                initBoard(9);
+            var size = 19;
+            var hotseat = true;
+            $.post("/newGame", { size : size, hotseat : hotseat }, function(data, status) {
+                initBoard(size);
                 longpoll();
             });
         }         

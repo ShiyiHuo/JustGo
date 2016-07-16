@@ -54,6 +54,13 @@ h1 {
     margin-left: 450px;
 }
 
+.usercenter_label {
+    font-size: 20px;
+    font-family: Century Gothic, sans-serif;
+    margin-top: 50px;
+    margin-left: 450px;
+}
+
 
 
 #playAIB {
@@ -130,6 +137,29 @@ li a:hover {
 }
 
 
+
+/* main menu labels */
+.mainmenu_label {
+    font-size: 25px;
+    font-family: Century Gothic, sans-serif;
+    margin-top: 50px;
+    margin-left: 600px;
+}
+
+/* main menu checkboxes */
+.input-checkbox {
+    font-size: 20px;
+    font-family: Century Gothic, sans-serif;
+    margin-left: 550px;
+}
+
+#mainmenu_top_label {
+    margin-top: 150px;
+}
+
+.individual_checkbox {
+    margin-left: 60px;
+}
 
 
 /* background color */

@@ -53,6 +53,7 @@ class MongoInterface {
         for (var i = 0; i < size; i++) {
             board[i] = new Array(size).fill(constants.empty);
         }
+        debugger;
         
         var whiteEndTime = new Date();
         whiteEndTime.setMinutes(whiteEndTime.getMinutes() + 15);
@@ -87,8 +88,10 @@ class MongoInterface {
             if (err) return console.error(err);
             if (!game) return console.error("Could not find game with id: " + id);
             
-            if (turn == constants.clientColor) {
+            if (turn == constants.clientColor && !game.hotseatMode) {
                 turn = game.clientColor;
+            } else if (turn == constants.clientColor && game.hotseatMode) {
+                turn = game.turn;
             }
 
             var boardUpdates;

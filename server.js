@@ -47,7 +47,6 @@ app.get('/gamepage.html', function (req,res,next){
     } else {
         res.redirect('/login.html');
         res.end();
-
    }
 });
 
@@ -162,18 +161,15 @@ app.post('/signUp', function(req,res) {
  */
 app.post("/newGame", function(req, res, next) {
 
-    // TODO: allow for customizable sizes
-    // TODO: option to construct game with game.hotseatMode = true
-
-    var size = 9;
-
-    // TODO: also check if it is hotseat play and not clients turn.
-    // In that case emit an 'AI TURN' event here aswell
+    const size = JSON.parse(req.body.size);
+    const hotseat = JSON.parse(req.body.hotseat);
 
     // create new game in database, respond with game id
-    MongoInterface.newGame(size, false, function(gameID) {
+    MongoInterface.newGame(size, hotseat, function(gameID) {
         req.session.gameID = gameID;
         res.end();
+        // TODO: also check if it is hotseat play and not clients turn.
+        // In that case emit an 'AI TURN' event here aswell
     });
 
 });
@@ -220,14 +216,13 @@ app.get("/longpoll", function(req, res, next) {
         AIInterface.query(formattedAIInput, onAiResponse);
 
         function onAiResponse(body) {
-            debugger;
             var aiMove = JSON.parse(body);
             
             var boardUpdates;
             
             try {
-                debugger;
                 boardUpdates = go.makeMove(game, aiMove.y, aiMove.x, aiMove.c, aiMove.pass); // NOTE: the AI API uses "x" for rows (confusingly?)
+                debugger;
             } catch (err) {
                 if (err instanceof go.GameException) {
                     console.log("AI Made an illegal move: " + JSON.stringify(aiMove));
@@ -308,9 +303,8 @@ app.post("/makeClientMove", function(req, res, next) {
             }
             res.json(boardUpdates);
             res.end();
-         
+            debugger;
             if (game.clientColor != game.turn && !game.hotseatMode) { // see if we need to query AI
-                debugger;
                 messageBus.emit(events.aiTurn(req.session.gameID), game); // emit event to respond to longpoll
             }
         }
