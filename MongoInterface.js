@@ -2,10 +2,33 @@
 const mongoose = require('mongoose');
 const constants = require('./game/constants');
 const go = require('./game/go');
+const Timer = require('./Timer');
 
-var Game;
+var Game; // TODO: not have these schemas in a global? should be in mongointerface?
 var User;
 
+class GameTimer {
+    constructor(onTimeout) {
+        this.blackTimer = new Timer(constants.startingTimePool, onTimeout);
+        this.whiteTimer = new Timer(constants.startingTimePool, onTimeout); 
+    }
+    startBlackTimer() {
+        this.blackTimer.start();
+    }
+    startWhitetimer() {
+        this.whiteTimer.start();
+    }
+    stopBlackTimer() {
+        this.blackTimer.stop();
+    }
+    stopWhiteTimer() {
+        this.whiteTimer.stop();
+    }
+    getTimes() {
+        return { whiteTimeLeft: this.whiteTimer.msRemaining, blackTimeLeft: this.blackTimer.msRemaining }
+    }
+}
+ 
 class MongoInterface {
 
     constructor() {    
@@ -25,8 +48,8 @@ class MongoInterface {
             hotseatMode: Boolean,
             clientColor: Number,
             active: Boolean,
-            whiteEndTime: Date,
-            blackEndTime: Date
+            whiteTimeLeft: Number,
+            blackTimeLeft: Number
         });
         
         // model the game schema
@@ -38,10 +61,13 @@ class MongoInterface {
             password: String,
             wins: Number,
             losses: Number
-        })
+        });
 
         // model user schema
         User = mongoose.model('User', userSchema);
+
+        this.gameTimers = {}; // black and white timers indexed by gameID
+        // TODO: init timers from active games on server restart?
     }
     
     /**
@@ -53,13 +79,6 @@ class MongoInterface {
         for (var i = 0; i < size; i++) {
             board[i] = new Array(size).fill(constants.empty);
         }
-        debugger;
-        
-        var whiteEndTime = new Date();
-        whiteEndTime.setMinutes(whiteEndTime.getMinutes() + 15);
-
-        var blackEndTime = new Date();
-        blackEndTime.setMinutes(blackEndTime.getMinutes() + 15);
 
         var game = new Game({
             board: board,
@@ -68,15 +87,21 @@ class MongoInterface {
             hotseatMode: hotseatMode,
             clientColor: constants.black,
             active: true,
-            whiteEndTime: whiteEndTime,
-            blackEndTime: blackEndTime
+            whiteTimeLeft: 15 * 1000,
+            blackTimeLeft: 15 * 1000
         });
 
         game.save(function (err, game) {
             if (err) return console.error(err);
+            this.timers[game._id.id] = new GameTimer();
+
+            if (game.turn == constants.black)
+                this.timers[game._id.id].startBlackTimer();
+            else 
+                this.timers[game._id.id].startWhitetimer();
+
             callback(game._id.id);
-        });
-        
+        });        
     }
 
     /**

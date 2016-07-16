@@ -125,7 +125,6 @@ class Board {
         var closestXGL = Math.round(xcoord/this.squareSize);
         var closestYGL = Math.round(ycoord/this.squareSize);
 
-
         //if grid line is close enough to intersection, 25% of square size, post position
         if (Math.abs(closestXGL*this.squareSize-xcoord) < this.squareSize*.25) {
             xpos = closestXGL;

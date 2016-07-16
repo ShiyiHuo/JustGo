@@ -12,16 +12,13 @@ var app = express();
 var messageBus = new EventEmitter();
 messageBus.setMaxListeners(200);
 
-const Timers = {};
-
-app.use(express.static("public"));
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use(sessions({
     cookieName: 'session',
     secret: 'sh',
     duration: 5 * 60 * 1000,
-    activeDuration: 0
+    activeDuration: 5 * 60 * 1000
 }));
 
 // redirect requests to the login page
@@ -58,20 +55,21 @@ app.post('/playAIB', function(req, res) {
     if (req.session && req.session.user){
         res.write(JSON.stringify({
             redirect: '/gamepage.html',
-            status: 'OK',
-            login: 'yes'
+            status: 'OK', // TODO: could be refined?
+            login: 'yes' // boolean?
         }));
         res.end();
     } else {
         res.write(JSON.stringify({
             redirect: '',
-            status: 'noSession',
+            status: 'noSession', 
             login: 'no'
         }));
         res.end();
     }
 });
 
+// TODO: do we even need this extra path?
 //user selects to play AI
 //if logged in route to gamepage else route to login
 app.post('/playHSB', function(req, res) {
@@ -170,7 +168,6 @@ app.post('/signUp', function(req,res) {
             res.end();
         }
     });
-
 });
 
 
@@ -351,3 +348,4 @@ app.post("/makeClientMove", function(req, res, next) {
 
 });
 
+app.use(express.static("public")); // must be at very bottom 
