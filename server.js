@@ -200,6 +200,9 @@ app.post('/signUp', function(req,res) {
     });
 });
 
+app.post('/user', function(req, res) {
+    
+});
 
 /**
  * Create a new game state and store it in database
@@ -375,8 +378,8 @@ app.get('/moveHistory', function(req,res) {
     if (req.session && req.session.gameID) {
         MongoInterface.getGameWithID(req.sessionID, function(err, game) {
             if (err) return res.status(400).send("Error finding game with id: " + req.session.id);
+            
             res.json(game.moveHistory);
-            debugger;
         });
     } else {
         res.end();

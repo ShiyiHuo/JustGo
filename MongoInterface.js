@@ -103,7 +103,8 @@ class MongoInterface {
 
     getGameWithID(id, callback) {
         Game.findById(id, function(err, game) {
-            if (err) return console.error(err);
+            if (err) return callback(err);
+            if (!game) return callback("Could not find game with id " + id);
             callback(null, game);
         });
     }
