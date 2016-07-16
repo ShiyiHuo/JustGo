@@ -2,36 +2,15 @@
 const mongoose = require('mongoose');
 const constants = require('./game/constants');
 const go = require('./game/go');
-const Timer = require('./Timer');
 
 var Game; // TODO: not have these schemas in a global? should be in mongointerface?
 var User;
 
-class GameTimer {
-    constructor(onTimeout) {
-        this.blackTimer = new Timer(constants.startingTimePool, onTimeout);
-        this.whiteTimer = new Timer(constants.startingTimePool, onTimeout); 
-    }
-    startBlackTimer() {
-        this.blackTimer.start();
-    }
-    startWhitetimer() {
-        this.whiteTimer.start();
-    }
-    stopBlackTimer() {
-        this.blackTimer.stop();
-    }
-    stopWhiteTimer() {
-        this.whiteTimer.stop();
-    }
-    getTimes() {
-        return { whiteTimeLeft: this.whiteTimer.msRemaining, blackTimeLeft: this.blackTimer.msRemaining }
-    }
-}
  
 class MongoInterface {
 
     constructor() {    
+
         // connect to mongodb
         mongoose.connect('mongodb://localhost/GoData');
         this.db = mongoose.connection;
@@ -40,7 +19,7 @@ class MongoInterface {
             console.log("succesfully connected to mongo");
         });
         
-        // define a game schema
+        // define a game schema and model it
         var gameSchema = new mongoose.Schema({
             board: Array,
             turn: Number,
@@ -51,23 +30,16 @@ class MongoInterface {
             whiteTimeLeft: Number,
             blackTimeLeft: Number
         });
-        
-        // model the game schema
         Game = mongoose.model('Game', gameSchema);
 
-        // define user schema
+        // define user schema and model it
         var userSchema = new mongoose.Schema({
             username: {type: String, index: {unique: true}},
             password: String,
             wins: Number,
             losses: Number
         });
-
-        // model user schema
         User = mongoose.model('User', userSchema);
-
-        this.gameTimers = {}; // black and white timers indexed by gameID
-        // TODO: init timers from active games on server restart?
     }
     
     /**
@@ -93,14 +65,7 @@ class MongoInterface {
 
         game.save(function (err, game) {
             if (err) return console.error(err);
-            this.timers[game._id.id] = new GameTimer();
-
-            if (game.turn == constants.black)
-                this.timers[game._id.id].startBlackTimer();
-            else 
-                this.timers[game._id.id].startWhitetimer();
-
-            callback(game._id.id);
+            callback(err, game, game._id.id);
         });        
     }
 
@@ -123,18 +88,15 @@ class MongoInterface {
             try {
                 boardUpdates = go.makeMove(game, x, y, turn, pass);
             } catch (err) {
-                debugger;
-                if (err instanceof go.GameException) {
-                    callback(err);
-                    return;
-                }
+                if (err instanceof go.GameException) 
+                    return callback(err, game, boardUpdates, game._id.id);
             }
 
             game.markModified('board'); // needed to let mongoose know the nested array was modified
             game.save(function(err, game) {
                 if (err) return console.error(err);
                 if (!game) return console.error("could not find game with id: " + id);
-                callback(null, game, boardUpdates);
+                callback(null, game, boardUpdates, game._id.id);
             });
         });
     }

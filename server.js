@@ -12,6 +12,9 @@ var app = express();
 var messageBus = new EventEmitter();
 messageBus.setMaxListeners(200);
 
+const GameTimer = require('./GameTimer');
+const gameTimers = {};
+
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use(sessions({
@@ -184,11 +187,19 @@ app.post("/newGame", function(req, res, next) {
     const hotseat = JSON.parse(req.body.hotseat);
 
     // create new game in database, respond with game id
-    MongoInterface.newGame(size, hotseat, function(gameID) {
+    MongoInterface.newGame(size, hotseat, function(err, game, gameID) {
+        if (err) return res.status(400).send("Server error creating new game");
+        
         req.session.gameID = gameID;
+        
+        gameTimers[gameID] = new GameTimer(messageBus);
+        if (game.turn == constants.black) 
+            gameTimers[gameID].startBlackTimer();
+        else 
+            gameTimers[gameID].startWhiteTimer();
+        
         res.end();
-        // TODO: also check if it is hotseat play and not clients turn.
-        // In that case emit an 'AI TURN' event here aswell
+        // TODO: also check if it is hotseat play and not clients turn. In that case emit an 'AI TURN' event here aswell
     });
 
 });
@@ -200,7 +211,6 @@ app.post("/newGame", function(req, res, next) {
  * @return response (if not empty) is are board updates, scores
  */
 app.get("/longpoll", function(req, res, next) {
-    console.log("GET: /longpoll");
     const aiTurnEvent = events.aiTurn(req.session.gameID);
     const gameOverEvent = events.gameOver(req.session.gameID);
     messageBus.once(aiTurnEvent, onAiTurnEvent);
@@ -236,23 +246,7 @@ app.get("/longpoll", function(req, res, next) {
 
         function onAiResponse(body) {
             var aiMove = JSON.parse(body);
-            
-            var boardUpdates;
-            
-            try {
-                boardUpdates = go.makeMove(game, aiMove.y, aiMove.x, aiMove.c, aiMove.pass); // NOTE: the AI API uses "x" for rows (confusingly?)
-                debugger;
-            } catch (err) {
-                if (err instanceof go.GameException) {
-                    console.log("AI Made an illegal move: " + JSON.stringify(aiMove));
-                    onAiTurnEvent(game);
-                    return;
-                }
-            } 
-            
-            // TODO: handle errors thown by go.makeMove
-            // TODO: check AI legal move and requery if not legal
-
+                        
             // update game in database after AI move
             MongoInterface.makeMoveOnGameWithID(
                 req.session.gameID,
@@ -260,8 +254,13 @@ app.get("/longpoll", function(req, res, next) {
                 aiMove.x,
                 aiMove.c,
                 aiMove.pass,
-                function() {
-                    // end response with board updates
+                function(err, game, boardUpdates, gameID) {
+                    debugger;
+                    if (err instanceof go.GameException) {
+                        console.log("AI made an illegal move: " + JSON.stringify(aiMove));
+                        onAiTurnEvent(game);
+                        return;
+                    }
                     debugger;
                     res.json(boardUpdates);
                     res.end();
@@ -285,7 +284,7 @@ app.get("/resign", function(req, res) {
 app.get("/game", function(req, res) {
     if (req.session.gameID) {
         MongoInterface.getGameWithID(req.session.gameID, function(err, game) {
-            if (err) return res.status(400).send("Error finding game with id: " + req.session.gameID);
+            if (err) return res.status(400).send("Server error finding game with id: " + req.session.gameID);
             
             res.json(game);
             res.end();
@@ -339,7 +338,6 @@ app.post("/makeClientMove", function(req, res, next) {
             }
             res.json(boardUpdates);
             res.end();
-            debugger;
             if (game.clientColor != game.turn && !game.hotseatMode) { // see if we need to query AI
                 messageBus.emit(events.aiTurn(req.session.gameID), game); // emit event to respond to longpoll
             }
@@ -348,4 +346,4 @@ app.post("/makeClientMove", function(req, res, next) {
 
 });
 
-app.use(express.static("public")); // must be at very bottom 
+app.use(express.static("public")); // must be at very bottom ?

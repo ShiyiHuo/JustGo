@@ -1,6 +1,5 @@
 "use strict";
 const constants = require('./constants.js');
-const timer = require('../Timer.js')
 
 /**
  * Returned to client after a valid move. 
