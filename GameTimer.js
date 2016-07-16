@@ -5,7 +5,6 @@ const constants = require('./game/constants')
 
 class Timer {
     constructor(msRemaining, onTimeout) {
-        debugger;
         this.msRemaining = msRemaining;
         this.onTimeout = onTimeout;
     }
@@ -14,7 +13,6 @@ class Timer {
         this.timeoutID = setInterval(() => {
             this.msRemaining = this.endTime - Date.now(); 
             if (this.msRemaining <= 0) {
-                debugger;
                 this.onTimeout();
                 clearInterval(this.timeoutID);
             }

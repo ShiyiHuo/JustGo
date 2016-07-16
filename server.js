@@ -1,20 +1,21 @@
-var express = require("express");
-var bodyParser = require("body-parser");
-var EventEmitter = require('events').EventEmitter;
-var sessions = require('client-sessions');
-var go = require('./game/go');
-var constants = require('./game/constants');
-var AIInterface = require('./ai/AIInterface');
-var MongoInterface = require('./MongoInterface');
-var events = require('./events');
-
-var app = express();
-var messageBus = new EventEmitter();
-messageBus.setMaxListeners(200);
-
+"use strict";
+const express = require("express");
+const bodyParser = require("body-parser");
+const EventEmitter = require('events').EventEmitter;
+const sessions = require('client-sessions');
+const go = require('./game/go');
+const constants = require('./game/constants');
+const AIInterface = require('./ai/AIInterface');
+const MongoInterface = require('./MongoInterface');
+const events = require('./events');
 const GameTimer = require('./GameTimer');
+
+const app = express();
+const messageBus = new EventEmitter();
+messageBus.setMaxListeners(200);
 const gameTimers = {};
 
+// set up middleware 
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use(sessions({
@@ -23,6 +24,7 @@ app.use(sessions({
     duration: 5 * 60 * 1000,
     activeDuration: 5 * 60 * 1000
 }));
+app.use(express.static("public")); // must be at very bottom since express goes through middleware in order
 
 // redirect requests to the login page
 app.get('/', function(req,res) {
@@ -31,19 +33,22 @@ app.get('/', function(req,res) {
 });
 
 /**
- * Set up server
+ * Set up server on ports assigned in class
  */
 app.listen(30144, function() {
     console.log("Express listening on port 30144");
 });
 
-//redirect requests to the login page
+
+/**
+ * Redirect requests to the login page
+ *  */
 app.get('/', function(req,res) {
     res.redirect('/login.html');
     res.end();
 });
 
-app.get('/gamepage.html', function (req, res, next){
+app.get('/gamepage.html', function (req, res, next) {
     if (req.session && req.session.user) {
         next();
     } else {
@@ -52,8 +57,11 @@ app.get('/gamepage.html', function (req, res, next){
    }
 });
 
-//user selects to play AI
-//if logged in route to gamepage else route to login
+/**
+ * This route means the user selects to play AI
+ * If logged in route to game page, otherwise to login
+ *  
+ * */
 app.post('/playAIB', function(req, res) {
     if (req.session && req.session.user){
         res.write(JSON.stringify({
@@ -72,10 +80,11 @@ app.post('/playAIB', function(req, res) {
     }
 });
 
-// TODO: do we even need this extra path?
-//user selects to play AI
-//if logged in route to gamepage else route to login
-app.post('/playHSB', function(req, res) {
+/**
+ * This route means the user selects to play in hotseat mode
+ * If logged in route to game page, otherwise to login
+ * */
+app.post('/playHSB', function(req, res) { // TODO: do we even need this path?
     if (req.session && req.session.user){
         res.write(JSON.stringify({
             redirect: '/gamepage.html',
@@ -93,17 +102,21 @@ app.post('/playHSB', function(req, res) {
     }
 });
 
-//user attempts to login
+/**
+ *  User attempts to login
+ * 
+ * @param post data should be in format { username: username, password: password }
+ * 
+ * */
 app.post('/login', function(req,res) {
 
-    //store user as submitted username and password
     var user = {username: req.body.username, password: req.body.password};
 
     MongoInterface.loginUser(req.body.username, req.body.password, function(successful) {
         if (successful) {
-            req.session.user = user;
+            req.session.user = user; // store user as submitted username and password
             res.write(JSON.stringify({
-                redirect: '/gamepage.html',
+                redirect: '/gamepage.html', // TODO: This vs res.redirect ???
                 status: 'OK',
                 login: 'yes'
             }));
@@ -119,7 +132,9 @@ app.post('/login', function(req,res) {
 
 });
 
-//client logs out
+/**
+ * Client logs out
+ */
 app.post('/logout', function(req,res) {
     req.session.reset();
     res.write(JSON.stringify({
@@ -130,7 +145,11 @@ app.post('/logout', function(req,res) {
     res.end();
 });
 
-//client requests current status
+/**
+ * Find out if client is logged in
+ * 
+ * @return response containts { login: 'yes' } or { login: 'no' }
+ *  */
 app.post('/getStatus', function(req,res){
     if (req.session && req.session.user) {
         res.write(JSON.stringify({
@@ -142,19 +161,26 @@ app.post('/getStatus', function(req,res){
         res.write(JSON.stringify({
             redirect: '',
             status: 'OK',
-            login: 'no'
+            login: 'no' // TODO: boolean?
         }));
     }
     res.end();
 });
 
-//user attempts to sign up
+/**
+ * User attempts to sign up
+ * 
+ * @param post data should be in the format {username: string, password: string}
+ *  */
 app.post('/signUp', function(req,res) {
 
     var user = {username: req.body.username, password: req.body.password};
 
-    MongoInterface.signUpUser(req.body.username, req.body.password, function(successful) {
-        if (successful) {
+    // TODO: not allow garbage username/password in mongo interface 
+    // TODO: hash password, API for this already?
+    // TODO: input sanitization???
+    MongoInterface.signUpUser(req.body.username, req.body.password, function(successful) { 
+        if (successful) { 
             req.session.user = user;
             res.write(JSON.stringify({
                 redirect: '/gamepage.html',
@@ -178,25 +204,23 @@ app.post('/signUp', function(req,res) {
  * Create a new game state and store it in database
  *
  * @param req should be in form { size : int, hotseat : boolean }
- *
- * @return response is a gameID
  */
 app.post("/newGame", function(req, res, next) {
 
     const size = JSON.parse(req.body.size);
     const hotseat = JSON.parse(req.body.hotseat);
 
-    // create new game in database, respond with game id
+    // create new game in database, add gameID cookie to client, init the game's timers
     MongoInterface.newGame(size, hotseat, function(err, game, gameID) {
         if (err) return res.status(400).send("Server error creating new game");
         
         req.session.gameID = gameID;
         
         const onBlackTimeout = () => {
-            messageBus.emit(events.gameOver(req.session.gameID));
+            messageBus.emit(events.gameOver(req.session.gameID), constants.black);
         }
         const onWhiteTimeout = () => {
-            messageBus.emit(events.gameOver(req.session.gameID));
+            messageBus.emit(events.gameOver(req.session.gameID), constants.white);
         }
 
         gameTimers[gameID] = new GameTimer(onBlackTimeout, onWhiteTimeout);
@@ -213,48 +237,29 @@ app.post("/newGame", function(req, res, next) {
 
 /**
  * Periodic polling request from the client every 30 seconds.
- * The request is responded to with data if an event occurs (e.g. AI Makes Move)
- *
- * @return response (if not empty) is are board updates, scores
+ * The request is responded to with data if an event occurs:
+ * 
+ * @return response after an aiTurnEvent is { board: Array, capturedPieces: Array, whiteScore: Number, blackScore: Number, whiteTime: Number, blackTime: Number }
+ * @return response after a gameOver event is { winner: (color constant) see constants.js, whiteScore: Number, blackScore: Number }
  */
 app.get("/longpoll", function(req, res, next) {
 
+    // reset event listeners to ensure only 1 client has 1 longpoll open
     const aiTurnEvent = events.aiTurn(req.session.gameID);
     const gameOverEvent = events.gameOver(req.session.gameID);
     messageBus.removeAllListeners(aiTurnEvent);
     messageBus.removeAllListeners(gameOverEvent);
-    messageBus.once(aiTurnEvent, onAiTurnEvent);
-    messageBus.once(gameOverEvent, onGameOverEvent);
 
-    // remove the event listener after 30 seconds. NOTE: This period NEEDS to match long-polling timeout period on client
-    setTimeout(function() {
-        messageBus.removeAllListeners(aiTurnEvent);
-        messageBus.removeAllListeners(gameOverEvent);
-        res.end();
-    }, 30000);
+    // in this open request wait until aiTurnEvent to respond
+    messageBus.once(aiTurnEvent, function onAiTurnEvent(game) {
 
-    function onGameOverEvent() {
-        MongoInterface.endgameWithID(req.session.gameID, req.session.username, function(winner, scores) {
-            var responseData = { winner: winner, whiteScore: scores.white, blackScore: scores.black }
-            
-            res.json(responseData);
-            res.end();
-            messageBus.removeAllListeners(aiTurnEvent);
-            messageBus.removeAllListeners(gameOverEvent);
-        })
-    }
+        const lastMove = game.moveHistory[game.moveHistory.length - 1];
 
-    function onAiTurnEvent(game) {
-        var board = game.board;
-        var size = game.board.length;
-        var lastMove = game.moveHistory[game.moveHistory.length - 1];
-        var formattedAIInput = { size: size,
-                                board: board,
-                                last: {x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c : lastMove.color} };
-
-        AIInterface.query(formattedAIInput, onAiResponse);
-
-        function onAiResponse(body) {
+        AIInterface.query({
+            size: game.board.length,
+            board: game.board,
+            last: {x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c: lastMove.color } // x's and y's inverted because prof's API uses x's as "rows" and y's for columns
+        }, function (body) {
             var aiMove = JSON.parse(body);
                         
             // update game in database after AI move
@@ -269,9 +274,10 @@ app.get("/longpoll", function(req, res, next) {
                         console.log("AI made an illegal move: " + JSON.stringify(aiMove));
                         onAiTurnEvent(game);
                         return;
+                    } else if (err) { // other error
+                        return res.status(400).write("Server error making move on game");
                     }
 
-                    // switch from 
                     const gameTimer = gameTimers[gameID];
                     if (game.turn == constants.black) {
                         gameTimer.startBlackTimer();
@@ -287,15 +293,44 @@ app.get("/longpoll", function(req, res, next) {
                     res.json(boardUpdates);
                     res.end();
                     
+                    // after responding stop listening because don't want to respond to request again
                     messageBus.removeAllListeners(aiTurnEvent);
                     messageBus.removeAllListeners(gameOverEvent);
                 }
             );
-        }
-    }
+        });
+    });
+
+    // in this open request respond if a gameOverEvent is emitted
+    messageBus.once(gameOverEvent, function (colorThatRanOutOfTime) {
+
+        console.log("colorThatRanOutOfTime: " + colorThatRanOutOfTime);
+
+        MongoInterface.endgameWithID(req.session.gameID, req.session.username, function(winner, scores) {
+            var responseData = { winner: winner, whiteScore: scores.white, blackScore: scores.black }
+            
+            res.json(responseData);
+            res.end();
+
+            // after responding stop listening because don't want to respond to request again
+            messageBus.removeAllListeners(aiTurnEvent);
+            messageBus.removeAllListeners(gameOverEvent);
+        })
+    });
+
+    // remove the event listener after 30 seconds. NOTE: This period NEEDS to match long-polling timeout period on client
+    setTimeout(function() {
+        // remove all event listeneres from this longpoll so the request can't be responded to after it is ended
+        messageBus.removeAllListeners(aiTurnEvent);
+        messageBus.removeAllListeners(gameOverEvent);
+        res.end();
+    }, 30000);
 
 });
 
+/**
+ * Player resigns
+ */
 app.get("/resign", function(req, res) {
     messageBus.emit(events.gameOver(req.session.gameID));
     res.end();
@@ -311,10 +346,12 @@ app.get("/game", function(req, res) {
             
             res.json(game);
             res.end();
+
             if (game.clientColor != game.turn && !game.hotseatMode) {
                 messageBus.emit(events.aiTurn(req.session.gameID));
             }  
         });
+        // since the page has been refreshed, remove all old listeners 
         messageBus.removeAllListeners(events.aiTurn(req.session.gameID));
         messageBus.removeAllListeners(events.gameOver(req.session.gameID));
 
@@ -374,13 +411,10 @@ app.post("/makeClientMove", function(req, res, next) {
             res.json(boardUpdates);
             res.end();
             
-            if (game.clientColor != game.turn && !game.hotseatMode) { // see if we need to query AI
-                debugger;
+            if (game.clientColor != game.turn && !game.hotseatMode)  // see if we need to query AI
                 messageBus.emit(events.aiTurn(req.session.gameID), game); // emit event to respond to longpoll
-            }
         }
     );
 
 });
 
-app.use(express.static("public")); // must be at very bottom ?
