@@ -254,13 +254,22 @@ app.get("/longpoll", function(req, res, next) {
     // in this open request wait until aiTurnEvent to respond
     messageBus.once(aiTurnEvent, function onAiTurnEvent(game) {
         const lastMove = game.moveHistory[game.moveHistory.length - 1];
-
         AIInterface.query({
             size: game.board.length,
             board: game.board,
             last: {x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c: lastMove.color } // x's and y's inverted because prof's API uses x's as "rows" and y's for columns
         }, function (body) { // on ai response
-            var aiMove = JSON.parse(body);
+            // TODO: check that the AI response isn't garbage
+            debugger;
+            let aiMove;
+            try {
+                aiMove = JSON.parse(body);
+            } catch (err) {
+                if (err instanceof SyntaxError) 
+                    return res.status(400).write("AI Server Response Syntax Error");
+                console.error("Unknown error parsing response from AI Server.");
+                return;
+            }
                         
             // update game in database after AI move
             MongoInterface.makeMoveOnGameWithID(
@@ -366,7 +375,8 @@ app.get('/moveHistory', function(req,res) {
     if (req.session && req.session.gameID) {
         MongoInterface.getGameWithID(req.sessionID, function(err, game) {
             if (err) return res.status(400).send("Error finding game with id: " + req.session.id);
-            return res.json(game.moveHistory);
+            res.json(game.moveHistory);
+            debugger;
         });
     } else {
         res.end();

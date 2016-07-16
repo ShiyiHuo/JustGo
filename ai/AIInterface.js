@@ -26,6 +26,7 @@ function query(postData, callback) {
     options.path = paths[randomIndex];
 
     var req = http.request(options, function(res) {
+      debugger;
       res.on('data', callback);
     });
 

@@ -176,7 +176,7 @@ function makeMove(game, xPos, yPos, color, pass) {
     }
 
     const scores = getScore(game);
-    const move = new Move(xPos, yPos, color, capturedPieces, game.board, scores.white, scores.black);
+    const move = new Move(xPos, yPos, color, capturedPieces, game.board, scores.white, scores.black, false);
     game.moveHistory.push(move);
     
     return move;
