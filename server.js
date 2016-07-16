@@ -287,7 +287,9 @@ app.get("/resign", function(req, res) {
  */
 app.get("/game", function(req, res) {
     if (req.session.gameID) {
-        MongoInterface.getGameWithID(req.session.gameID, function(game) {
+        MongoInterface.getGameWithID(req.session.gameID, function(err, game) {
+            if (err) return res.status(400).send("Error finding game with id: " + req.session.gameID);
+            
             res.json(game);
             res.end();
             if (game.clientColor != game.turn && !game.hotseatMode) {
@@ -300,6 +302,21 @@ app.get("/game", function(req, res) {
     } else {
         res.end();
     }
+});
+
+/**
+ * Get move history of the current game
+ */
+app.get('/moveHistory', function(req,res) {
+    if (req.session && req.session.gameID) {
+        MongoInterface.getGameWithID(req.sessionID, function(err, game) {
+            if (err) return res.status(400).send("Error finding game with id: " + req.session.id);
+
+            return res.json(game.moveHistory);
+        });
+    } else {
+        res.end();
+    } 
 });
 
 /**
