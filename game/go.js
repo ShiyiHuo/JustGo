@@ -22,10 +22,10 @@ class Move {
 /**
  * Provides a base exception class for Game 
  */
-class GameException {
+class GameException extends Error {
     constructor(message) {
+        super(message);
         console.error("GameException: " + message);
-        this.message = message;
     }
 }
 
