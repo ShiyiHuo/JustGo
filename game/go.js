@@ -49,7 +49,6 @@ class DoublePassException extends GameException {
 function makeMove(game, xPos, yPos, color, pass) {
     
     if (pass) {
-
         // switch turn state to opposite color
         if (game.turn == constants.black) {
             game.turn = constants.white;

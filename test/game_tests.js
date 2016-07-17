@@ -228,7 +228,6 @@ describe('Game of Size 9', function() {
      }
      assert(ethrown)
      assert.equal(game.turn, constants.black);
-
     });
 });
 

@@ -201,12 +201,12 @@ app.post('/signUp', function(req,res) {
 });
 
 app.post('/user', function(req, res) {
-
-    if (req.session && req.session.username)
+    if (req.session && req.session.username) {
         MongoInterface.getUserStatsWithUsername(req.session.username, function(err, wins, losses) {
             const userData = {username: req.session.username, wins: wins, losses: losses};
             res.json(userData);
         })
+    }
     else 
         res.end();
 });
@@ -243,7 +243,6 @@ app.post("/newGame", function(req, res, next) {
         res.end();
         // TODO: also check if it is hotseat play and not clients turn. In that case emit an 'AI TURN' event here aswell
     });
-
 });
 
 /**
@@ -347,7 +346,7 @@ app.get("/longpoll", function(req, res, next) {
 /**
  * Player resigns
  */
-app.get("/resign", function(req, res) {
+app.post("/resign", function(req, res) {
     messageBus.emit(events.gameOver(req.session.gameID));
     res.end();
 });
@@ -381,14 +380,14 @@ app.get("/game", function(req, res) {
  */
 app.get('/moveHistory', function(req,res) {
     if (req.session && req.session.gameID) {
-        MongoInterface.getGameWithID(req.sessionID, function(err, game) {
+        MongoInterface.getGameWithID(req.session.gameID, function(err, game) {
             if (err) return res.status(400).send("Error finding game with id: " + req.session.id);
             
             res.json(game.moveHistory);
         });
     } else {
         res.end();
-    } 
+    }
 });
 
 /**
@@ -405,7 +404,7 @@ app.post("/makeClientMove", function(req, res, next) {
         req.body.x,
         req.body.y,
         constants.clientColor,
-        req.pass, // TODO: implement passing
+        req.body.pass, 
         function(err, game, boardUpdates, gameID) {
 
             if (err) {
@@ -424,7 +423,6 @@ app.post("/makeClientMove", function(req, res, next) {
             }
             boardUpdates.whiteTime = gameTimer.getWhiteTime();
             boardUpdates.blackTime = gameTimer.getBlackTime();
-            
             res.json(boardUpdates);
             res.end();
             

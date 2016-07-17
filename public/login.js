@@ -6,6 +6,10 @@ $(document).ready(function() {
                   
                   });
 
+const globals = {
+    wantsHotseat: false 
+};
+
 //show the welcome page
 function showWelcome() {
     
@@ -35,6 +39,7 @@ function showWelcome() {
                                    if (data.status == "noSession") {
                                    $('body').children().remove();
                                    showSignOptions();
+                                   globals.wantsHotseat = false;
                                    }
                                    else {
                                    window.location = data.redirect;
@@ -49,6 +54,7 @@ function showWelcome() {
                                    if (data.status == "noSession") {
                                    $('body').children().remove();
                                    showSignOptions();
+                                   globals.wantsHotseat = true;
                                    }
                                    else {
                                    window.location = data.redirect;
@@ -362,15 +368,17 @@ function showMainMenu() {
            $('body').append('<button class="button" id="startGameB">Start Game</button>');
            
            
-           $('#startGameB').on('click', function() {
-                               $.get("/gamepage.html", function(data, status) {
-                                     data = JSON.parse(data);
-                                     if (data.status == "OK") {
-                                     console.log("get game page");
-                                     window.location = data.redirect;
-                                     }
-                                     });
-                               });
+       $('#startGameB').on('click', function() {
+            window.location = "/gamepage.html";
+
+            // TODO: Shiyi make this take sizes based on the page options
+            var newGameParameters = {size: 19, hotseat: globals.wantsHotseat};
+
+            $.post("/newGame", newGameParameters, function(data, status) {
+                window.location = JSON.parse(data).redirect;
+            })
+
+        });
            
            //NEEDS DEBUGGING!!!!!!!!!!!
            $('#mainMenuGoBack').on('click', function() {

@@ -1,4 +1,4 @@
-"use strict"
+"use strict";
 const mongoose = require('mongoose');
 const constants = require('./game/constants');
 const go = require('./game/go');
@@ -6,9 +6,10 @@ const go = require('./game/go');
 var Game; // TODO: not have these schemas in a global? should be in mongointerface?
 var User;
 
-
-class MongoInterfaceException {
-    constructor() {}
+class MongoInterfaceException extends Error {
+    constructor(message) {
+        super(message);
+    }
 }
  
 class MongoInterface {
@@ -24,7 +25,7 @@ class MongoInterface {
         });
         
         // define a game schema and model it
-        var gameSchema = new mongoose.Schema({
+        const gameSchema = new mongoose.Schema({
             board: Array,
             turn: Number,
             moveHistory: Array,
@@ -37,7 +38,7 @@ class MongoInterface {
         Game = mongoose.model('Game', gameSchema);
 
         // define user schema and model it
-        var userSchema = new mongoose.Schema({
+        const userSchema = new mongoose.Schema({
             username: {type: String, index: {unique: true}},
             password: String,
             wins: Number,
@@ -48,75 +49,90 @@ class MongoInterface {
     
     /**
      * Creates a new game and stores it in the database with size or in hotseat options
-     * Callback is called with the new game's ID
+     * Callback is called with parameters (err, game, gameID)
      */
     newGame(size, hotseatMode, callback) {
-        var board = [];
+        let board = [];
         for (var i = 0; i < size; i++) {
             board[i] = new Array(size).fill(constants.empty);
         }
 
-        var game = new Game({
+        const game = new Game({
             board: board,
             turn: constants.black,
             moveHistory: [],
             hotseatMode: hotseatMode,
             clientColor: constants.black,
             active: true,
-            whiteTimeLeft: 15 * 1000,
-            blackTimeLeft: 15 * 1000
+            whiteTimeLeft: constants.startingTimePool,
+            blackTimeLeft: constants.startingTimePool
         });
 
         game.save(function (err, game) {
-            if (err) return console.error(err);
+            if (err) callback(err);
+            if (!game) callback(new MongoInterfaceException("Error creating new game."));
             callback(err, game, game._id.id);
         });        
     }
 
     /**
-     * Make a move on a game in the database with a given gameID 
-     * Callback is executed and passed the updated game document and board updates
+     * Make a move on a game in the database.
+     * @param {String} id - the gameID
+     * @param {Number} x - the row of the move 
+     * @param {Number} y - the column of the move
+     * @param {Boolean} pass - If the move is a pass
+     * @param {Function} callback - Function executed when done with (err, game, boardUpdates, gameID) parameters
      */
     makeMoveOnGameWithID(id, x, y, turn, pass, callback) {
         Game.findById(id, function(err, game) {
-            if (err) return console.error(err);
-            if (!game) return console.error("Could not find game with id: " + id);
+            if (err) callback(err);
+            if (!game) callback(new MongoInterfaceException("Error finding game with id: " + id));
             
-            if (turn == constants.clientColor && !game.hotseatMode) {
+            if (turn == constants.clientColor && !game.hotseatMode) 
                 turn = game.clientColor;
-            } else if (turn == constants.clientColor && game.hotseatMode) {
+            else if (turn == constants.clientColor && game.hotseatMode) 
                 turn = game.turn;
-            }
 
-            var boardUpdates;
+            let boardUpdates;
             try {
                 boardUpdates = go.makeMove(game, x, y, turn, pass);
             } catch (err) {
                 if (err instanceof go.GameException) 
-                    return callback(err, game, boardUpdates, game._id.id);
+                    return callback(err);
             }
 
             game.markModified('board'); // needed to let mongoose know the nested array was modified
             game.save(function(err, game) {
-                if (err) return console.error(err);
-                if (!game) return console.error("could not find game with id: " + id);
-                callback(null, game, boardUpdates, game._id.id);
+                if (err) callback(err)
+                if (!game) callback(new MongoInterfaceException("Error saving game with id: " + id));
+                callback(false, game, boardUpdates, game._id.id);
             });
         });
     }
 
+    /**
+     * Get game with ID in the database
+     * @param {String} id - the gameID
+     * @param {Function} callback - Function executed when done with (err, game) parameters
+     */
     getGameWithID(id, callback) {
         Game.findById(id, function(err, game) {
-            if (err) return callback(err);
-            if (!game) return callback("Could not find game with id " + id);
-            callback(null, game);
+            if (err) callback(err);
+            if (!game) callback(new MongoInterfaceException("Could not find game with id " + id));
+            callback(false, game);
         });
     }
 
+    /**
+     * End game with ID in the database
+     * @param {String} id - the gameID
+     * @param {Function} callback - Function executed when done with (err, game) parameters
+     */
     endgameWithID(id, username, callback) {
         Game.findById(id, function(err, game) {
-            if (err) return console.error(err);
-            
+            if (err) callback(err);
+            if (!game) callback(new MongoInterfaceException("Could not find game with id " + id));
+
             var endGame = go.endGame(game);
             if (endGame.winner == game.clientColor) {
                 //this.updateUserWithWin(true, username);
@@ -127,10 +143,14 @@ class MongoInterface {
                 if (err) return console.error(err);
                 callback(endGame.winner, endGame.scores);
             });
-            
         });
     }
 
+    /**
+     * Get the wins and losses of the player with given username
+     * @param {String} username 
+     * @param {Function} callback to be executed with (err, wins, losses) parameters
+     */
     getUserStatsWithUsername(username, callback) {
         if (typeof username !== 'string' || !(callback instanceof Function)) 
             throw new MongoInterfaceException();
@@ -141,9 +161,8 @@ class MongoInterface {
                 callback(err);
                 return console.error(err);
             }
-            
+            callback(false, user.wins, user.losses);
         });
-
     } 
 
     /**
@@ -160,8 +179,9 @@ class MongoInterface {
 
     /**
      * Signs up user with username and password.
-     * Callback is executed with true parameter if no error is thrown 
-     * Callback is executed with false parameter if error is thrown (e.g. username already exists)
+     * @param {String} username 
+     * @param {password} username
+     * @param {Function} callback executed with (err) parameter
      */
     signUpUser(username, password, callback) {
         var user = new User({username: username, password: password});
@@ -177,17 +197,18 @@ class MongoInterface {
 
     /**
      * Logs in user with username and password
-     * Callback is executed with true parameter if no error is thrown 
-     * Callback is executed with false parameter if error is thrown (e.g. invalid username/password)
+     * @param {String} username 
+     * @param {String} password 
+     * @param {Function} callback function to be executed with (err, user) parameter
      */
     loginUser(username, password, callback) {
         var query = User.findOne({username: username, password: password});
-        query.exec(function(err, person) {
+        query.exec(function(err, user) {
             if (err) {
                 callback(false);
                 return console.error(err);
             }
-            if (person) {
+            if (user) {
                 callback(true);
             } else {
                 callback(false);
