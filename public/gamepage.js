@@ -30,7 +30,7 @@ function initBoard(size) {
     canvas.height = $('#boardContainer').height();
     $(canvas).click(boardClicked);
     $('#boardContainer').append(canvas);
-    gameboard = new Board(size, $('#boardContainer').width(),canvas);
+    gameboard = new Board(size, $('#boardContainer').width(), canvas);
     gameboard.drawCurrentBoard();
     $(window).resize(windowResized);
 }
@@ -83,3 +83,114 @@ function longpoll() {
         timeout: 30000
     });
 }
+
+
+
+
+//show menu bar
+function showMenuBar(login) {
+    
+    if (login == "logged in") {
+        $('body').append('<ul>' +
+                         '<li><a id="logoutB">Log Out</a></li>' +
+                         '<li><a id="userCenter">User Center</a></li>' +
+                         '<li><a id="aboutUs">About Us</a></li>' +
+                         '</ul>');
+        
+        $('#logoutB').on('click', function() {
+                         $.post("/logout", function(data, status) {
+                                data = JSON.parse(data);
+                                if (data.status == "OK") {
+                                console.log("Logged out");
+                                window.location = data.redirect;
+                                }
+                                });
+                         });
+        
+        
+        //use stack to go to previous page
+        $('#userCenter').on('click', function() {
+                            $('body').children().remove();
+                            showUserCenter();
+                            });
+        
+        $('#aboutUs').on('click', function() {
+                         $('body').children().remove();
+                         showAboutUs();
+                         });
+        
+    }
+    
+    else {
+        $('body').append('<ul>' +
+                         '<li><a id="aboutUs">About Us</a></li>' +
+                         '</ul>');
+        
+        $('#aboutUs').on('click', function() {
+                         $('body').children().remove();
+                         showAboutUs();
+                         });
+    }
+    
+}
+
+
+//show user center
+function showUserCenter() {
+    $.post("/getStatus", function(data,status) {
+           
+           data = JSON.parse(data);
+           if (data.login == "yes") {
+           showMenuBar("logged in");
+           // showLogout();
+           console.log("Logged in");
+           } else {
+           showMenuBar();
+           }
+           
+           $('body').append('<button class="backButton" id="userCenterGoBack"><</button>');
+           
+           $('body').append('<p class="usercenter_label">Username</p>');
+           $('body').append('<input type=text><br>')
+           $('body').append('<p class="usercenter_label">Score</p>');
+           $('body').append('<input type=text><br>')
+           $('body').append('<p class="usercenter_label">Wins/Losses</p>');
+           $('body').append('<input type=text><br>')
+           
+           
+           $('#userCenterGoBack').on('click', function() {
+                                     history.go(-1);
+                                     });
+           
+           
+           });
+}
+
+
+
+//show about us
+function showAboutUs() {
+    $.post("/getStatus", function(data,status) {
+           
+           data = JSON.parse(data);
+           if (data.login == "yes") {
+           showMenuBar("logged in");
+           // showLogout();
+           console.log("Logged in");
+           } else {
+           showMenuBar();
+           }
+           
+           $('body').append('<button class="backButton" id="aboutUsGoBack"><</button>');
+           
+           $('body').append('<input class="input-text" type="text" value="Your Name *"><br>');
+           $('body').append('<input class="input-text" type="text" value="Your E-mail *"<br>');
+           $('body').append('<textarea class="input-text text-area">Your Message *</textarea>');
+           
+           $('#aboutUsGoBack').on('click', function() {
+                                  history.go(-1);
+                                  });
+           
+           });
+}
+
