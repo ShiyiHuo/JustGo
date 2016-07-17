@@ -31,8 +31,9 @@ function query(postData, callback) {
     });
 
     req.on('socket', function (socket) {
-    socket.setTimeout(myTimeout);  
+    socket.setTimeout(5 * 1000);  
     socket.on('timeout', function() {
+        console.log("error");
         req.abort();
     });
     });
