@@ -1,57 +1,65 @@
 $(document).ready(function() {
-    showWelcome();
-});
-
-const globals = {
-    wantsHotseat: false 
-};
+                  
+                  showWelcome();
+                  
+                  
+                  
+                  });
 
 //show the welcome page
 function showWelcome() {
+    
+    
     $.post("/getStatus", function(data,status) {
            
-        data = JSON.parse(data);
-        if (data.login == "yes") {
+           data = JSON.parse(data);
+           if (data.login == "yes") {
            showMenuBar("logged in");
-          // showLogout();
+           // showLogout();
            console.log("Logged in");
-        } else {
+           } else {
            showMenuBar();
-        }
+           }
            
-           $('body').append('<h1>Welcome to Go by DeepFriedMilk</h1>');
-           //$('body').append('<h2>Select game mode</h2>');
+           $('body').append('<div class="title_section1">WELCOME TO</div><div class="title_section2">GO</div><div class="title_section3">BY DEEPFRIEDMILK</div>');
+           
            $('body').append('<button type="button" class="button" id="playAIB">Player vs AI</button><br>');
-           $('body').append('<button type="button" class="button" id="playHSB">Player vs Player</button><br>');         
+           $('body').append('<button type="button" class="button" id="playHSB">Player vs Player</button><br>');
+           
+           
+           
+           
            $('#playAIB').on('click', function() {
-                $.post("/playAIB", function(data, status) {
-                    data = JSON.parse(data);
-                    if (data.status == "noSession") {
-                        $('body').children().remove();
-                        showSignOptions();
-                        globals.wantsHotseat = false;
-                    }
-                    else {
-                        window.location = data.redirect;
-                    }
-                });
-            });
+                            $.post("/playAIB", function(data, status) {
+                                   data = JSON.parse(data);
+                                   if (data.status == "noSession") {
+                                   $('body').children().remove();
+                                   showSignOptions();
+                                   }
+                                   else {
+                                   window.location = data.redirect;
+                                   }
+                                   });
+                            });
+           
            
            $('#playHSB').on('click', function() {
-                $.post("/playHSB", function(data, status) {
-                    data = JSON.parse(data);
-                    if (data.status == "noSession") {
-                        $('body').children().remove();
-                        showSignOptions();
-                        globals.wantsHotseat = true;
-                    }
-                    else {
-                        window.location = data.redirect;
-                    }
-                });
-            });
+                            $.post("/playHSB", function(data, status) {
+                                   data = JSON.parse(data);
+                                   if (data.status == "noSession") {
+                                   $('body').children().remove();
+                                   showSignOptions();
+                                   }
+                                   else {
+                                   window.location = data.redirect;
+                                   }
+                                   });
+                            });
            
-    });
+           });
+    
+    
+    
     
 }
 
@@ -59,92 +67,93 @@ function showSignOptions () {
     
     $.post("/getStatus", function(data,status) {
            
-        data = JSON.parse(data);
-        if (data.login == "yes") {
+           data = JSON.parse(data);
+           if (data.login == "yes") {
            showMenuBar("logged in");
            // showLogout();
            console.log("Logged in");
-        } else {
+           } else {
            showMenuBar();
-        }
+           }
            
-        $('body').append('<button class="backButton" id="signOptionsGoBack">Go Back</button><br>');
-        $('body').append('<button type="button" class="button" id="loginOptionB">Login</button><br>');
-        $('body').append('<button type="button" class="button" id="signOptionB">Sign up</button><br>');
-        $('body').append('<button type="button" class="button" id="guestOptionB">Proceed as guest</button><br>');
-        
-        $('#signOptionsGoBack').on('click', function() {
-            $('body').children().remove();
-            showWelcome();
-        });
-        
-        $('#loginOptionB').on('click', function() {
-            $('body').children().remove();
-            showLogin();
-        });
-
-        $('#signOptionB').on('click', function() {
-            $('body').children().remove();
-            showSignUp();
-        });
-
-        $('#guestOptionB').on('click', function() {
-            $('body').children().remove();
-            //window.location = '/gamepage.html';
-            showMainMenu();
-        });
+           $('body').append('<button class="backButton" id="signOptionsGoBack"><</button><br>');
            
-    });
-
+           $('body').append('<button type="button" class="button" id="loginOptionB">Login</button><br>');
+           $('body').append('<button type="button" class="button" id="signOptionB">Sign up</button><br>');
+           $('body').append('<button type="button" class="button" id="guestOptionB">Proceed as guest</button><br>');
+           
+           $('#signOptionsGoBack').on('click', function() {
+                                      $('body').children().remove();
+                                      showWelcome();
+                                      });
+           
+           $('#loginOptionB').on('click', function() {
+                                 $('body').children().remove();
+                                 showLogin();
+                                 });
+           
+           $('#signOptionB').on('click', function() {
+                                $('body').children().remove();
+                                showSignUp();
+                                });
+           
+           $('#guestOptionB').on('click', function() {
+                                 $('body').children().remove();
+                                 //window.location = '/gamepage.html';
+                                 showMainMenu();
+                                 });
+           
+           });
+    
 }
 
 //show the signup page
 function showSignUp() {
     $.post("/getStatus", function(data,status) {
            
-        data = JSON.parse(data);
-        if (data.login == "yes") {
+           data = JSON.parse(data);
+           if (data.login == "yes") {
            showMenuBar("logged in");
            // showLogout();
            console.log("Logged in");
-        } else {
+           } else {
            showMenuBar();
-        }
-
+           }
            
-        $('body').append('<button class="backButton" id="signUpGoBack">Go Back</button>');
-        
-        $('body').append('<p class="username_label" id="usern_signup_label">Username</p>');
-        $('body').append('<input type=text id="usern_signup_textbox"><br>')
-        $('body').append('<p class="password_label" id="pw_signup_label">Password</p>');
-        $('body').append('<input type=text id="pw_signup_textbox"><br>');
-        $('body').append('<button type="button" class="button" id="signUpSubmitB">Sign up</button>');
-        
-        $('#signUpGoBack').on('click', function() {
-            $('body').children().remove();
-            showSignOptions();
-        });
-
-        $('#signUpSubmitB').on('click', function() {
-            var username = $('#usern_signup_textbox').val();
-            var password = $('#pw_signup_textbox').val();
-            var signUpData = {
-                'username' : username,
-                'password' : password
-            }
-
-            $.post("/signUp", signUpData, function(data, status){
-                data = JSON.parse(data);
-                if (data.status == "invalidUsername") {
-                    $('body').append('<h3>Invalid username</h3>')
-                } else {
-                    //window.location = data.redirect;
-                    $('body').children().remove();
-                    showMainMenu();
-                }
-            });
-        });
-    });
+           
+           $('body').append('<button class="backButton" id="signUpGoBack"><</button>');
+           
+           $('body').append('<p class="username_label" id="usern_signup_label">Username</p>');
+           $('body').append('<input type=text id="usern_signup_textbox"><br>')
+           $('body').append('<p class="password_label" id="pw_signup_label">Password</p>');
+           $('body').append('<input type=text id="pw_signup_textbox"><br>');
+           $('body').append('<button type="button" class="button" id="signUpSubmitB">Sign up</button>');
+           
+           $('#signUpGoBack').on('click', function() {
+                                 $('body').children().remove();
+                                 showSignOptions();
+                                 });
+           
+           $('#signUpSubmitB').on('click', function() {
+                                  var username = $('#usern_signup_textbox').val();
+                                  var password = $('#pw_signup_textbox').val();
+                                  var signUpData = {
+                                  'username' : username,
+                                  'password' : password
+                                  }
+                                  
+                                  $.post("/signUp", signUpData, function(data, status){
+                                         data = JSON.parse(data);
+                                         if (data.status == "invalidUsername") {
+                                         $('body').append('<h3>Invalid username</h3>')
+                                         } else {
+                                         //window.location = data.redirect;
+                                         $('body').children().remove();
+                                         showMainMenu();
+                                         }
+                                         });
+                                  });
+           });
 }
 
 
@@ -152,69 +161,70 @@ function showSignUp() {
 function showLogin() {
     $.post("/getStatus", function(data,status) {
            
-       data = JSON.parse(data);
-       if (data.login == "yes") {
+           data = JSON.parse(data);
+           if (data.login == "yes") {
            showMenuBar("logged in");
            // showLogout();
            console.log("Logged in");
-       } else {
+           } else {
            showMenuBar();
-       }
+           }
            
            
-        $('body').append('<button class="backButton" id="loginGoBack">Go Back</button>');
+           $('body').append('<button class="backButton" id="loginGoBack"><</button>');
            
-        $('body').append('<p class="username_label" id="usern_login_label">Username</p>');
-        $('body').append('<input type=text id="usern_login_textbox"><br>')
-        $('body').append('<p class="password_label" id="pw_login_label">Password</p>');
-        $('body').append('<input type=text id="pw_login_textbox"><br>');
-        $('body').append('<button type="button" class="button" id="loginSubmitB">Log in</button>');
-        
-        $('#loginGoBack').on('click', function() {
-            $('body').children().remove();
-            showSignOptions();
-        });
-        
-        $('#loginSubmitB').on('click', function() {
-            var username = $('#usern_login_textbox').val();
-            var password = $('#pw_login_textbox').val();
-            var loginData = {
-                'username' : username,
-                'password' : password
-            }
-
-            $.post("/login", loginData, function(data, status){
-                data = JSON.parse(data);
-                if (data.status == "invalidLogin") {
-                    //could be an alert message
-                    $('body').append('<p>Invalid login</p>')
-                } else {
-                    //window.location = data.redirect;
-                    $('body').children().remove();
-                    showMainMenu();
-                }
-            });
-        });
-    });
+           $('body').append('<p class="username_label" id="usern_login_label">Username</p>');
+           $('body').append('<input type=text id="usern_login_textbox"><br>')
+           $('body').append('<p class="password_label" id="pw_login_label">Password</p>');
+           $('body').append('<input type=text id="pw_login_textbox"><br>');
+           $('body').append('<button type="button" class="button" id="loginSubmitB">Log in</button>');
+           
+           $('#loginGoBack').on('click', function() {
+                                $('body').children().remove();
+                                showSignOptions();
+                                });
+           
+           $('#loginSubmitB').on('click', function() {
+                                 var username = $('#usern_login_textbox').val();
+                                 var password = $('#pw_login_textbox').val();
+                                 var loginData = {
+                                 'username' : username,
+                                 'password' : password
+                                 }
+                                 
+                                 $.post("/login", loginData, function(data, status){
+                                        data = JSON.parse(data);
+                                        if (data.status == "invalidLogin") {
+                                        //could be an alert message
+                                        $('body').append('<p>Invalid login</p>')
+                                        } else {
+                                        //window.location = data.redirect;
+                                        $('body').children().remove();
+                                        showMainMenu();
+                                        
+                                        }
+                                        });
+                                 });
+           });
 }
 
 /*//show the logout option
-function showLogout() {
-    $('body').append('<button type="button" class="button" id="logoutB">logout</button>');
-    $('#logoutB').on('click', function() {
-        $.post("/logout", function(data, status) {
-            data = JSON.parse(data);
-            if (data.status == "OK") {
-                console.log("Logged out");
-                window.location = data.redirect;
-            }
-        });
-    });
-}*/
+ function showLogout() {
+ $('body').append('<button type="button" class="button" id="logoutB">logout</button>');
+ $('#logoutB').on('click', function() {
+ $.post("/logout", function(data, status) {
+ data = JSON.parse(data);
+ if (data.status == "OK") {
+ console.log("Logged out");
+ window.location = data.redirect;
+ }
+ });
+ });
+ }*/
 
 //show menu bar
 function showMenuBar(login) {
-
+    
     if (login == "logged in") {
         $('body').append('<ul>' +
                          '<li><a id="logoutB">Log Out</a></li>' +
@@ -223,26 +233,26 @@ function showMenuBar(login) {
                          '</ul>');
         
         $('#logoutB').on('click', function() {
-            $.post("/logout", function(data, status) {
-                data = JSON.parse(data);
-                if (data.status == "OK") {
-                    console.log("Logged out");
-                    window.location = data.redirect;
-                }
-            });
-        });
+                         $.post("/logout", function(data, status) {
+                                data = JSON.parse(data);
+                                if (data.status == "OK") {
+                                console.log("Logged out");
+                                window.location = data.redirect;
+                                }
+                                });
+                         });
         
         
         //use stack to go to previous page
         $('#userCenter').on('click', function() {
-            $('body').children().remove();
-            showUserCenter();
-        });
+                            $('body').children().remove();
+                            showUserCenter();
+                            });
         
         $('#aboutUs').on('click', function() {
-            $('body').children().remove();
-            showAboutUs();
-        });
+                         $('body').children().remove();
+                         showAboutUs();
+                         });
         
     }
     
@@ -250,8 +260,13 @@ function showMenuBar(login) {
         $('body').append('<ul>' +
                          '<li><a id="aboutUs">About Us</a></li>' +
                          '</ul>');
+        
+        $('#aboutUs').on('click', function() {
+                         $('body').children().remove();
+                         showAboutUs();
+                         });
     }
-
+    
 }
 
 
@@ -259,30 +274,31 @@ function showMenuBar(login) {
 function showUserCenter() {
     $.post("/getStatus", function(data,status) {
            
-       data = JSON.parse(data);
-       if (data.login == "yes") {
+           data = JSON.parse(data);
+           if (data.login == "yes") {
            showMenuBar("logged in");
            // showLogout();
            console.log("Logged in");
-       } else {
+           } else {
            showMenuBar();
-       }
+           }
            
-        $('body').append('<button class="backButton" id="userCenterGoBack">Go Back</button>');       
-        $('body').append('<p class="usercenter_label">Username</p>');
-        $('body').append('<input type=text><br>')
-        $('body').append('<p class="usercenter_label">Score</p>');
-        $('body').append('<input type=text><br>')
-        $('body').append('<p class="usercenter_label">Wins/Losses</p>');
-        $('body').append('<input type=text><br>')
-        
+           $('body').append('<button class="backButton" id="userCenterGoBack"><</button>');
            
-        $('#userCenterGoBack').on('click', function() {
-            history.go(-1);
-        });
-
+           $('body').append('<p class="usercenter_label">Username</p>');
+           $('body').append('<input type=text><br>')
+           $('body').append('<p class="usercenter_label">Score</p>');
+           $('body').append('<input type=text><br>')
+           $('body').append('<p class="usercenter_label">Wins/Losses</p>');
+           $('body').append('<input type=text><br>')
            
-    });
+           
+           $('#userCenterGoBack').on('click', function() {
+                                     history.go(-1);
+                                     });
+           
+           
+           });
 }
 
 
@@ -291,23 +307,26 @@ function showUserCenter() {
 function showAboutUs() {
     $.post("/getStatus", function(data,status) {
            
-       data = JSON.parse(data);
-       if (data.login == "yes") {
+           data = JSON.parse(data);
+           if (data.login == "yes") {
            showMenuBar("logged in");
            // showLogout();
            console.log("Logged in");
-       } else {
+           } else {
            showMenuBar();
-       }
+           }
            
-       $('body').append('<button class="backButton" id="aboutUsGoBack">Go Back</button>');
+           $('body').append('<button class="backButton" id="aboutUsGoBack"><</button>');
            
-       $('body').append('<input class="input-text" type="text" value="Your Name *"><br>');
-       $('body').append('<input class="input-text" type="text" value="Your E-mail *"<br>');
-        $('body').append('<textarea class="input-text text-area">Your Message *</textarea>');
-       
-       
-    });
+           $('body').append('<input class="input-text" type="text" value="Your Name *"><br>');
+           $('body').append('<input class="input-text" type="text" value="Your E-mail *"<br>');
+           $('body').append('<textarea class="input-text text-area">Your Message *</textarea>');
+           
+           $('#aboutUsGoBack').on('click', function() {
+                                  history.go(-1);
+                                  });
+           
+           });
 }
 
 
@@ -315,55 +334,51 @@ function showAboutUs() {
 function showMainMenu() {
     $.post("/getStatus", function(data,status) {
            
-       data = JSON.parse(data);
-       if (data.login == "yes") {
+           data = JSON.parse(data);
+           if (data.login == "yes") {
            showMenuBar("logged in");
            // showLogout();
            console.log("Logged in");
-       } else {
+           } else {
            showMenuBar();
-       }
+           }
            
-        $('body').append('<button class="backButton" id="mainMenuGoBack">Go Back</button>');
-   
-        $('body').append('<p class="mainmenu_label" id="mainmenu_top_label">Select board size</p>');
-        $('body').append('<input class="input-checkbox" type="checkbox">9*9');
-        $('body').append('<input class="individual_checkbox" type="checkbox">13*13');
-        $('body').append('<input class="individual_checkbox" type="checkbox">19*19');
+           //go back button
+           $('body').append('<button class="backButton" id="mainMenuGoBack"><</button>');
            
-        $('body').append('<p class="mainmenu_label">Select background colour of game</p>');
-        $('body').append('<input class="input-checkbox" type="checkbox">Midnight Purple');
-        $('body').append('<input class="individual_checkbox" type="checkbox">Forest Green');
-        $('body').append('<input class="individual_checkbox" type="checkbox">Ocean Blue');
-        
+           //board size selector
+           $('body').append('<p class="mainmenu_label" id="mainmenu_top_label">Select board size</p>');
+           $('body').append('<input class="input-checkbox" type="checkbox"><p>9*9</p>');
+           $('body').append('<input class="individual_checkbox" type="checkbox"><p>13*13</p>');
+           $('body').append('<input class="individual_checkbox" type="checkbox"><p>19*19</p>');
            
-        $('body').append('<p class="mainmenu_label">Select colour of Go board</p>');
-        $('body').append('<input class="input-checkbox" type="checkbox">Yellow');
-        $('body').append('<input class="individual_checkbox" type="checkbox">White');
-        $('body').append('<input class="individual_checkbox" type="checkbox">Pink');
            
-        $('body').append('<button class="button" id="startGameB">Start Game</button>');
-        
+           //Go board color selector
+           $('body').append('<p class="mainmenu_label">Select colour of Go board</p>');
+           $('body').append('<input class="input-checkbox" type="checkbox"><p>Yellow</p>');
+           $('body').append('<input class="individual_checkbox" type="checkbox"><p>White</p>');
+           $('body').append('<input class="individual_checkbox" type="checkbox"><p>Pink</p>');
            
-       $('#startGameB').on('click', function() {
-            window.location = "/gamepage.html";
-
-            // TODO: Shiyi make this take sizes based on the page options
-            var newGameParameters = {size: 19, hotseat: globals.wantsHotseat};
-
-            $.post("/newGame", newGameParameters, function(data, status) {
-                window.location = JSON.parse(data).redirect;
-            })
-
-        });
-        
-    
-       $('#mainMenuGoBack').on('click', function() {
-            $('body').children().remove();
-            showSignOptions();
-        });
-       
-    });
+           $('body').append('<button class="button" id="startGameB">Start Game</button>');
+           
+           
+           $('#startGameB').on('click', function() {
+                               $.get("/gamepage.html", function(data, status) {
+                                     data = JSON.parse(data);
+                                     if (data.status == "OK") {
+                                     console.log("get game page");
+                                     window.location = data.redirect;
+                                     }
+                                     });
+                               });
+           
+           //NEEDS DEBUGGING!!!!!!!!!!!
+           $('#mainMenuGoBack').on('click', function() {
+                                   $('body').children().remove();
+                                   showSignOptions();
+                                   });
+           
+           });
 }
 
 

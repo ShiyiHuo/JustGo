@@ -149,8 +149,8 @@ app.post('/logout', function(req,res) {
 /**
  * Find out if client is logged in
  * 
- * @return response containts { login: 'yes' } or { login: 'no' }
- *  */
+ * @return response containts { login: 'yes' } or { login: 'no' } 
+ * */
 app.post('/getStatus', function(req,res){
     if (req.session && req.session.user) {
         res.write(JSON.stringify({
@@ -175,7 +175,7 @@ app.post('/getStatus', function(req,res){
  *  */
 app.post('/signUp', function(req,res) {
 
-    var user = {username: req.body.username, password: req.body.password};
+    const user = {username: req.body.username, password: req.body.password};
 
     // TODO: not allow garbage username/password in mongo interface 
     // TODO: hash password, API for this already?
@@ -201,7 +201,14 @@ app.post('/signUp', function(req,res) {
 });
 
 app.post('/user', function(req, res) {
-    
+
+    if (req.session && req.session.username)
+        MongoInterface.getUserStatsWithUsername(req.session.username, function(err, wins, losses) {
+            const userData = {username: req.session.username, wins: wins, losses: losses};
+            res.json(userData);
+        })
+    else 
+        res.end();
 });
 
 /**
@@ -262,10 +269,8 @@ app.get("/longpoll", function(req, res, next) {
             board: game.board,
             last: {x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c: lastMove.color } // x's and y's inverted because prof's API uses x's as "rows" and y's for columns
         }, function (body) { // on ai response
-            // TODO: check that the AI response isn't garbage
-            debugger;
             let aiMove;
-            try {
+            try { // make sure response data is valid
                 aiMove = JSON.parse(body);
             } catch (err) {
                 if (err instanceof SyntaxError) 
@@ -429,4 +434,3 @@ app.post("/makeClientMove", function(req, res, next) {
     );
 
 });
-

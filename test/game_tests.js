@@ -230,8 +230,6 @@ describe('Game of Size 9', function() {
      assert.equal(game.turn, constants.black);
 
     });
-
-
 });
 
 

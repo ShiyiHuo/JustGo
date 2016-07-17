@@ -6,6 +6,10 @@ const go = require('./game/go');
 var Game; // TODO: not have these schemas in a global? should be in mongointerface?
 var User;
 
+
+class MongoInterfaceException {
+    constructor() {}
+}
  
 class MongoInterface {
 
@@ -127,6 +131,20 @@ class MongoInterface {
         });
     }
 
+    getUserStatsWithUsername(username, callback) {
+        if (typeof username !== 'string' || !(callback instanceof Function)) 
+            throw new MongoInterfaceException();
+
+        const query = User.findOne({username: username});
+        query.exec(function(err, user) {
+            if (err) {
+                callback(err);
+                return console.error(err);
+            }
+            
+        });
+
+    } 
 
     /**
      * 

@@ -2,47 +2,48 @@
     position: relative;
     border-style: solid;
     border-color: red;
-
+    
     min-height: 400px;
     min-width: 400px;
-
+    
     width: 98vw;
     height: 97vh;
 }
 
 #gameContainer {
-
+    
     position: absolute;
     border-style: solid;
     border-color: yellow;
     min-width: inherit;
     min-height: inherit;
-    width: 70vw;
+    width: 50vw;
     height: inherit;
 }
 
 #boardContainer {
-
+    
     position: absolute;
     border-style: solid;
     border-color: green;
     min-width: 300px;
     min-height: 300px;
-    width: 50vw;
-    height: 50vw;
-    margin-left: auto;
+    width: 40vw;
+    height: 40vw;
+    margin-top: 20px;
+    margin-left: 40px;
     margin-right: auto;
     left: 0;
     right: 0;
-
+    
 }
 
 #dataContainer {
     position: absolute;
-    right: -300px;
+    right: -650px;
     border-style: solid;
     border-color: blue;
-    width: 300px;
+    width: 550px;
     min-height: inherit;
     height: inherit;
 }
@@ -50,7 +51,102 @@
 
 
 * {
-  -webkit-box-sizing: border-box;
-     -moz-box-sizing: border-box;
-          box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
 }
+
+
+
+
+/* buttons*/
+.button {
+    background-color: Salmon;
+    width: 130px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    text-align: center;
+    font-size: 24px;
+    font-family: Century Gothic, sans-serif;
+    /*font-family: Verdana, Geneva, sans-serif;*/
+    font-weight: bold;
+    margin: 4px 2px;
+    border: 1px solid Salmon;
+    color: #343350;
+    text-decoration: none;
+    -webkit-transition-duration: 0.4s; /* Safari */
+    transition-duration: 0.4s;
+    cursor: pointer;
+    
+    border-radius: 1000px;
+}
+
+
+.button:hover {
+    background-color: transparent;
+    color: Salmon;
+}
+
+.passButton {
+    margin-top: 150px;
+    margin-left: 60px;
+}
+
+.resignButton {
+    margin-top: 150px;
+    margin-left: 140px;
+}
+
+
+
+/* table */
+table {
+    border: 3px solid Salmon;
+    border-collapse: collapse;
+    width: 100%;
+    font-family: Century Gothic, sans-serif;
+    font-size: 20px;
+    margin-top: 110px;
+}
+
+th, td {
+    padding: 25px;
+    text-align: left;
+    border-bottom: 3px solid Salmon;
+}
+
+th {
+    background-color: Salmon;
+    color: white;
+    font-size: 25px;
+}
+
+td {
+    border-left: none;
+    border-right: none;
+}
+
+
+
+
+/* background color */
+body {
+    margin-top: 0px;
+    width: 100%;
+    height:100%;
+    font-family: 'Open Sans', sans-serif;
+    color: white;
+    font-weight: 600;
+    background: #092756;
+    background: -moz-radial-gradient(0% 100%, ellipse cover, rgba(104,128,138,.4) 10%,rgba(138,114,76,0) 40%),-moz-linear-gradient(top,  rgba(57,173,219,.25) 0%, rgba(42,60,87,.4) 100%), -moz-linear-gradient(-45deg,  #670d10 0%, #092756 100%);
+    background: -webkit-radial-gradient(0% 100%, ellipse cover, rgba(104,128,138,.4) 10%,rgba(138,114,76,0) 40%), -webkit-linear-gradient(top,  rgba(57,173,219,.25) 0%,rgba(42,60,87,.4) 100%), -webkit-linear-gradient(-45deg,  #670d10 0%,#092756 100%);
+    background: -o-radial-gradient(0% 100%, ellipse cover, rgba(104,128,138,.4) 10%,rgba(138,114,76,0) 40%), -o-linear-gradient(top,  rgba(57,173,219,.25) 0%,rgba(42,60,87,.4) 100%), -o-linear-gradient(-45deg,  #670d10 0%,#092756 100%);
+    background: -ms-radial-gradient(0% 100%, ellipse cover, rgba(104,128,138,.4) 10%,rgba(138,114,76,0) 40%), -ms-linear-gradient(top,  rgba(57,173,219,.25) 0%,rgba(42,60,87,.4) 100%), -ms-linear-gradient(-45deg,  #670d10 0%,#092756 100%);
+    background: -webkit-radial-gradient(0% 100%, ellipse cover, rgba(104,128,138,.4) 10%,rgba(138,114,76,0) 40%), linear-gradient(to bottom,  rgba(57,173,219,.25) 0%,rgba(42,60,87,.4) 100%), linear-gradient(135deg,  #670d10 0%,#092756 100%);
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#3E1D6D', endColorstr='#092756',GradientType=1 );
+}
+
+
+
+
+
