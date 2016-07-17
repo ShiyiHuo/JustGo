@@ -17,7 +17,7 @@ messageBus.setMaxListeners(200);
 const gameTimers = {};
 
 // set up middleware 
-app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 app.use(sessions({
     cookieName: 'session',
@@ -226,7 +226,6 @@ app.post("/newGame", function(req, res, next) {
         if (err) return res.status(400).send("Server error creating new game");
         
         req.session.gameID = gameID;
-        debugger;
         
         const onBlackTimeout = () => {
             messageBus.emit(events.gameOver(req.session.gameID), constants.black);
@@ -255,7 +254,6 @@ app.post("/newGame", function(req, res, next) {
  */
 app.get("/longpoll", function(req, res, next) {
 
-    debugger;
     // reset event listeners to ensure only 1 client has 1 longpoll open
     const aiTurnEvent = events.aiTurn(req.session.gameID);
     const gameOverEvent = events.gameOver(req.session.gameID);
@@ -263,25 +261,25 @@ app.get("/longpoll", function(req, res, next) {
     messageBus.removeAllListeners(gameOverEvent);
 
     // in this open request wait until aiTurnEvent to respond
-    messageBus.once(aiTurnEvent, function onAiTurnEvent(game) {
-        console.log("AI TURN EVENT");
-        const lastMove = game.moveHistory[game.moveHistory.length - 1];
+    messageBus.once(aiTurnEvent, function onAiTurnEvent(game) { 
+        const lastMove = game.moveHistory[game.moveHistory.length - 1]; // TODO: make sure not out of bounds?
         AIInterface.query({
             size: game.board.length,
             board: game.board,
             last: {x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c: lastMove.color } // x's and y's inverted because prof's API uses x's as "rows" and y's for columns
         }, function (body) { // on ai response
-            console.log("GOT AI RESPONSE");
             let aiMove;
             try { // make sure response data is valid
                 aiMove = JSON.parse(body);
             } catch (err) {
-                if (err instanceof SyntaxError) 
+                if (err instanceof SyntaxError)  {
+                    console.log("Syntax Error: " + err);
                     return res.status(400).write("AI Server Response Syntax Error");
-                console.error("Unknown error parsing response from AI Server.");
-                return;
+                }
+                throw err; 
             }
-                        
+            console.log("AI made move: " + JSON.stringify(aiMove));           
+
             // update game in database after AI move
             MongoInterface.makeMoveOnGameWithID(
                 req.session.gameID,
@@ -290,12 +288,18 @@ app.get("/longpoll", function(req, res, next) {
                 aiMove.c,
                 aiMove.pass,
                 function(err, game, boardUpdates, gameID) {
-                    if (err instanceof go.GameException) {
-                        console.log("AI made an illegal move: " + JSON.stringify(aiMove));
-                        onAiTurnEvent(game);
+                    if (err instanceof go.DoublePassException) {
+                        console.log("Two passes occured in a row. Ending game.");
+                        messageBus.emit(events.gameOver(req.session.gameID));
                         return;
-                    } else if (err) { // other error
-                        return res.status(400).write("Server error making move on game");
+                    } else if (err instanceof go.GameException) {
+                        console.log("AI made an illegal move: " + JSON.stringify(aiMove));
+                        onAiTurnEvent(game); // requery the AI
+                        return;
+                    } else if (err) { 
+                        console.log("Server error making move on game")
+                        res.status(400).write("Server error making move on game");
+                        return;
                     }
 
                     const gameTimer = gameTimers[gameID];
@@ -325,7 +329,7 @@ app.get("/longpoll", function(req, res, next) {
 
         console.log("colorThatRanOutOfTime: " + colorThatRanOutOfTime);
 
-        MongoInterface.endgameWithID(req.session.gameID, req.session.username, function(winner, scores) {
+        MongoInterface.endgameWithID(req.session.gameID, req.session.user.username, function(winner, scores) {
             var responseData = { winner: winner, whiteScore: scores.white, blackScore: scores.black }
             
             res.json(responseData);
@@ -401,7 +405,7 @@ app.get('/moveHistory', function(req,res) {
  * @return response is { board: Array, capturedPieces: Array, whiteScore: Number, blackScore: Number }
  */
 app.post("/makeClientMove", function(req, res, next) {
-   
+
     // find game in database and make move then respond with board updates
     MongoInterface.makeMoveOnGameWithID(
         req.session.gameID, 
@@ -410,7 +414,6 @@ app.post("/makeClientMove", function(req, res, next) {
         constants.clientColor,
         req.body.pass, 
         function(err, game, boardUpdates, gameID) {
-
             if (err) {
                 res.write(err.message);
                 res.end();
@@ -427,11 +430,12 @@ app.post("/makeClientMove", function(req, res, next) {
             }
             boardUpdates.whiteTime = gameTimer.getWhiteTime();
             boardUpdates.blackTime = gameTimer.getBlackTime();
+
+            console.log("Player made move: " + JSON.stringify(req.body));
+
             res.json(boardUpdates);
             res.end();
-            
             if (game.clientColor != game.turn && !game.hotseatMode)  // see if we need to query AI
-                debugger;
                 messageBus.emit(events.aiTurn(req.session.gameID), game); // emit event to respond to longpoll
         }
     );

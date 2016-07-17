@@ -1,65 +1,69 @@
 var gameboard = undefined;
+var aspectRatio = 15/10;
 
 $(document).ready(function() {
+
     $.get("/game", function(data, status) {
         if (data) {
             longpoll();
             initBoard(data.board.length);
             gameboard.updateBoard(data.board);
-            initPlayerContainer();
-            initButtons();
+            score = {black: data.blackScore, white: data.whiteScore}
+            updateScore(score);
 
         } else {
-            /*
             var size = 19;
             var hotseat = true;
             $.post("/newGame", { size : size, hotseat : hotseat }, function(data, status) {
                 initBoard(size);
                 longpoll();
-                initPlayerContainer();
-                initButtons();
-            }); */
+
+            });
         }
     });
 });
 
 function initPlayerContainer(){
-    $('.playerContainer').append('<table id=playerTable>');
-    $('.playerContainer').append('<tr> <th>Pic</th> <th>Players</th> <th>Score</th> <th>Time</th></tr>');
-    $('.playerContainer').append('<tr> <td>Black</td><td>Player1</td><td>Score</td><td>Time</td></tr>');
-    $('.playerContainer').append('<tr> <td>White</td><td>Player1</td><td>Score</td><td>Time</td></tr>');
-    $('.playerContainer').append('</table>');
+    $('#playerTable').append('<table id="table">');
+    $('#playerTable').append('<tr> <th>Pic</th> <th>Players</th> <th>Score</th> <th>Time</th></tr>');
+    $('#playerTable').append('<tr> <td>Black</td><td>Player1</td><td id="blackScore"></td><td>Time</td></tr>');
+    $('#playerTable').append('<tr> <td>White</td><td>Player1</td><td id="whiteScore"></td><td>Time</td></tr>');
+    $('#playerTable').append('</table>');
 }
 
 function initButtons(){
-    $('.playerContainer').append('<button type="button" class="button passButton">Pass</button>');
+    $('#buttonContainer').append('<button type="button" class="button passButton">Pass</button>');
     $('.passButton').click(passClicked);
-    $('.playerContainer').append('<button type="button" class="button resignButton">Resign</button>');
+    $('#buttonContainer').append('<button type="button" class="button resignButton">Resign</button>');
     $('.resignButton').click(resignClicked);
 
 }
 
 function resignClicked(event) {
-    console.log("Resign clicked");
     $.post("/resign", function(data) {
-        window.alert(data);
+        writePC("Player resigned<br>");
     });
 }
 
 function passClicked(event) {
-    console.log("Pass clicked");
     var move = {x: 0, y: 0, pass: true};
     $.post("/makeClientMove", move, function(data,status) {
         if (!data.board) {
             window.alert(data); // ??????
         } else {
             gameboard.updateBoard(data.board);
-            $('#dataContainer').append("whiteTime: " + data.whiteTime + " blackTime: " + data.blackTime + "\n");
+            score = {black: data.blackScore, white: data.whiteScore}
+            updateScore(score);
+            writePC("player passed<br>")
+            writePC("whiteTime: " + data.whiteTime + " blackTime: " + data.blackTime + '<br>');
         }
     });
 }
 
 function initBoard(size) {
+    initPlayerContainer();
+    initButtons();
+    applyStyle();
     var canvas = document.createElement("CANVAS");
     canvas.id = "canvas";
     canvas.width = $('#boardContainer').width();
@@ -73,11 +77,84 @@ function initBoard(size) {
 
 function windowResized(event) {
 
-    var canvas = document.getElementById('canvas');
+    applyStyle();
     canvas.width = $('#boardContainer').width();
     canvas.height = $('#boardContainer').height();
     gameboard.calibrate(canvas,$('#boardContainer').width());
     gameboard.drawCurrentBoard();
+}
+
+function applyStyle() {
+
+    var hwMin = 1/3
+
+    //the width is greater than the height
+    if ($('#container').width() >= $('#container').height()) {
+
+        //the width is greater than the height by the ratio
+        if (($('#container').width())/($('#container').height()) > (1+hwMin))
+        {
+            $('#gameContainer').height($('#container').height());
+            $('#gameContainer').width($('#container').height()*(1+hwMin));
+        }
+        //the width is less than the height by the ratio
+        else {
+            $('#gameContainer').width($('#container').width());
+            $('#gameContainer').height($('#container').width()*(1/(1+hwMin)));
+        }
+        //the board container is the height of the game container
+        $('#boardContainer').width($('#gameContainer').height());
+        $('#boardContainer').height($('#gameContainer').height());
+        $('#dataContainer').width($('#gameContainer').width()-$('#boardContainer').width());
+        $('#dataContainer').height($('#boardContainer').height());
+
+    } else {
+    //the height is greater than the width
+        $('#gameContainer').width($('#container').width());
+        $('#gameContainer').height($('#container').width()*(1/(1+hwMin)));
+        $('#boardContainer').width($('#gameContainer').height());
+        $('#boardContainer').height($('#gameContainer').height());
+        $('#dataContainer').width($('#gameContainer').width()-$('#boardContainer').width());
+        $('#dataContainer').height($('#boardContainer').height());
+
+    }
+
+    $('#dataContainer').css('left', $('#boardContainer').width());
+
+    //set the player container based on the above bounds
+    $('#playerContainer').width($('#dataContainer').width());
+    $('#playerContainer').height($('#dataContainer').height()*2/3);
+
+    //set the player table based on the above bounds
+    $('#playerTable').width($('#playerContainer').width());
+    $('#playerTable').height($('#playerContainer').height()*(1/3));
+    $('#playerTable').css('font-size',$('#playerTable').width()*.04);
+    $('#playerTable td').css('padding',$('#playerTable').width()*.06);
+    $('#playerTable th').css('padding',$('#playerTable').width()*.06);
+
+    //set the button container based on the above bounds
+    $('#buttonContainer').css('top', $('#playerContainer').height());
+    $('#buttonContainer').height($('#dataContainer').height()-$('#playerContainer').height());
+    $('#buttonContainer').width($('#dataContainer').width());
+
+
+    //set the buttons css
+    $('.button').css('margin-top', $('.button').width()*(150/130));
+    $('.button').css('margin-left', $('#buttonContainer').width()*.07);
+
+    $('.button').css('width', $('#buttonContainer').width()*.35);
+    $('.button').css('padding-top', $('.button').width()*(10/130));
+    $('.button').css('padding-bottom', $('.button').width()*(10/130));
+    $('.button').css('font-size', $('.button').width()*.25);
+    $('.button').css('border', $('.button').width()*(1/130)+" solid Salmon");
+    $('.button').css('border-radius', $('.button').width()*(1000/130));
+
+    //create the console window
+    $('#playerConsole').width($('#playerContainer').width());
+    $('#playerConsole').height($('#playerContainer').height()*(2/3));
+    $('#playerConsole').css('top',$('#playerTable').height());
+    $('#playerConsole').css('font-size',$('#playerConsole').width()*(5/100));
+
 }
 
 function boardClicked(event) {
@@ -86,7 +163,7 @@ function boardClicked(event) {
 
     if (position) {
         if (gameboard.board[position.y][position.x] != 0) {
-            console.log("You cannot place a piece here");
+            writePC("You cannot place a piece here<br>");
         } else {
             var move = {x: position.x, y: position.y};
             $.post("/makeClientMove", move, function(data,status) {
@@ -94,7 +171,10 @@ function boardClicked(event) {
                     window.alert(data); // ??????
                 } else {
                     gameboard.updateBoard(data.board);
-                    $('#dataContainer').append("whiteTime: " + data.whiteTime + " blackTime: " + data.blackTime + "\n");
+                    score = {black: data.blackScore, white: data.whiteScore}
+                    updateScore(score);
+
+                    writePC("whiteTime: " + data.whiteTime + " blackTime: " + data.blackTime + '<br>');
                 }
             });
         }
@@ -102,6 +182,7 @@ function boardClicked(event) {
 }
 
 function longpoll() {
+
     $.ajax({
         method: 'GET',
         url: '/longpoll',
@@ -109,10 +190,12 @@ function longpoll() {
 
             if (data.board) { // AI has made move
                 gameboard.updateBoard(data.board);
+                score = {black: data.blackScore, white: data.whiteScore}
+                updateScore(score);
             }
             if (data.winner) { // game has ended
                 var winner = data.winner == 1? "Black" : "White";
-                window.alert("winner is: " + winner + " whiteScore: " + data.whiteScore + " blackScore: " + data.blackScore);
+                writePC("winner is: " + winner + " whiteScore: " + data.whiteScore + " blackScore: " + data.blackScore);
             }
 
         },
@@ -228,4 +311,17 @@ function showAboutUs() {
                 history.go(-1);
             });
     });
+}
+
+function updateScore(score) {
+    $('#blackScore').empty();
+    $('#blackScore').append(score.black);
+    $('#whiteScore').empty();
+    $('#whiteScore').append(score.white);
+
+}
+
+function writePC(text) {
+    $('#playerConsole').prepend(text);
+
 }

@@ -64,7 +64,7 @@ function makeMove(game, xPos, yPos, color, pass) {
         }
 
         const scores = getScore(game);
-        const move = new Move(NaN, NaN, color, [], game.board, scores.whiteScore, scores.blackScore, true)
+        const move = new Move(0, 0, color, [], game.board, scores.whiteScore, scores.blackScore, true)
 
         game.moveHistory.push(move);
 

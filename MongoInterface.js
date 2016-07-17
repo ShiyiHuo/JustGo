@@ -129,14 +129,16 @@ class MongoInterface {
      * @param {Function} callback - Function executed when done with (err, game) parameters
      */
     endgameWithID(id, username, callback) {
-        Game.findById(id, function(err, game) {
+        Game.findById(id, (err, game) => {
             if (err) callback(err);
             if (!game) callback(new MongoInterfaceException("Could not find game with id " + id));
 
             var endGame = go.endGame(game);
             if (endGame.winner == game.clientColor) {
+                debugger;
                 this.updateUserWithWin(true, username);
             } else {
+                debugger;
                 this.updateUserWithWin(false, username);
             }
             game.save(function(err, game) {
@@ -170,17 +172,18 @@ class MongoInterface {
      */
     updateUserWithWin(win, username) {
         User.findOne({username: username}, function (err, user) {
-            if (err) throw new MongoInterfaceException("Error updating user stats");
+            if (err) throw new MongoInterfaceException("Error finding user to update stats");
+            if (!user) throw new MongoInterfaceException("Error finding user with username: " + username);
 
             if (win) {
                 user.wins++;
             } else {
-                user.losses--;
+                user.losses++;
             }
 
             user.save(function (err) {
-                if(err) {
-                    throw 
+                if (err) {
+                    throw new MongoInterfaceException("Error saving user stats. " + err);
                 }
             });
         });
@@ -193,7 +196,12 @@ class MongoInterface {
      * @param {Function} callback executed with (err) parameter
      */
     signUpUser(username, password, callback) {
-        var user = new User({username: username, password: password});
+        var user = new User({
+            username: username, 
+            password: password, 
+            wins: 0,
+            losses: 0
+        });
         
         user.save(function(err, user) {
             if (err) { // if duplicates
