@@ -135,9 +135,9 @@ class MongoInterface {
 
             var endGame = go.endGame(game);
             if (endGame.winner == game.clientColor) {
-                //this.updateUserWithWin(true, username);
+                this.updateUserWithWin(true, username);
             } else {
-                //this.updateUserWithWin(false, username);
+                this.updateUserWithWin(false, username);
             }
             game.save(function(err, game) {
                 if (err) return console.error(err);
@@ -169,12 +169,21 @@ class MongoInterface {
      * 
      */
     updateUserWithWin(win, username) {
-        /*
-        if (win) {
+        User.findOne({username: username}, function (err, user) {
+            if (err) throw new MongoInterfaceException("Error updating user stats");
 
-        } else {
+            if (win) {
+                user.wins++;
+            } else {
+                user.losses--;
+            }
 
-        } */
+            user.save(function (err) {
+                if(err) {
+                    throw 
+                }
+            });
+        });
     }
 
     /**
@@ -220,4 +229,3 @@ class MongoInterface {
 }
 
 module.exports = new MongoInterface();
-

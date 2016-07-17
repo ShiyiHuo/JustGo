@@ -1,7 +1,6 @@
 var gameboard = undefined;
 
 $(document).ready(function() {
-
     $.get("/game", function(data, status) {
         if (data) {
             longpoll();
@@ -11,6 +10,7 @@ $(document).ready(function() {
             initButtons();
 
         } else {
+            /*
             var size = 19;
             var hotseat = true;
             $.post("/newGame", { size : size, hotseat : hotseat }, function(data, status) {
@@ -18,7 +18,7 @@ $(document).ready(function() {
                 longpoll();
                 initPlayerContainer();
                 initButtons();
-            });
+            }); */
         }
     });
 });
@@ -102,7 +102,6 @@ function boardClicked(event) {
 }
 
 function longpoll() {
-
     $.ajax({
         method: 'GET',
         url: '/longpoll',

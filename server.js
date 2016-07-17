@@ -226,6 +226,7 @@ app.post("/newGame", function(req, res, next) {
         if (err) return res.status(400).send("Server error creating new game");
         
         req.session.gameID = gameID;
+        debugger;
         
         const onBlackTimeout = () => {
             messageBus.emit(events.gameOver(req.session.gameID), constants.black);
@@ -254,6 +255,7 @@ app.post("/newGame", function(req, res, next) {
  */
 app.get("/longpoll", function(req, res, next) {
 
+    debugger;
     // reset event listeners to ensure only 1 client has 1 longpoll open
     const aiTurnEvent = events.aiTurn(req.session.gameID);
     const gameOverEvent = events.gameOver(req.session.gameID);
@@ -262,12 +264,14 @@ app.get("/longpoll", function(req, res, next) {
 
     // in this open request wait until aiTurnEvent to respond
     messageBus.once(aiTurnEvent, function onAiTurnEvent(game) {
+        console.log("AI TURN EVENT");
         const lastMove = game.moveHistory[game.moveHistory.length - 1];
         AIInterface.query({
             size: game.board.length,
             board: game.board,
             last: {x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c: lastMove.color } // x's and y's inverted because prof's API uses x's as "rows" and y's for columns
         }, function (body) { // on ai response
+            console.log("GOT AI RESPONSE");
             let aiMove;
             try { // make sure response data is valid
                 aiMove = JSON.parse(body);
@@ -427,6 +431,7 @@ app.post("/makeClientMove", function(req, res, next) {
             res.end();
             
             if (game.clientColor != game.turn && !game.hotseatMode)  // see if we need to query AI
+                debugger;
                 messageBus.emit(events.aiTurn(req.session.gameID), game); // emit event to respond to longpoll
         }
     );

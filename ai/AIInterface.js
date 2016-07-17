@@ -15,7 +15,7 @@ const paths = ['/ai/maxlibs', '/ai/attackEnemy', '/ai/formEyes'];
  * Post request to AI Server
  * 
  * @param postData should be in the format: 
-    { board: [[1,0,0],[0,0,0],[0,0,0]],
+    { board: [[1,0,0], [0,0,0], [0,0,0]],
       size: 3,
       last: {x:0, y:0, pass : false, c : 1} };
  *   
@@ -26,12 +26,11 @@ function query(postData, callback) {
     options.path = paths[randomIndex];
 
     var req = http.request(options, function(res) {
-      debugger;
-      res.on('data', callback);
+        res.on('data', callback);
     });
 
     req.on('error', function(e) {
-      console.log('problem with request: ' + e.message);
+        console.log('problem with request: ' + e.message);
     });
 
     req.write(JSON.stringify(postData));
