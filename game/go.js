@@ -49,8 +49,11 @@ class DoublePassException extends GameException {
 function makeMove(game, xPos, yPos, color, pass) {
     
 	if (color != game.turn) {
-        throw new GameException("Not your turn. " + " color = " + color + " game.turn = " + game.turn);  
+		throw new GameException("Not your turn. " + " color = " + color + " game.turn = " + game.turn);  
     }
+	
+	var move = undefined;
+	
     if (pass) {
         if (game.moveHistory.length > 0) {
             const lastMove = game.moveHistory[game.moveHistory.length - 1];
@@ -59,20 +62,11 @@ function makeMove(game, xPos, yPos, color, pass) {
             }
         }
 
-        // switch turn state to opposite color
-        if (game.turn == constants.black) {
-            game.turn = constants.white;
-        } else {
-            game.turn = constants.black;
-        } 
-
+ 
 		//    Move(x, y, color, capturedPieces, board, whiteScore, blackScore, pass)
-        const move = new Move(NaN, NaN, color, [], game.board, getScore(game).whiteScore, getScore(game).blackScore, true)
+        move = new Move(NaN, NaN, color, [], game.board, getScore(game).whiteScore, getScore(game).blackScore, true)
 
-        game.moveHistory.push(move);
-
-        return move;
-    }
+	}
 	else{//no pass
 		
 		if (game.board[yPos][xPos] != constants.empty) {
@@ -99,93 +93,104 @@ function makeMove(game, xPos, yPos, color, pass) {
 					// perform depth first search to get armies connected to this piece
 					var pieceColor = game.board[i][j];
 					var army = new Set();
+					//getArmy mutates army and visited
 					getArmy(j, i, pieceColor, game.board, army, visited);
-
-                // calculate army's liberties
-					var liberties = 0;
-					for (var node of army) {
-						node = JSON.parse(node); // convert back to object since army is composed of JSON strings 
-						var x = node.x;
-						var y = node.y;
-
-						var rightLiberty = x + 1 < game.board.length && game.board[y][x + 1] == constants.empty;
-						var leftLiberty = x - 1 >= 0 && game.board[y][x - 1] == constants.empty;
-						var northLiberty = y + 1 < game.board.length && game.board[y + 1][x] == constants.empty;
-						var southLiberty = y - 1 >= 0 && game.board[y - 1][x] == constants.empty;
-                    
-                    if (rightLiberty || leftLiberty || northLiberty || southLiberty) {
-                        liberties++;
-                    }
-					}
-
-                // army is captured if it has no liberties
-					if (liberties == 0) {
+					//if no liberties schedule for deletion
+					if(!armyHasLiberties(game.board, army)){
 						army.forEach((element) => {
 							capturedPieces.add(element);
 						});
-					}
-
+					}//end if
 				}//end if
-			}
-		}
-	}
-	
-	// recursive depth-first search for armies
-	function getArmy(x, y, color, board, army, visited) {  //called as getArmy(j,i,...)
+			}//end j
+		}//end i
 		
-		//check for out of bounds
-		var inBounds = (x >= 0 && x < game.board.length && y >= 0 && y < game.board.length);
-
-		//if next index is: not out of bounds; same color; not already in army
-		if (inBounds && (game.board[y][x] === color) && !visited[y][x]) {//[y][x]???
-
-			// Returns a JSON-string representation of a "point". 
-			// Strings are used to create primitive values for points to allow lookup in Sets in constant time. [[not anymore]]
-			army.add(point(x, y));
-			visited[i][j] = true;
-		
-            // north??? y/x confusion
-            getArmy(x, y+1, color);
-            // south
-            getArmy(x, y-1, color);
-            // east
-			getArmy(x+1, y, color);
-			// west
-			getArmy(x-1, y, color);
-		}   
-
-	}
+		//suicide case
+		if (capturedPieces.has(point(xPos, yPos))) {
+			game.board[yPos][xPos] = constants.empty; // undo the board update
+			throw new GameException("You cannot commit suicide.");
+		} 
     
-    if (capturedPieces.has(point(xPos, yPos))) {
-        game.board[yPos][xPos] = constants.empty; // undo the board update
-        throw new GameException("You cannot commit suicide.");
-    } 
+		// remove captured pieces from board
+		for (var pieceString of capturedPieces) {
+			piece = JSON.parse(pieceString); // convert to object since army and captured pieces are JSON strings
+			game.board[piece.y][piece.x] = constants.empty;
+		}
 
-    // switch turn state to opposite color
+		//Move(x, y, color, capturedPieces, board, whiteScore, blackScore, pass)
+		move = new Move(xPos, yPos, color, capturedPieces, game.board, scores.white, scores.black, false);
+		
+	}//end else
+		
+	// switch turn state to opposite color
     if (game.turn == constants.black) {
         game.turn = constants.white;
     } else {
         game.turn = constants.black;
     }
 
-    // remove captured pieces from board
-    for (var piece of capturedPieces) {
-        piece = JSON.parse(piece); // convert to object since army and captured pieces are JSON strings
-        game.board[piece.y][piece.x] = constants.empty;
-    }
-
     const scores = getScore(game);
-    const move = new Move(xPos, yPos, color, capturedPieces, game.board, scores.white, scores.black, false);
     game.moveHistory.push(move);
-    
-    return move;
-
-    // JSON representation of a point. We use string addition here because 
-    // JSON.stringify seems inconsistent with adding quotation marks around the values (e.g. '{"foo":"3"}' vs '{"foo":3}' )
-    function point(x, y) {
-        return '{"x":' + x + ',"y":' + y + '}';
-    }
+	return move;
+		
+}//end function makeMove
+	
+// JSON representation of a point. We use string addition here because 
+// JSON.stringify seems inconsistent with adding quotation marks around the values (e.g. '{"foo":"3"}' vs '{"foo":3}' )
+function point(x, y) {
+	return '{"x":' + x + ',"y":' + y + '}';
 }
+	
+// recursive depth-first search for armies
+// mutates army and visited
+function getArmy(x, y, color, board, army, visited) {  //called as getArmy(j,i,...)
+	
+	//check for out of bounds
+	var inBounds = (x >= 0 && x < game.board.length && y >= 0 && y < game.board.length);
+
+	//if next index is: not out of bounds; same color; not already in army
+	if (inBounds && (game.board[y][x] === color) && !visited[y][x]) {//[y][x]???
+		// Returns a JSON-string representation of a "point". 
+		// Strings are used to create primitive values for points to allow lookup in Sets in constant time. [[not anymore]]
+		army.add(point(x, y));
+		visited[i][j] = true;
+		
+        // north??? y/x confusion
+        getArmy(x, y+1, color);
+        // south
+		getArmy(x, y-1, color);
+		// east
+		getArmy(x+1, y, color);
+		// west
+		getArmy(x-1, y, color);
+	}//end if
+}//end function
+		
+//does not mutate board or army
+function armyHasLiberties(board, army){
+	//var liberties = 0;//unused
+	for (var node of army) {
+		node = JSON.parse(node); // convert back to object since army is composed of JSON strings 
+		var x = node.x;
+		var y = node.y;
+
+		//bools
+		//triple equals should handle OOB cases but just extra check in case
+		//because JS arrays behave weirdly
+		//array.length returns max index + 1, regardless of gaps in the array
+		//negative array indexes can be defined and do not affect array.length
+		var rightLiberty = (game.board[y][x + 1] === constants.empty); && (x + 1 < game.board.length);
+		var leftLiberty  = (game.board[y][x - 1] === constants.empty); && (x - 1 >= 0);
+		var northLiberty = (game.board[y + 1][x] === constants.empty); && (y + 1 < game.board.length);
+		var southLiberty = (game.board[y - 1][x] === constants.empty); && (y - 1 >= 0);
+	
+		if (rightLiberty || leftLiberty || northLiberty || southLiberty) {
+			return true;
+		}
+	}//end for
+	return false;		
+}//end function
+	
 
 function getScore(game) {
     
