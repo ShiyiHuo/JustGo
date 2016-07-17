@@ -1,5 +1,6 @@
-var http = require("http");
-var options = {
+"use strict";
+const http = require("http");
+const options = {
   hostname: '127.0.0.1',
   port: 3000,
   path: '/ai/attackEnemy',
@@ -27,6 +28,13 @@ function query(postData, callback) {
 
     var req = http.request(options, function(res) {
         res.on('data', callback);
+    });
+
+    req.on('socket', function (socket) {
+    socket.setTimeout(myTimeout);  
+    socket.on('timeout', function() {
+        req.abort();
+    });
     });
 
     req.on('error', function(e) {

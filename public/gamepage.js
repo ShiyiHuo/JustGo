@@ -1,4 +1,5 @@
 var gameboard = undefined;
+var timer = undefined;
 var aspectRatio = 15/10;
 
 $(document).ready(function() {
@@ -7,17 +8,19 @@ $(document).ready(function() {
         if (data) {
             longpoll();
             initBoard(data.board.length);
+            //initTimer(data.whiteTime,data.blackTime,1); implement this
+            initTimer(900000,900000,1);
             gameboard.updateBoard(data.board);
             score = {black: data.blackScore, white: data.whiteScore}
             updateScore(score);
-
         } else {
             var size = 19;
             var hotseat = true;
             $.post("/newGame", { size : size, hotseat : hotseat }, function(data, status) {
                 initBoard(size);
+                //initTimer(data.blackTime,data.whiteTime,1); implement this
+                initTimer(900000,900000,1);
                 longpoll();
-
             });
         }
     });
@@ -26,8 +29,8 @@ $(document).ready(function() {
 function initPlayerContainer(){
     $('#playerTable').append('<table id="table">');
     $('#playerTable').append('<tr> <th>Pic</th> <th>Players</th> <th>Score</th> <th>Time</th></tr>');
-    $('#playerTable').append('<tr> <td>Black</td><td>Player1</td><td id="blackScore"></td><td>Time</td></tr>');
-    $('#playerTable').append('<tr> <td>White</td><td>Player1</td><td id="whiteScore"></td><td>Time</td></tr>');
+    $('#playerTable').append('<tr> <td>Black</td><td>Player1</td><td id="blackScore"></td><td id="blackTime"></td></tr>');
+    $('#playerTable').append('<tr> <td>White</td><td>Player1</td><td id="whiteScore"></td><td id="whiteTime"></td></tr>');
     $('#playerTable').append('</table>');
 }
 
@@ -56,6 +59,7 @@ function passClicked(event) {
             updateScore(score);
             writePC("player passed<br>")
             writePC("whiteTime: " + data.whiteTime + " blackTime: " + data.blackTime + '<br>');
+            timer.changeTurn();
         }
     });
 }
@@ -173,7 +177,7 @@ function boardClicked(event) {
                     gameboard.updateBoard(data.board);
                     score = {black: data.blackScore, white: data.whiteScore}
                     updateScore(score);
-
+                    timer.changeTurn();
                     writePC("whiteTime: " + data.whiteTime + " blackTime: " + data.blackTime + '<br>');
                 }
             });
@@ -321,7 +325,21 @@ function updateScore(score) {
 
 }
 
+function initTimer(blackTime,whiteTime, turn) {
+    timer = new Timer(blackTime,whiteTime,turn);
+    var myvar = setInterval(updateTime,1000);
+}
+
+function updateTime() {
+    console.log("I am working");
+    timer.clientUpdateTime();
+    time = timer.returnTime();
+    $('#blackTime').empty();
+    $('#blackTime').append(time.blackTime);
+    $('#whiteTime').empty();
+    $('#whiteTime').append(time.whiteTime);
+}
+
 function writePC(text) {
     $('#playerConsole').prepend(text);
-
 }
