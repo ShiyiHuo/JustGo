@@ -1,3 +1,6 @@
+
+
+
 /* website title */
 .title_section1 {
     font-family: cocogoose;
@@ -42,7 +45,7 @@
     -webkit-transition-duration: 0.4s; /* Safari */
     transition-duration: 0.4s;
     cursor: pointer;
-    
+
     border-radius: 1000px;
 }
 
@@ -70,7 +73,7 @@
     font-size: 30px;
     padding-bottom: 53px;
     padding-left: 5px;
-    
+
 }
 
 .backbutton:focus, .backbutton:active, .backbutton.active, .backbutton:focus:active {
@@ -163,6 +166,7 @@ input[type=text], select {
 
 /* Navigation Bar */
 ul {
+
     list-style-type: none;
     overflow: hidden;
     background-color: #333;
@@ -241,10 +245,38 @@ body {
     filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#3E1D6D', endColorstr='#092756',GradientType=1 );
 }
 
+/* size container*/
+#sizeContainer {
+    position: relative;
+    border-style: solid;
+    border-color: yellow;
+    width: 98vw;
+    height: 20vh;
+    margin-left: 0 auto;
+    margin-right: 0 auto;
+    text-align: center;
+
+
+}
+
+/*color container*/
+#colorContainer {
+    position: relative;
+    border-style: solid;
+    border-color: red;
+    width: 98vw;
+    height: 20vh;
+    margin-left: 0 auto;
+    margin-right: 0 auto;
+    text-align: center;
+
+
+}
+
+
 
 
 @font-face {
     font-family: cocogoose;
     src: url(/fonts/Cocogoose_trial.otf);
 }
-
