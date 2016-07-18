@@ -13,7 +13,6 @@ class MongoInterfaceException extends Error {
 }
  
 class MongoInterface {
-
     constructor() {    
 
         // connect to mongodb

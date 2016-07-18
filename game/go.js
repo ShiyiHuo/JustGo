@@ -48,6 +48,10 @@ class DoublePassException extends GameException {
  */
 function makeMove(game, xPos, yPos, color, pass) {
     
+    if (color != game.turn) {
+        throw new GameException("Not your turn. " + " color = " + color + " game.turn = " + game.turn);  
+    }
+
     if (pass) {
         // switch turn state to opposite color
         if (game.turn == constants.black) {
@@ -74,9 +78,7 @@ function makeMove(game, xPos, yPos, color, pass) {
     if (game.board[yPos][xPos] != constants.empty) {
         throw new GameException("Occupied Place.");
     }  
-    if (color != game.turn) {
-        throw new GameException("Not your turn. " + " color = " + color + " game.turn = " + game.turn);  
-    }
+
 
     game.board[yPos][xPos] = color;  // update the board 
 

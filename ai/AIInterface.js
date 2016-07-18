@@ -12,6 +12,13 @@ const options = {
 
 const paths = ['/ai/maxlibs', '/ai/attackEnemy', '/ai/formEyes'];
 
+class AIInterfaceException extends Error {
+    constructor(message) {
+        super(message);
+    }
+}
+
+
 /**
  * Post request to AI Server
  * 
@@ -24,18 +31,19 @@ const paths = ['/ai/maxlibs', '/ai/attackEnemy', '/ai/formEyes'];
  */
 function query(postData, callback) {
     var randomIndex = Math.floor(Math.random() * (paths.length - 1));
-    options.path = paths[randomIndex];
+    options.path = paths[randomIndex]; // ????
 
     var req = http.request(options, function(res) {
         res.on('data', callback);
     });
 
     req.on('socket', function (socket) {
-    socket.setTimeout(5 * 1000);  
-    socket.on('timeout', function() {
-        console.log("error");
-        req.abort();
-    });
+        socket.setTimeout(5 * 1000);  
+        socket.on('timeout', function() {
+            console.log("AI took too long to respond");
+            callback()
+            req.abort();
+        });
     });
 
     req.on('error', function(e) {

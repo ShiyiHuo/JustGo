@@ -15,7 +15,7 @@ function GameDocument(size, hotseatMode) {
   this.active = true;
 }
 
-describe('Game of size 3 turn checking', function() {
+describe('Game of size 3: turn checking', function() {
 
     const game = new GameDocument(3, false);
 
@@ -64,7 +64,26 @@ describe('Game of size 3 turn checking', function() {
     });
 });
 
-describe('game of size 3 double passing throw exception', function() {
+describe('Game of size 3: Cannot pass when not your turn', function() {
+    const game = new GameDocument(3, false);
+    it('initially it should not allow pass from white', function(done) {
+        assert.equal(game.turn, constants.black);
+        let gameExceptionThrown = false;
+        try {
+            go.makeMove(game, 0, 0, constants.white, true)
+        } catch (err) {
+            if (err instanceof go.GameException) 
+                gameExceptionThrown = true;
+        }
+        assert(gameExceptionThrown);
+        assert.equal(game.turn, constants.black);
+        done();
+    });
+    it()    
+        
+})
+
+describe('Game of size 3: double passing throw exception', function() {
     const game = new GameDocument(3, false);
     it('should allow first pass from black', function(done) {
         go.makeMove(game, null, null, constants.black, true);
@@ -92,7 +111,7 @@ describe('game of size 3 double passing throw exception', function() {
 })
 
 
-describe('game of size 3: passing is okay if not squential', function() {
+describe('Game of size 3: passing is okay if not squential', function() {
     const game = new GameDocument(3, false);
     it('should allow first pass from black', function(done) {
         go.makeMove(game, null, null, constants.black, true);
@@ -116,11 +135,10 @@ describe('game of size 3: passing is okay if not squential', function() {
         assert.equal(game.turn, constants.white);
         done();
     })
+});
 
-})
 
-
-describe('game of size 3 board checking', function() {
+describe('Game of size 3: board checking', function() {
     
     it('should update the board', function() {
         for (var y = 0; y < 3; y++) {

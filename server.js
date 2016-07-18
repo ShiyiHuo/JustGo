@@ -202,7 +202,7 @@ app.post('/signUp', function(req,res) {
 
 app.post('/user', function(req, res) {
     if (req.session && req.session.username) {
-        MongoInterface.getUserStatsWithUsername(req.session.username, function(err, wins, losses) {
+        MongoInterface.getUserStatsWithUsername(req.session.user.username, function(err, wins, losses) {
             const userData = {username: req.session.username, wins: wins, losses: losses};
             res.json(userData);
         })
@@ -226,7 +226,7 @@ app.post("/newGame", function(req, res, next) {
         if (err) return res.status(400).send("Server error creating new game");
         
         req.session.gameID = gameID;
-        
+
         const onBlackTimeout = () => {
             messageBus.emit(events.gameOver(req.session.gameID), constants.black);
         }
@@ -240,6 +240,7 @@ app.post("/newGame", function(req, res, next) {
         else 
             gameTimers[gameID].startWhiteTimer();
         
+
         res.end();
         // TODO: also check if it is hotseat play and not clients turn. In that case emit an 'AI TURN' event here aswell
     });
@@ -367,6 +368,8 @@ app.get("/game", function(req, res) {
         MongoInterface.getGameWithID(req.session.gameID, function(err, game) {
             if (err) return res.status(400).send("Server error finding game with id: " + req.session.gameID);
             
+            game.username = req.session.user.username;
+
             res.json(game);
             res.end();
 
