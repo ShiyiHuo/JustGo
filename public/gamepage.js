@@ -192,14 +192,15 @@ function longpoll() {
         url: '/longpoll',
         success: function(data) {
 
-            if (data.board) { // AI has made move
-                gameboard.updateBoard(data.board);
-                score = {black: data.blackScore, white: data.whiteScore}
-                updateScore(score);
-            }
+            console.log(JSON.stringify(data));
+
             if (data.winner) { // game has ended
                 var winner = data.winner == 1? "Black" : "White";
                 writePC("winner is: " + winner + " whiteScore: " + data.whiteScore + " blackScore: " + data.blackScore);
+            } else if (data.board) { // AI has made move
+                gameboard.updateBoard(data.board);
+                score = {black: data.blackScore, white: data.whiteScore}
+                updateScore(score);
             }
 
         },

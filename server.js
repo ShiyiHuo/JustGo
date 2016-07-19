@@ -262,8 +262,7 @@ app.get("/longpoll", function(req, res) {
 
     (function checkForAiTurn() { 
 
-        if (Date.now() - res.timeStart > 30000) {
-            console.log("the thing timed out");
+        if (Date.now() - res.timeStart > 30000) { // timeout
             res.end();
             return;
         }
@@ -271,50 +270,55 @@ app.get("/longpoll", function(req, res) {
         // lookup the game with id
         MongoInterface.getGameWithID(req.session.gameID, function(err, game) {
 
-            if (game.turn != game.clientColor && !game.hotseatMode) { // AI's turn  
-                const lastMove = game.moveHistory[game.moveHistory.length - 1];
-     
+            if (!game.active) {
+                console.log("INACTIVE");
+            } else if (game.turn != game.clientColor && !game.hotseatMode) { // AI's turn  
+                
+                const lastMove = game.moveHistory[game.moveHistory.length - 1]; // TODO: empty?
                 AIInterface.query({
                     board: game.board,
                     size: game.board.length,
                     last: { x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c: lastMove.color }
-                }, function(data) {
-                    let aiMove = JSON.parse(data);
-                    let boardUpdates;
-                    
-                    try {
-                        boardUpdates = go.makeMove(game, aiMove.y, aiMove.x, aiMove.c, aiMove.pass); // is this right order?
-                    } catch (err) {
-                        if (err instanceof go.DoublePassException) { // two passes occured in a row
-                            messageBus.emit(events.gameOver(req.session.gameID));
-                            return;
-                        } else if (err instanceof go.GameException) { // ai made some illegal move
-                            return; 
-                        }
-                    } 
-                    game.markModified('board'); // need to tell mongoose that the nested array was modified
-                    game.save(function(err) {
-                        if (err) throw err;
-                        res.json(boardUpdates); 
-                    });
+                }, 
+                function(data) {
+                        let aiMove = JSON.parse(data);
+                        let boardUpdates;
+                        
+                        try {
+                            boardUpdates = go.makeMove(game, aiMove.y, aiMove.x, aiMove.c, aiMove.pass);
+                        } catch (err) {
+                            if (err instanceof go.DoublePassException) { // two passes occured in a row. The game is over
+                                game.active = false;
+                                MongoInterface.endgameWithID(req.session.gameID, req.session.user.username, function(err, winner, score) {
+                                    res.json({ winner: winner, whiteScore: score.white, blackScore: score.black });
+                                });
+                            } else if (err instanceof go.GameException) { // ai made some illegal move
+                                return; 
+                            }
+                        } 
+                        game.markModified('board'); // need to tell mongoose that the nested array was modified
+                        game.save(function(err, game) {
+                            if (err) throw err;
+                            if (game.active)
+                                res.json(boardUpdates); 
+                        });
                 });   
 
             } else {
-                setTimeout(checkForAiTurn, 1);  
+                setTimeout(checkForAiTurn, 1);  // call the function again
             }
         });
 
     })();
 
     messageBus.once(events.gameOver(req.session.gameID), function() {
-        console.log("event: game over");
+        
         MongoInterface.endgameWithID(req.session.gameID, req.session.user.username, function(err, winner, score) {
             if (err) throw err;
             const responseData = { winner: winner, whiteScore: score.white, blackScore: score.black };
             res.json(responseData);
         });
-    })
-
+    });
 
 });
 
@@ -322,8 +326,9 @@ app.get("/longpoll", function(req, res) {
  * Player resigns
  */
 app.post("/resign", function(req, res) {
-    messageBus.emit(events.gameOver(req.session.gameID));
-    res.end();
+    MongoInterface.endgameWithID(req.session.gameID, req.session.user.username, function(err, winner, score) {
+        if (err) throw err;
+    });
 });
 
 /**
