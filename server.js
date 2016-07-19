@@ -252,7 +252,7 @@ app.post("/newGame", function(req, res, next) {
  * 
  * @return response after an aiTurnEvent is:
  *       { board: Array, capturedPieces: Array, whiteScore: Number, blackScore: Number, whiteTime: Number, blackTime: Number }
- * @return response after a gameOver event is:
+ * @return response after a player runs out of time is:
  *       { winner: (color constant) see constants.js, whiteScore: Number, blackScore: Number }
  */
 app.get("/longpoll", function(req, res) {
@@ -293,7 +293,9 @@ app.get("/longpoll", function(req, res) {
                                     res.json({ winner: winner, whiteScore: score.white, blackScore: score.black });
                                 });
                             } else if (err instanceof go.GameException) { // ai made some illegal move
-                                return; 
+                                console.log("AI made some illegal move");
+                                setTimeout(checkForAiTurn, 1)
+                                return;
                             }
                         } 
                         game.markModified('board'); // need to tell mongoose that the nested array was modified
@@ -310,15 +312,6 @@ app.get("/longpoll", function(req, res) {
         });
 
     })();
-
-    messageBus.once(events.gameOver(req.session.gameID), function() {
-        
-        MongoInterface.endgameWithID(req.session.gameID, req.session.user.username, function(err, winner, score) {
-            if (err) throw err;
-            const responseData = { winner: winner, whiteScore: score.white, blackScore: score.black };
-            res.json(responseData);
-        });
-    });
 
 });
 
@@ -343,15 +336,7 @@ app.get("/game", function(req, res) {
 
             res.json(game);
             res.end();
-
-            if (game.clientColor != game.turn && !game.hotseatMode) {
-                messageBus.emit(events.aiTurn(req.session.gameID));
-            }  
         });
-        // since the page has been refreshed, remove all old listeners 
-        messageBus.removeAllListeners(events.aiTurn(req.session.gameID));
-        messageBus.removeAllListeners(events.gameOver(req.session.gameID));
-
     } else {
         res.end();
     }
@@ -364,7 +349,6 @@ app.get('/moveHistory', function(req,res) {
     if (req.session && req.session.gameID) {
         MongoInterface.getGameWithID(req.session.gameID, function(err, game) {
             if (err) return res.status(400).send("Error finding game with id: " + req.session.id);
-            
             res.json(game.moveHistory);
         });
     } else {
@@ -379,8 +363,6 @@ app.get('/moveHistory', function(req,res) {
  * @return response is { board: Array, capturedPieces: Array, whiteScore: Number, blackScore: Number }
  */
 app.post("/makeClientMove", function(req, res, next) {
-
-    console.log("POST: /makeClientMove");
 
     // find game in database and make move then respond with board updates
     MongoInterface.makeMoveOnGameWithID(

@@ -140,7 +140,6 @@ class MongoInterface {
             }
             game.active = false;
             game.save(function(err, game) {
-                debugger;
                 callback(err, endGame.winner, endGame.scores);
             });
         });

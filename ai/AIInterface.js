@@ -10,7 +10,7 @@ const options = {
   }
 };
 
-const paths = ['/ai/maxlibs'];
+const paths = ['/ai/random'];
 
 class AIInterfaceException extends Error {
     constructor(message) {
