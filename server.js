@@ -16,7 +16,7 @@ const messageBus = new EventEmitter();
 messageBus.setMaxListeners(200);
 const gameTimers = {};
 
-// set up middleware 
+// set up middleware
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 app.use(sessions({
@@ -61,7 +61,7 @@ app.get('/gamepage.html', function (req, res, next) {
 /**
  * This route means the user selects to play AI
  * If logged in route to game page, otherwise to login
- *  
+ *
  * */
 app.post('/playAIB', function(req, res) {
     if (req.session && req.session.user){
@@ -74,7 +74,7 @@ app.post('/playAIB', function(req, res) {
     } else {
         res.write(JSON.stringify({
             redirect: '',
-            status: 'noSession', 
+            status: 'noSession',
             login: 'no'
         }));
         res.end();
@@ -105,9 +105,9 @@ app.post('/playHSB', function(req, res) { // TODO: do we even need this path?
 
 /**
  *  User attempts to login
- * 
+ *
  * @param post data should be in format { username: username, password: password }
- * 
+ *
  * */
 app.post('/login', function(req,res) {
 
@@ -148,8 +148,8 @@ app.post('/logout', function(req,res) {
 
 /**
  * Find out if client is logged in
- * 
- * @return response containts { login: 'yes' } or { login: 'no' } 
+ *
+ * @return response containts { login: 'yes' } or { login: 'no' }
  * */
 app.post('/getStatus', function(req,res){
     if (req.session && req.session.user) {
@@ -170,18 +170,18 @@ app.post('/getStatus', function(req,res){
 
 /**
  * User attempts to sign up
- * 
+ *
  * @param post data should be in the format {username: string, password: string}
  *  */
 app.post('/signUp', function(req,res) {
 
     const user = {username: req.body.username, password: req.body.password};
 
-    // TODO: not allow garbage username/password in mongo interface 
+    // TODO: not allow garbage username/password in mongo interface
     // TODO: hash password, API for this already?
     // TODO: input sanitization???
-    MongoInterface.signUpUser(req.body.username, req.body.password, function(successful) { 
-        if (successful) { 
+    MongoInterface.signUpUser(req.body.username, req.body.password, function(successful) {
+        if (successful) {
             req.session.user = user;
             res.write(JSON.stringify({
                 redirect: '/gamepage.html',
@@ -201,13 +201,13 @@ app.post('/signUp', function(req,res) {
 });
 
 app.post('/user', function(req, res) {
-    if (req.session && req.session.username) {
+    if (req.session && req.session.user.username) {
         MongoInterface.getUserStatsWithUsername(req.session.user.username, function(err, wins, losses) {
-            const userData = {username: req.session.username, wins: wins, losses: losses};
+            const userData = {username: req.session.user.username, wins: wins, losses: losses};
             res.json(userData);
         })
     }
-    else 
+    else
         res.end();
 });
 
@@ -224,7 +224,7 @@ app.post("/newGame", function(req, res, next) {
     // create new game in database, add gameID cookie to client, init the game's timers
     MongoInterface.newGame(size, hotseat, function(err, game, gameID) {
         if (err) return res.status(400).send("Server error creating new game");
-        
+
         req.session.gameID = gameID;
 
         const onBlackTimeout = () => {
@@ -235,11 +235,11 @@ app.post("/newGame", function(req, res, next) {
         }
 
         gameTimers[gameID] = new GameTimer(onBlackTimeout, onWhiteTimeout);
-        if (game.turn == constants.black) 
+        if (game.turn == constants.black)
             gameTimers[gameID].startBlackTimer();
-        else 
+        else
             gameTimers[gameID].startWhiteTimer();
-        
+
 
         res.end();
         // TODO: also check if it is hotseat play and not clients turn. In that case emit an 'AI TURN' event here aswell
@@ -249,7 +249,7 @@ app.post("/newGame", function(req, res, next) {
 /**
  * Periodic polling request from the client every 30 seconds.
  * The request is responded to with data if an event occurs:
- * 
+ *
  * @return response after an aiTurnEvent is { board: Array, capturedPieces: Array, whiteScore: Number, blackScore: Number, whiteTime: Number, blackTime: Number }
  * @return response after a gameOver event is { winner: (color constant) see constants.js, whiteScore: Number, blackScore: Number }
  */
@@ -262,7 +262,7 @@ app.get("/longpoll", function(req, res, next) {
     messageBus.removeAllListeners(gameOverEvent);
 
     // in this open request wait until aiTurnEvent to respond
-    messageBus.once(aiTurnEvent, function onAiTurnEvent(game) { 
+    messageBus.once(aiTurnEvent, function onAiTurnEvent(game) {
         const lastMove = game.moveHistory[game.moveHistory.length - 1]; // TODO: make sure not out of bounds?
         AIInterface.query({
             size: game.board.length,
@@ -277,9 +277,9 @@ app.get("/longpoll", function(req, res, next) {
                     console.log("Syntax Error: " + err);
                     return res.status(400).write("AI Server Response Syntax Error");
                 }
-                throw err; 
+                throw err;
             }
-            console.log("AI made move: " + JSON.stringify(aiMove));           
+            console.log("AI made move: " + JSON.stringify(aiMove));
 
             // update game in database after AI move
             MongoInterface.makeMoveOnGameWithID(
@@ -297,7 +297,7 @@ app.get("/longpoll", function(req, res, next) {
                         console.log("AI made an illegal move: " + JSON.stringify(aiMove));
                         onAiTurnEvent(game); // requery the AI
                         return;
-                    } else if (err) { 
+                    } else if (err) {
                         console.log("Server error making move on game")
                         res.status(400).write("Server error making move on game");
                         return;
@@ -316,7 +316,7 @@ app.get("/longpoll", function(req, res, next) {
                     boardUpdates.blackTime = gameTimer.getBlackTime();
                     res.json(boardUpdates);
                     res.end();
-                    
+
                     // after responding stop listening because don't want to respond to request again
                     messageBus.removeAllListeners(aiTurnEvent);
                     messageBus.removeAllListeners(gameOverEvent);
@@ -332,7 +332,7 @@ app.get("/longpoll", function(req, res, next) {
 
         MongoInterface.endgameWithID(req.session.gameID, req.session.user.username, function(winner, scores) {
             var responseData = { winner: winner, whiteScore: scores.white, blackScore: scores.black }
-            
+
             res.json(responseData);
             res.end();
 
@@ -367,7 +367,7 @@ app.get("/game", function(req, res) {
     if (req.session.gameID) {
         MongoInterface.getGameWithID(req.session.gameID, function(err, game) {
             if (err) return res.status(400).send("Server error finding game with id: " + req.session.gameID);
-            
+
             game.username = req.session.user.username;
 
             res.json(game);
@@ -375,9 +375,9 @@ app.get("/game", function(req, res) {
 
             if (game.clientColor != game.turn && !game.hotseatMode) {
                 messageBus.emit(events.aiTurn(req.session.gameID));
-            }  
+            }
         });
-        // since the page has been refreshed, remove all old listeners 
+        // since the page has been refreshed, remove all old listeners
         messageBus.removeAllListeners(events.aiTurn(req.session.gameID));
         messageBus.removeAllListeners(events.gameOver(req.session.gameID));
 
@@ -393,7 +393,7 @@ app.get('/moveHistory', function(req,res) {
     if (req.session && req.session.gameID) {
         MongoInterface.getGameWithID(req.session.gameID, function(err, game) {
             if (err) return res.status(400).send("Error finding game with id: " + req.session.id);
-            
+
             res.json(game.moveHistory);
         });
     } else {
@@ -411,11 +411,11 @@ app.post("/makeClientMove", function(req, res, next) {
 
     // find game in database and make move then respond with board updates
     MongoInterface.makeMoveOnGameWithID(
-        req.session.gameID, 
+        req.session.gameID,
         req.body.x,
         req.body.y,
         constants.clientColor,
-        req.body.pass, 
+        req.body.pass,
         function(err, game, boardUpdates, gameID) {
             if (err) {
                 res.write(err.message);
@@ -427,7 +427,7 @@ app.post("/makeClientMove", function(req, res, next) {
             if (game.turn == constants.black) {
                 gameTimer.startBlackTimer();
                 gameTimer.stopWhiteTimer();
-            } else { 
+            } else {
                 gameTimer.startWhiteTimer();
                 gameTimer.stopBlackTimer();
             }
