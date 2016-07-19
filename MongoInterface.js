@@ -125,7 +125,7 @@ class MongoInterface {
     /**
      * End game with ID in the database
      * @param {String} id - the gameID
-     * @param {Function} callback - Function executed when done with (err, game) parameters
+     * @param {Function} callback - Function executed when done with (err, winner, score) parameters
      */
     endgameWithID(id, username, callback) {
         Game.findById(id, (err, game) => {
@@ -134,15 +134,14 @@ class MongoInterface {
 
             var endGame = go.endGame(game);
             if (endGame.winner == game.clientColor) {
-                debugger;
                 this.updateUserWithWin(true, username);
             } else {
-                debugger;
                 this.updateUserWithWin(false, username);
             }
+            game.active = false;
             game.save(function(err, game) {
-                if (err) return console.error(err);
-                callback(endGame.winner, endGame.scores);
+                debugger;
+                callback(err, endGame.winner, endGame.scores);
             });
         });
     }

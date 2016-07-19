@@ -30,20 +30,11 @@ class AIInterfaceException extends Error {
  * @param callback is executed when the AI returns a move
  */
 function query(postData, callback) {
-    var randomIndex = Math.floor(Math.random() * (paths.length - 1));
+    var randomIndex = Math.floor(Math.random() * (paths.length - 1)); // choose random index for the ai paths
     options.path = paths[randomIndex]; 
 
     var req = http.request(options, function(res) {
         res.on('data', callback);
-    });
-
-    req.on('socket', function (socket) {
-        socket.setTimeout(5 * 1000);  
-        socket.on('timeout', function() {
-            console.log("AI took too long to respond");
-            callback()
-            req.abort();
-        });
     });
 
     req.on('error', function(e) {

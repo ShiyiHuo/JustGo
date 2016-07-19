@@ -258,35 +258,63 @@ app.post("/newGame", function(req, res, next) {
 app.get("/longpoll", function(req, res) {
 
     console.log("POST: /longpoll");
+    res.timeStart = Date.now();
 
-    (function checkForAiTurn() {
+    (function checkForAiTurn() { 
 
+        if (Date.now() - res.timeStart > 30000) {
+            console.log("the thing timed out");
+            res.end();
+            return;
+        }
+
+        // lookup the game with id
         MongoInterface.getGameWithID(req.session.gameID, function(err, game) {
-            
+
             if (game.turn != game.clientColor && !game.hotseatMode) { // AI's turn  
                 const lastMove = game.moveHistory[game.moveHistory.length - 1];
-                
+     
                 AIInterface.query({
                     board: game.board,
                     size: game.board.length,
                     last: { x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c: lastMove.color }
                 }, function(data) {
                     let aiMove = JSON.parse(data);
+                    let boardUpdates;
                     
-                    let boardUpdates = go.makeMove(game, aiMove.y, aiMove.x, aiMove.c, aiMove.pass); // is this right order?
-
-                    game.markModified('board');
+                    try {
+                        boardUpdates = go.makeMove(game, aiMove.y, aiMove.x, aiMove.c, aiMove.pass); // is this right order?
+                    } catch (err) {
+                        if (err instanceof go.DoublePassException) { // two passes occured in a row
+                            messageBus.emit(events.gameOver(req.session.gameID));
+                            return;
+                        } else if (err instanceof go.GameException) { // ai made some illegal move
+                            return; 
+                        }
+                    } 
+                    game.markModified('board'); // need to tell mongoose that the nested array was modified
                     game.save(function(err) {
                         if (err) throw err;
-                        res.json(boardUpdates);
+                        res.json(boardUpdates); 
                     });
-                });       
+                });   
+
             } else {
                 setTimeout(checkForAiTurn, 1);  
             }
         });
 
     })();
+
+    messageBus.once(events.gameOver(req.session.gameID), function() {
+        console.log("event: game over");
+        MongoInterface.endgameWithID(req.session.gameID, req.session.user.username, function(err, winner, score) {
+            if (err) throw err;
+            const responseData = { winner: winner, whiteScore: score.white, blackScore: score.black };
+            res.json(responseData);
+        });
+    })
+
 
 });
 
@@ -357,8 +385,11 @@ app.post("/makeClientMove", function(req, res, next) {
         constants.clientColor,
         req.body.pass, 
         function(err, game, boardUpdates, gameID) {
-            if (err) 
-                throw err;
+            if (err) {
+                res.write(err.message);
+                res.end();
+                return;
+            }    
 
             const gameTimer = gameTimers[gameID];
             if (game.turn == constants.black) {
@@ -371,7 +402,6 @@ app.post("/makeClientMove", function(req, res, next) {
             boardUpdates.whiteTime = gameTimer.getWhiteTime();
             boardUpdates.blackTime = gameTimer.getBlackTime();
 
-            debugger;
             res.json(boardUpdates);               
         }
     );
