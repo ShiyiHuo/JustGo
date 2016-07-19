@@ -10,7 +10,7 @@ const options = {
   }
 };
 
-const paths = ['/ai/random'];
+const paths = ['/ai/maxLibs', '/ai/attackEnemy', '/ai/formEyes'];
 
 class AIInterfaceException extends Error {
     constructor(message) {
@@ -29,9 +29,16 @@ class AIInterfaceException extends Error {
  *   
  * @param callback is executed when the AI returns a move
  */
-function query(postData, callback) {
-    var randomIndex = Math.floor(Math.random() * (paths.length - 1)); // choose random index for the ai paths
+function query(game, callback) {
+    const randomIndex = Math.floor(Math.random() * (paths.length - 1)); // choose random index for the ai paths
     options.path = paths[randomIndex]; 
+
+    const lastMove = game.moveHistory[game.moveHistory.length - 1];
+    const postData = {
+        board: game.board,
+        size: game.board.length,
+        last: { x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c: lastMove.color }
+    };
 
     var req = http.request(options, function(res) {
         res.on('data', callback);

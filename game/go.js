@@ -239,7 +239,7 @@ function getScore(game) {
 }
 
 /**
- * "Ends"" a game document. 
+ * "Ends" a game document. 
  *  Returns { winner: winner, scores: { black: int, white: int } }
  */
 function endGame(game) {

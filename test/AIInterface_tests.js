@@ -35,13 +35,8 @@ describe('AI Interface testing', function() {
         it('Black Move 0, 0', function(done) {
             const game = new GameDocument(19, false);
             go.makeMove(game, 0, 0, constants.black, false);
-            const lastMove = game.moveHistory[game.moveHistory.length - 1];
 
-            AIInterface.query({
-                board: game.board,
-                size: game.board.length,
-                last: {x: lastMove.x, y: lastMove.y, pass: lastMove.pass, c: lastMove.color}
-            }, function(data) {
+            AIInterface.query(game, function(data) {
                 data = JSON.parse(data);
                 go.makeMove(game, data.x, data.y, data.c, data.pass);
                 console.log(data);
@@ -52,13 +47,8 @@ describe('AI Interface testing', function() {
         it('Black Move 1, 1', function(done) {
             const game = new GameDocument(19, false);
             go.makeMove(game, 1, 1, constants.black, false);
-            const lastMove = game.moveHistory[game.moveHistory.length - 1];
 
-            AIInterface.query({
-                board: game.board,
-                size: game.board.length,
-                last: {x: lastMove.x, y: lastMove.y, pass: lastMove.pass, c: lastMove.color}
-            }, function(data) {
+            AIInterface.query(game, function(data) {
                 JSON.parse(data);
                 console.log(JSON.parse(data));
                 done();

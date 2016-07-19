@@ -71,55 +71,7 @@ class MongoInterface {
             if (err) callback(err);
             if (!game) callback(new MongoInterfaceException("Error creating new game."));
             callback(err, game, game._id.id);
-        });        
-    }
-
-    /**
-     * Make a move on a game in the database.
-     * @param {String} id - the gameID
-     * @param {Number} x - the row of the move 
-     * @param {Number} y - the column of the move
-     * @param {Boolean} pass - If the move is a pass
-     * @param {Function} callback - Function executed when done with (err, game, boardUpdates, gameID) parameters
-     */
-    makeMoveOnGameWithID(id, x, y, turn, pass, callback) {
-        Game.findById(id, function(err, game) {
-            if (err) callback(err);
-            if (!game) callback(new MongoInterfaceException("Error finding game with id: " + id));
-            
-            if (turn == constants.clientColor && !game.hotseatMode) 
-                turn = game.clientColor;
-            else if (turn == constants.clientColor && game.hotseatMode) 
-                turn = game.turn;
-
-            let boardUpdates;
-            try {
-                boardUpdates = go.makeMove(game, x, y, turn, pass);
-            } catch (err) {
-                if (err instanceof go.GameException) 
-                    return callback(err);
-            }
-
-            game.markModified('board'); // needed to let mongoose know the nested array was modified
-            game.save(function(err, game) {
-                if (err) callback(err)
-                if (!game) callback(new MongoInterfaceException("Error saving game with id: " + id));
-                callback(false, game, boardUpdates, game._id.id);
-            });
-        });
-    }
-
-    /**
-     * Get game with ID in the database
-     * @param {String} id - the gameID
-     * @param {Function} callback - Function executed when done with (err, game) parameters
-     */
-    getGameWithID(id, callback) {
-        Game.findById(id, function(err, game) {
-            if (err) callback(err);
-            if (!game) callback(new MongoInterfaceException("Could not find game with id " + id));
-            callback(false, game);
-        });
+        });       
     }
 
     /**
@@ -129,8 +81,13 @@ class MongoInterface {
      */
     endgameWithID(id, username, callback) {
         Game.findById(id, (err, game) => {
-            if (err) callback(err);
-            if (!game) callback(new MongoInterfaceException("Could not find game with id " + id));
+            if (err) {
+                callback(err);
+            } 
+            if (!game) {
+                callback(new MongoInterfaceException("Could not find game with id " + id));
+                return;
+            }
 
             var endGame = go.endGame(game);
             if (endGame.winner == game.clientColor) {
@@ -219,14 +176,14 @@ class MongoInterface {
         var query = User.findOne({username: username, password: password});
         query.exec(function(err, user) {
             if (err) {
-                callback(false);
+                callback(err);
                 return console.error(err);
             }
-            if (user) {
-                callback(true);
-            } else {
-                callback(false);
+            if (!user) {
+                callback(new MongoInterfaceException("Error logging in"));
+                return;
             }
+            callback(err, user);
         });
 
     }
