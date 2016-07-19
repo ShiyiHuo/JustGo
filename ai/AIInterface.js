@@ -10,7 +10,7 @@ const options = {
   }
 };
 
-const paths = ['/ai/maxlibs', '/ai/attackEnemy', '/ai/formEyes'];
+const paths = ['/ai/maxlibs'];
 
 class AIInterfaceException extends Error {
     constructor(message) {
@@ -31,7 +31,7 @@ class AIInterfaceException extends Error {
  */
 function query(postData, callback) {
     var randomIndex = Math.floor(Math.random() * (paths.length - 1));
-    options.path = paths[randomIndex]; // ????
+    options.path = paths[randomIndex]; 
 
     var req = http.request(options, function(res) {
         res.on('data', callback);
