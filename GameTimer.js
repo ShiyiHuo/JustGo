@@ -26,8 +26,18 @@ class Timer {
 
 class GameTimer {
     constructor(onBlackTimeout, onWhiteTimeout) {
-        this.blackTimer = new Timer(constants.startingTimePool, onBlackTimeout);
-        this.whiteTimer = new Timer(constants.startingTimePool, onWhiteTimeout); 
+        this.blackTimer = new Timer(constants.startingTimePool, () => {
+            if (!this.whiteTimedOut)
+                onBlackTimeout();
+            this.blackTimedOut = true;
+        });
+        this.whiteTimer = new Timer(constants.startingTimePool, () => {
+            if (!this.blackTimedOut)
+                onWhiteTimeout();
+            this.whiteTimedOut = true;
+        }); 
+        this.blackTimedOut = false;
+        this.whiteTimedOut = false;
     }
     startBlackTimer() {
         this.blackTimer.start();

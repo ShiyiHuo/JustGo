@@ -239,18 +239,39 @@ function getScore(game) {
 }
 
 /**
- * "Ends" a game document. 
+ * "Ends" a game due to scoring.
  *  Returns { winner: winner, scores: { black: int, white: int } }
  */
 function endGame(game) {
 
-    game.active = false;
+    if (!game.active) 
+        throw "Game already ended.";
+
     var scores = getScore(game);
+
+    game.active = false;
+
     var winner = scores.white > scores.black ? constants.white : constants.black;
 
     return { winner: winner, scores: scores };
 }
 
+/**
+ * "Ends" a game due to timeout or resignation
+ */
+function endGameWithWinner(game, winner) {
+
+    if (!game.active)
+        throw "Game already ended";
+
+    var scores = getScore(game);
+    game.winner = winner;
+    game.active = false;
+
+    var winner = scores.white > scores.black ? constants.white : constants.black;
+
+    return { winner: winner, scores: scores };
+}
 
 /**
  * This module's "public interface"
@@ -260,5 +281,6 @@ module.exports = {
     GameException: GameException,
     DoublePassException: DoublePassException,
     getScore: getScore,
-    endGame: endGame
+    endGame: endGame,
+    endGameWithWinner: endGameWithWinner
 };

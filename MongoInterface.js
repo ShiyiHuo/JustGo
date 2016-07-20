@@ -2,9 +2,8 @@
 const mongoose = require('mongoose');
 const constants = require('./game/constants');
 const go = require('./game/go');
-
-var Game; // TODO: not have these schemas in a global? should be in mongointerface?
-var User;
+const Game = require('./Game');
+const User = require('./User');
 
 class MongoInterfaceException extends Error {
     constructor(message) {
@@ -14,7 +13,6 @@ class MongoInterfaceException extends Error {
  
 class MongoInterface {
     constructor() {    
-
         // connect to mongodb
         mongoose.connect('mongodb://localhost/GoData');
         this.db = mongoose.connection;
@@ -22,28 +20,6 @@ class MongoInterface {
         this.db.once('open', function() {
             console.log("succesfully connected to mongo");
         });
-        
-        // define a game schema and model it
-        const gameSchema = new mongoose.Schema({
-            board: Array,
-            turn: Number,
-            moveHistory: Array,
-            hotseatMode: Boolean,
-            clientColor: Number,
-            active: Boolean,
-            whiteTimeLeft: Number,
-            blackTimeLeft: Number
-        });
-        Game = mongoose.model('Game', gameSchema);
-
-        // define user schema and model it
-        const userSchema = new mongoose.Schema({
-            username: {type: String, index: {unique: true}},
-            password: String,
-            wins: Number,
-            losses: Number
-        });
-        User = mongoose.model('User', userSchema);
     }
     
     /**
@@ -74,32 +50,12 @@ class MongoInterface {
         });       
     }
 
-    /**
-     * End game with ID in the database
-     * @param {String} id - the gameID
-     * @param {Function} callback - Function executed when done with (err, winner, score) parameters
-     */
-    endgameWithID(id, username, callback) {
-        Game.findById(id, (err, game) => {
-            if (err) {
-                callback(err);
-            } 
-            if (!game) {
-                callback(new MongoInterfaceException("Could not find game with id " + id));
-                return;
-            }
-
-            var endGame = go.endGame(game);
-            if (endGame.winner == game.clientColor) {
-                this.updateUserWithWin(true, username);
-            } else {
-                this.updateUserWithWin(false, username);
-            }
-            game.active = false;
-            game.save(function(err, game) {
-                callback(err, endGame.winner, endGame.scores);
-            });
-        });
+    getGameWithId(id, callback) {
+        Game.findById(id, function(err, game) {
+            if (err) callback(err);
+            if (!game) callback(new MongoInterfaceException("Could not find game with id: " + id));
+            callback(null, game);
+        })
     }
 
     /**

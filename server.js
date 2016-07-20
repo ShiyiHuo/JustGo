@@ -12,10 +12,8 @@ const events = require('./events');
 const GameTimer = require('./GameTimer');
 
 const app = express();
-const messageBus = new EventEmitter();
-messageBus.setMaxListeners(200);
 const gameTimers = {};
-const games = {};
+const activeGames = {};
 
 // set up middleware 
 app.use(bodyParser.urlencoded({extended: true}));
@@ -26,7 +24,7 @@ app.use(sessions({
     duration: 5 * 60 * 1000,
     activeDuration: 5 * 60 * 1000
 }));
-app.use(express.static("public")); // must be at very bottom since express goes through middleware in order
+app.use(express.static("public")); 
 
 // listen on port assigned by class
 app.listen(30144, function() {
@@ -212,41 +210,27 @@ app.post('/user', function(req, res) {
         res.end();
 });
 
-function initGameTimersWithId(gameID) {
-    if (!gameID) 
-        throw new Error("Tried to initialize timer with gameID: " + gameID);
-    if (gameTimers[gameID])
-        throw new Error("The timer is already initialized for gameID: " + gameID);
+function initGameTimersWithId(gameId) {
+    if (!gameId) 
+        throw new Error("Tried to initialize timer with gameID: " + gameId);
+    if (gameTimers[gameId])
+        throw new Error("The timer is already initialized for gameID: " + gameId);
+
+    const game = activeGames[gameId];
 
     const onBlackTimeout = function() {
-
-        const game = games[gameID];
-        if (!game) {
-            MongoInterface.getGameWithID(gameID, function(err, game) {
-                go.endGame(game);
-                games[gameID] = game; 
-            });
-        } else {
-            go.endGame(game);
-        }
-
+        console.log("Black ran out of time")
+        game.endGame();
     }
-    const onWhiteTimeout = () => {
-
-        const game = games[gameID];
-        if (!game) {
-            MongoInterface.getGameWithID(gameID, function(err, game) {
-                go.endGame(game);
-                games[gameID] = game; 
-            });
-        } else {
-            go.endGame(game);
-        }
+    const onWhiteTimeout = function() {
+        console.log("black ran out of time")
+        game.endGame();
     }
-
+    debugger;
     // initialize game timers and start the black one
-    gameTimers[gameID] = new GameTimer(onBlackTimeout, onWhiteTimeout);
-    gameTimers[gameID].startBlackTimer();
+    gameTimers[gameId] = new GameTimer(onBlackTimeout, onWhiteTimeout);
+    gameTimers[gameId].startBlackTimer();
+    debugger;
 }
 
 /**
@@ -266,16 +250,43 @@ app.post("/newGame", function(req, res) {
             res.end();
             return; 
         }
-        
         req.session.gameID = gameID;
-
-        initGameTimersWithId(gameID);
         
-        // store this game into the games array
-        games[req.session.gameID] = game;
+        // store this game into the activeGames array
+        activeGames[req.session.gameID] = game;
+        initGameTimersWithId(gameID);
 
         res.end();
     });
+});
+
+
+// middleware for all "/game" routes
+app.use('/game', function(req, res, next) {
+    // check if session cookie
+    if (!req.session || !req.session.gameID) {
+        console.log("Could not find client session");
+        res.status(400).write("Could not find client session");
+        res.end();
+        return;
+    } 
+
+    // initialize game for this gameID if not active
+    if (activeGames[req.session.gameID] && gameTimers[req.session.gameID]) {
+        next();
+    } else {
+        MongoInterface.getGameWithId(req.session.gameID, function(err, game) {
+            if (err || !game) {
+                res.status(400).write("Could not find game in database");
+                res.end();
+                return;
+            }
+            activeGames[req.session.gameID] = game;
+            initGameTimersWithId(req.session.gameID)
+            next();
+        });
+    }
+
 });
 
 /**
@@ -288,102 +299,78 @@ app.post("/newGame", function(req, res) {
  *       { winner: (color constant) see constants.js, whiteScore: Number, blackScore: Number }
  */
 const longpollRequests = [];
-app.get("/longpoll", function(req, res) {
-
-    if (!req.session || !req.session.gameID) {
-        console.log("Could not find client session");
-        res.status(400).write("Could not find client session");
-        res.end();
-        return;
-    }
-
+app.get("/game/longpoll", function(req, res) {
     longpollRequests.push({
         req: req,
         res: res,
         timestamp: Date.now()
     });
-
 });
 setInterval(function() {
     for (const longpoll of longpollRequests) {
         
-        const game = games[longpoll.req.session.gameID];
-
-        // check if game is in active games array
-        if (!game) { 
-            // find the game and put it into the games array
-            MongoInterface.getGameWithID(longpoll.req.session.gameID, function(err, game) {
-                game[longpoll.req.session.gameID] = game;
-            });
-            continue;
-        }
-
-        // check if timer is initialized
-        if (!gameTimers[longpoll.req.session.gameID]) {
-            initGameTimersWithId(longpoll.req.session.gameID);
-        }
+        const game = activeGames[longpoll.req.session.gameID];
 
         if (Date.now() - longpoll.timestamp > 29999) { // server-side timeout
             longpoll.res.end();
-
-            // delete this element from the array
             const longpollIndex = longpollRequests.indexOf(longpoll);
             longpollRequests.splice(longpollIndex, 1);
 
         } else if (game.turn != game.clientColor && !game.hotseatMode) { // AI's Turn
+            
+            // query the AI 
+            AIInterface.query(game, function(data) {
+                let aiMove = JSON.parse(data);
+                let boardUpdates;
                 
-                // query the AI 
-                AIInterface.query(game, function(data) {
-                    let aiMove = JSON.parse(data);
-                    let boardUpdates;
-                    
-                    // Try to make the AI's move
-                    try {
-                        boardUpdates = go.makeMove(game, aiMove.y, aiMove.x, aiMove.c, aiMove.pass);
-                    } catch (err) {
-                        if (err instanceof go.DoublePassException) { // two passes occured in a row. The game is over
-                            console.log("Two passes occured in a row. Ending game...");
-                            const endGame = go.endGame(game);
-                            debugger;
-                            return;
-                        } else if (err instanceof go.GameException) { // ai made some illegal move
-                            console.log("AI made some illegal move");
-                            return;
-                        }
-                    } 
-
-                    // update the timers
-                    const gameTimer = gameTimers[longpoll.req.session.gameID];
-                    if (game.turn == constants.black) {
-                        gameTimer.startBlackTimer();
-                        gameTimer.stopWhiteTimer();
-                    } else { 
-                        gameTimer.startWhiteTimer();
-                        gameTimer.stopBlackTimer();
+                // Try to make the AI's move
+                try {
+                    boardUpdates = game.makeMove(aiMove.y, aiMove.x, aiMove.c, aiMove.pass);
+                } catch (err) {
+                    if (err instanceof go.DoublePassException) { // two passes occured in a row. The game is over
+                        console.log("Two passes occured in a row. Ending game...");
+                        game.endGame();
+                        return;
+                    } else if (err instanceof go.GameException) { // ai made some illegal move
+                        console.log("AI made some illegal move");
+                        return;
                     }
-                    boardUpdates.whiteTime = gameTimer.getWhiteTime();
-                    boardUpdates.blackTime = gameTimer.getBlackTime();
+                } 
 
-                    // respond to longpoll with AI's move and remove requests from queue
-                    longpoll.res.json(boardUpdates); 
-                    const longpollIndex = longpollRequests.indexOf(longpoll);
-                    longpollRequests.splice(longpollIndex, 1);
+                // update the timers
+                const gameTimer = gameTimers[longpoll.req.session.gameID];
+                if (game.turn == constants.black) {
+                    gameTimer.startBlackTimer();
+                    gameTimer.stopWhiteTimer();
+                } else { 
+                    gameTimer.startWhiteTimer();
+                    gameTimer.stopBlackTimer();
+                }
+                boardUpdates.whiteTime = gameTimer.getWhiteTime();
+                boardUpdates.blackTime = gameTimer.getBlackTime();
 
-                    // save the game into the database
-                    game.save(function(err) {
-                        if (err) throw err;
-                    });
-                });  
+                // respond to longpoll with AI's move and remove requests from queue
+                longpoll.res.json(boardUpdates); 
+                const longpollIndex = longpollRequests.indexOf(longpoll);
+                longpollRequests.splice(longpollIndex, 1);
+
+                // save the game into the database
+                game.markModified('board');
+                game.save(function(err) {
+                    if (err) throw err;
+                });
+            });  
 
         } else if (!game.active) { // game is over
-            const endGame = go.endGame(game);
-            longpoll.res.json({ winner: endGame.winner, whiteScore: endGame.scores.white, blackScore: endGame.scores.black });
+            const endGame = game.getEndGameState();
             const longpollIndex = longpollRequests.indexOf(longpoll);
+            longpoll.res.json({ winner: endGame.winner, whiteScore: endGame.scores.white, blackScore: endGame.scores.black });
             longpollRequests.splice(longpollIndex, 1);
 
+            game.markModified('board');
             game.save(function(err) {
                 if (err) throw err;
-            })
+            });
             return;
         }
     }
@@ -392,40 +379,16 @@ setInterval(function() {
 /**
  * Player resigns
  */
-app.post("/resign", function(req, res) {
-    
-    if (!req.session || !req.session.gameID) {
-        console.log("Could not find client session");
-        res.status(400).send("Could not find client session");
-        res.end();
-        return;
-    }
-
-    const game = games[req.session.gameID];
-
-    // game should be in the active games array at this point but check anyways
-    if (!game) {
-        console.log("Server error finding game");
-        res.status(400).write("Server error finding game");
-        res.end();
-        return;     
-    }
-    go.endGame(game); // end the game so that it can be responded to by longpoll
-
+app.post("/game/resign", function(req, res) {
+    const game = activeGames[req.session.gameID];
+    game.endGame();
+    res.end();
 });
 
 /**
  * Get game state of the client
  */
 app.get("/game", function(req, res) {
-    
-    if (!req.session || !req.session.gameID) {
-        console.log("Could not find client session");
-        res.status(400).send("Could not find client session");
-        res.end();
-        return;
-    }
-                
     // remove all longpoll requests with this game ID
     for (const longpoll of longpollRequests) {
         if (longpoll.req.session.gameID == req.session.gameID) {
@@ -434,45 +397,18 @@ app.get("/game", function(req, res) {
             longpollRequests.splice(longpollIndex, 1);             
         }
     }
-
     // find game and respond with it
-    const game = games[req.session.gameID];
-    if (!game) { // not in the games array
-        MongoInterface.getGameWithID(req.session.gameID, function(err, game) {
-            game.username = req.session.username // TODO: ???
-            games[req.session.gameID] = game; // reassign the games array
-            res.json(game);
-        })
-    } else { // in games array
-        res.json(game);
-        game.username = req.session.username; // TODO: ??? 
-    }
-
+    const game = activeGames[req.session.gameID];
+    game.username = req.session.username; // TODO: ???
+    res.json(game);
 });
 
 /**
  * Get move history of the current game
  */
-app.get('/moveHistory', function(req,res) {
-    
-    if (!req.session || !req.session.gameID) {
-        console.log("Could not find cilent session");
-        res.status(400).send("Could not find client session");
-        res.end()
-        return;
-    }
-    
-    let game = games[req.session.gameID];
-    if (!game) {
-        MongoInterface.getGameWithID(req.session.gameID, function(err, game) {
-            if (err) return console.error("Could not find game with id: " + req.session.gameID);
-            res.json(game.moveHistory);
-        })
-        return;
-    } else {
-        res.json(game.moveHistory);
-    }
-
+app.get('/game/moveHistory', function(req,res) {
+    let game = activeGames[req.session.gameID];
+    res.json(game.moveHistory);
 });
 
 /**
@@ -481,34 +417,20 @@ app.get('/moveHistory', function(req,res) {
  *
  * @return response is { board: Array, capturedPieces: Array, whiteScore: Number, blackScore: Number }
  */
-app.post("/makeClientMove", function(req, res, next) {
-
-    // check if client has session
-    if (!req.session || !req.session.gameID) { // okay due to short circuit evaluation
-        console.log("Could not find client session");
-        res.status(400).send("Could not find client session");
-        res.end();
-        return;
-    }
+app.post("/game/makeClientMove", function(req, res, next) {
 
     // game should already be active at this point
-    const game = games[req.session.gameID];
-    if (!game) {
-        console.log("Server error finding game");
-        res.status(400).write("Server error finding game");
-        res.end();
-        return;
-    }
+    const game = activeGames[req.session.gameID];
 
     // try to make the client's move
     var boardUpdates;
     let clientTurn = game.hotseatMode? game.turn : game.clientColor;
     try {
-        boardUpdates = go.makeMove(game, req.body.x, req.body.y, clientTurn, req.body.pass);
+        boardUpdates = game.makeMove(req.body.x, req.body.y, clientTurn, req.body.pass);
     } catch (err) { // Handle game errors by ending response and returning from function 
 
         if (err instanceof go.DoublePassException) { // two passes occured in a row
-            go.endGame(game); // end the game so the longpoll request is responded to
+            game.endGame(); // end the game so the longpoll request is responded to
             res.end();
             return;
         } else if (err instanceof go.GameException) { // client made some illegal move
@@ -524,20 +446,14 @@ app.post("/makeClientMove", function(req, res, next) {
     }
 
     // move was legal, save game to database
+    game.markModified('board');
     game.save(function(err) {
         if (err) 
             console.log("Database error saving game with id: " + req.session.gameID);
     });
 
-    // game should already have actived timers at this point 
+    // switch timers
     var gameTimer = gameTimers[req.session.gameID];
-    if (!gameTimer) {
-        console.log("Server error updating timers");
-        res.status(400).send("Server error updating timers");
-        res.end();
-        return;
-    }
-
     if (game.turn == constants.black) {
         gameTimer.startBlackTimer();
         gameTimer.stopWhiteTimer();
@@ -546,9 +462,9 @@ app.post("/makeClientMove", function(req, res, next) {
         gameTimer.stopBlackTimer();
     }
 
+    // respond to request with board updates
     boardUpdates.whiteTime = gameTimer.getWhiteTime();
     boardUpdates.blackTime = gameTimer.getBlackTime();
-
     res.json(boardUpdates);  
 });
 

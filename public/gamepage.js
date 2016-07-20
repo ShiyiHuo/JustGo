@@ -43,14 +43,14 @@ function initButtons(){
 }
 
 function resignClicked(event) {
-    $.post("/resign", function(data) {
+    $.post("/game/resign", function(data) {
         writePC("Player resigned<br>");
     });
 }
 
 function passClicked(event) {
     var move = {x: 0, y: 0, pass: true};
-    $.post("/makeClientMove", move, function(data,status) {
+    $.post("/game/makeClientMove", move, function(data,status) {
         if (!data.board) {
             window.alert(data); // ??????
         } else {
@@ -170,7 +170,7 @@ function boardClicked(event) {
             writePC("You cannot place a piece here<br>");
         } else {
             var move = {x: position.x, y: position.y};
-            $.post("/makeClientMove", move, function(data,status) {
+            $.post("/game/makeClientMove", move, function(data,status) {
                 if (!data.board) {
                     window.alert(data); // ??????
                 } else {
@@ -189,7 +189,7 @@ function longpoll() {
 
     $.ajax({
         method: 'GET',
-        url: '/longpoll',
+        url: '/game/longpoll',
         success: function(data) {
 
             console.log(JSON.stringify(data));
