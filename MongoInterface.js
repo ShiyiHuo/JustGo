@@ -39,10 +39,11 @@ class MongoInterface {
             hotseatMode: hotseatMode,
             clientColor: constants.black,
             active: true,
-            whiteTimeLeft: constants.startingTimePool,
-            blackTimeLeft: constants.startingTimePool
+            winner: null,
+            whiteMsRemaining: constants.startingTimePool,
+            blackMsRemaining: constants.startingTimePool
         });
-
+        
         game.save(function (err, game) {
             if (err) callback(err);
             if (!game) callback(new MongoInterfaceException("Error creating new game."));

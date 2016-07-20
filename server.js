@@ -1,18 +1,15 @@
 "use strict";
 const express = require("express");
 const bodyParser = require("body-parser");
-const EventEmitter = require('events').EventEmitter;
 const sessions = require('client-sessions');
 
-const go = require('./game/go');
 const constants = require('./game/constants');
 const AIInterface = require('./ai/AIInterface');
 const MongoInterface = require('./MongoInterface');
-const events = require('./events');
-const GameTimer = require('./GameTimer');
 
+const go = require('./game/go');
 const app = express();
-const gameTimers = {};
+const Game = require('./Game');
 const activeGames = {};
 
 // set up middleware 
@@ -210,29 +207,6 @@ app.post('/user', function(req, res) {
         res.end();
 });
 
-function initGameTimersWithId(gameId) {
-    if (!gameId) 
-        throw new Error("Tried to initialize timer with gameID: " + gameId);
-    if (gameTimers[gameId])
-        throw new Error("The timer is already initialized for gameID: " + gameId);
-
-    const game = activeGames[gameId];
-
-    const onBlackTimeout = function() {
-        console.log("Black ran out of time")
-        game.endGame();
-    }
-    const onWhiteTimeout = function() {
-        console.log("black ran out of time")
-        game.endGame();
-    }
-    debugger;
-    // initialize game timers and start the black one
-    gameTimers[gameId] = new GameTimer(onBlackTimeout, onWhiteTimeout);
-    gameTimers[gameId].startBlackTimer();
-    debugger;
-}
-
 /**
  * Create a new game state and store it in database
  *
@@ -243,21 +217,33 @@ app.post("/newGame", function(req, res) {
     const size = JSON.parse(req.body.size);
     const hotseat = JSON.parse(req.body.hotseat);
 
-    // create new game in database, add gameID cookie to client, init the game's timers
-    MongoInterface.newGame(size, hotseat, function(err, game, gameID) {
-        if (err) {
-            res.status(400).send("Server error creating new game");
-            res.end();
-            return; 
-        }
-        req.session.gameID = gameID;
-        
-        // store this game into the activeGames array
-        activeGames[req.session.gameID] = game;
-        initGameTimersWithId(gameID);
+    let board = [];
+    for (var i = 0; i < size; i++) {
+        board[i] = new Array(size).fill(constants.empty);
+    }
 
-        res.end();
+    const game = new Game({
+        board: board,
+        turn: constants.black,
+        moveHistory: [],
+        hotseatMode: hotseat,
+        clientColor: constants.black,
+        active: true,
+        winner: null,
+        whiteMsRemaining: constants.startingTimePool,
+        blackMsRemaining: constants.startingTimePool
     });
+
+    game.save(function (err, game) {
+        if (err || !game) {
+            res.status(400).write("Error saving game")
+            return res.end();
+        }
+        activeGames[game._id.id] = game;
+        req.session.gameID = game._id.id;
+        res.end();
+    });  
+
 });
 
 
@@ -265,28 +251,26 @@ app.post("/newGame", function(req, res) {
 app.use('/game', function(req, res, next) {
     // check if session cookie
     if (!req.session || !req.session.gameID) {
-        console.log("Could not find client session");
+        console.log("Could not find client session aefaefe");
         res.status(400).write("Could not find client session");
         res.end();
         return;
     } 
-
-    // initialize game for this gameID if not active
-    if (activeGames[req.session.gameID] && gameTimers[req.session.gameID]) {
+   
+     // initialize game for this gameID if not active
+    if (activeGames[req.session.gameID]) {
         next();
-    } else {
-        MongoInterface.getGameWithId(req.session.gameID, function(err, game) {
+    } else { 
+        Game.findById(req.session.gameID, function(err, game) {
             if (err || !game) {
                 res.status(400).write("Could not find game in database");
                 res.end();
                 return;
             }
             activeGames[req.session.gameID] = game;
-            initGameTimersWithId(req.session.gameID)
-            next();
+            next();        
         });
     }
-
 });
 
 /**
@@ -305,10 +289,12 @@ app.get("/game/longpoll", function(req, res) {
         res: res,
         timestamp: Date.now()
     });
+    res.end();
 });
+/*
 setInterval(function() {
-    for (const longpoll of longpollRequests) {
-        
+    
+    for (const longpoll of longpollRequests) {    
         const game = activeGames[longpoll.req.session.gameID];
 
         if (Date.now() - longpoll.timestamp > 29999) { // server-side timeout
@@ -337,18 +323,6 @@ setInterval(function() {
                     }
                 } 
 
-                // update the timers
-                const gameTimer = gameTimers[longpoll.req.session.gameID];
-                if (game.turn == constants.black) {
-                    gameTimer.startBlackTimer();
-                    gameTimer.stopWhiteTimer();
-                } else { 
-                    gameTimer.startWhiteTimer();
-                    gameTimer.stopBlackTimer();
-                }
-                boardUpdates.whiteTime = gameTimer.getWhiteTime();
-                boardUpdates.blackTime = gameTimer.getBlackTime();
-
                 // respond to longpoll with AI's move and remove requests from queue
                 longpoll.res.json(boardUpdates); 
                 const longpollIndex = longpollRequests.indexOf(longpoll);
@@ -375,7 +349,7 @@ setInterval(function() {
         }
     }
 }, 100);
-
+*/
 /**
  * Player resigns
  */
@@ -448,23 +422,12 @@ app.post("/game/makeClientMove", function(req, res, next) {
     // move was legal, save game to database
     game.markModified('board');
     game.save(function(err) {
-        if (err) 
-            console.log("Database error saving game with id: " + req.session.gameID);
+        if (err) {
+            console.log("Database error saving game with id: aefaef " + req.session.gameID);
+            console.log(err);
+        }
+            
     });
 
-    // switch timers
-    var gameTimer = gameTimers[req.session.gameID];
-    if (game.turn == constants.black) {
-        gameTimer.startBlackTimer();
-        gameTimer.stopWhiteTimer();
-    } else { 
-        gameTimer.startWhiteTimer();
-        gameTimer.stopBlackTimer();
-    }
-
-    // respond to request with board updates
-    boardUpdates.whiteTime = gameTimer.getWhiteTime();
-    boardUpdates.blackTime = gameTimer.getBlackTime();
     res.json(boardUpdates);  
 });
-
