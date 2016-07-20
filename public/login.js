@@ -361,13 +361,13 @@ function showMainMenu() {
        $('body').append('<p class="mainmenu_label" id="mainmenu_top_label">Select board size :</p>');
 
        $('body').append('<ul class="boardsize_ul">'+
-          '<li><input type="radio" id="size9" name="boardsize_selector">'+
+          '<li><input type="radio" id="size9" name="boardsize_selector" value=9>'+
           '<label for="size9">9*9</label><div class="check"></div></li>'+
 
-          '<li><input type="radio" id="size13" name="boardsize_selector">'+
+          '<li><input type="radio" id="size13" name="boardsize_selector" value=13>'+
           '<label for="size13">13*13</label><div class="check"><div class="inside"></div></div></li>'+
 
-          '<li><input type="radio" id="size19" name="boardsize_selector">'+
+          '<li><input type="radio" id="size19" name="boardsize_selector" value=19>'+
           '<label for="size19">19*19</label><div class="check"><div class="inside"></div></div></li>'+
           '</ul>');
 
@@ -376,13 +376,13 @@ function showMainMenu() {
        $('body').append('<p class="mainmenu_label" id="mainmenu_color_label">Select colour of Go board :</p>');
 
        $('body').append('<ul class="boardcolor_ul">'+
-          '<li><input type="radio" id="color_yellow" name="boardcolor_selector">'+
+          '<li><input type="radio" id="color_yellow" name="boardcolor_selector" value=Beige>'+
           '<label for="color_yellow">Yellow</label><div class="check"></div></li>'+
 
-          '<li><input type="radio" id="color_white" name="boardcolor_selector">'+
-          '<label for="color_white">White</label><div class="check"><div class="inside"></div></div></li>'+
+          '<li><input type="radio" id="color_purple" name="boardcolor_selector" value=Lavender>'+
+          '<label for="color_purple">Purple</label><div class="check"><div class="inside"></div></div></li>'+
 
-          '<li><input type="radio" id="color_blue" name="boardcolor_selector">'+
+          '<li><input type="radio" id="color_blue" name="boardcolor_selector" value=LightBlue>'+
           '<label for="color_blue">Blue</label><div class="check"><div class="inside"></div></div></li>'+
           '</ul>');
 
@@ -390,11 +390,14 @@ function showMainMenu() {
 
         $('body').append('<button class="button" id="startGameB">Start Game</button>');
 
-
+        //post parameters for game when startGame is clicked
+        //get parameters for game when game page is loaded
        $('#startGameB').on('click', function() {
            window.location = "/gamepage.html";
 
            // TODO: Shiyi make this take sizes based on the page options
+           //send game info to server
+           //req should be in form { size : int, hotseat : boolean }
            var boardSizeSelected = $("input[type='radio'][name='boardsize_selector']:checked").val();
            var newGameParameters = {size: boardSizeSelected, hotseat: globals.wantsHotseat};
 

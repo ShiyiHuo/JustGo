@@ -17,6 +17,7 @@ $(document).ready(function() {
 
    //initialize game. if game is ongoing, retrieve game and initialize last board state
    //otherwise begin new game
+   //get cookie of board color
     $.get("/game", function(data, status) {
         if (data) {
             longpoll();
