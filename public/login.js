@@ -1,387 +1,300 @@
+var path = new Array;
+var loggedIn = false;
+var username;
+var hotseatSelected = false;
+
 $(document).ready(function() {
+    initiatePage();
+    showBackButton();
+    showNavBar(loggedIn);
+});
 
-                  showWelcome();
-
-
-
-                  });
-
-const globals = {
-    wantsHotseat: false
-};
-
-//show the welcome page
-function showWelcome() {
-
-
-    $.post("/getStatus", function(data,status) {
-
-           data = JSON.parse(data);
-           if (data.login == "yes") {
-           showMenuBar("logged in");
-           // showLogout();
-           console.log("Logged in");
-           } else {
-           showMenuBar();
-           }
-
-           $('body').append('<div class="title_section1">WELCOME TO</div><div class="title_section2">GO</div><div class="title_section3">BY DEEPFRIEDMILK</div>');
-
-           $('body').append('<button type="button" class="button" id="playAIB">Player vs AI</button><br>');
-           $('body').append('<button type="button" class="button" id="playHSB">Player vs Player</button><br>');
-
-
-
-
-           $('#playAIB').on('click', function() {
-                            $.post("/playAIB", function(data, status) {
-                                   data = JSON.parse(data);
-                                   if (data.status == "noSession") {
-                                   $('body').children().remove();
-                                   showSignOptions();
-                                   globals.wantsHotseat = false;
-                                   }
-                                   else {
-                                   window.location = data.redirect;
-                                   }
-                                   });
-                            });
-
-
-           $('#playHSB').on('click', function() {
-                            $.post("/playHSB", function(data, status) {
-                                   data = JSON.parse(data);
-                                   if (data.status == "noSession") {
-                                   $('body').children().remove();
-                                   showSignOptions();
-                                   globals.wantsHotseat = true;
-                                   }
-                                   else {
-                                   window.location = data.redirect;
-                                   }
-                                   });
-                            });
-
-           });
-
-
-
-
+function initiatePage() {
+    getStatus();
+    showLogo();
 }
 
-function showSignOptions () {
+function callRouter(event) {
 
-    $.post("/getStatus", function(data,status) {
+    if (event.currentTarget.id == 'startGameB') {
 
-           data = JSON.parse(data);
-           if (data.login == "yes") {
-           showMenuBar("logged in");
-           // showLogout();
-           console.log("Logged in");
-           } else {
-           showMenuBar();
-           }
+        var boardSizeSelected = $("input[type='radio'][name='size']:checked").val();
+        console.log(boardSizeSelected);
+        var newGameParameters = {size: boardSizeSelected, hotseat: hotseatSelected};
+        document.cookie = "boardColor=" + $("input[type='radio'][name='color']:checked").val();
 
-           $('body').append('<button class="backButton" id="signOptionsGoBack"><</button><br>');
+        $.post("/newGame", newGameParameters, function(data, status) {
+            window.location = '/gamepage.html';
+        });
+    }
 
-           $('body').append('<button type="button" class="button" id="loginOptionB">Login</button><br>');
-           $('body').append('<button type="button" class="button" id="signOptionB">Sign up</button><br>');
-           $('body').append('<button type="button" class="button" id="guestOptionB">Proceed as guest</button><br>');
+    console.log("Router called on " + event.currentTarget.id);
+    path.push(event.currentTarget.id);
 
-           $('#signOptionsGoBack').on('click', function() {
-                                      $('body').children().remove();
-                                      showWelcome();
-                                      });
+    if (event.currentTarget.id == 'goBack') {
+        clearPage();
 
-           $('#loginOptionB').on('click', function() {
-                                 $('body').children().remove();
-                                 showLogin();
-                                 });
+        if (path.length <= 2) {
+            path.pop();
+            initiatePage();
+            console.log("Going back to welcome screen");
+        }
+        else {
+            path.pop();
+            path.pop();
+            event.currentTarget.id = path.pop();
+            console.log("Going back to " + event.currentTarget.id)
+            callRouter(event);
+        }
+    }
 
-           $('#signOptionB').on('click', function() {
-                                $('body').children().remove();
-                                showSignUp();
-                                });
+    else if (event.currentTarget.id == 'logoContainer') {
+        clearPage();
+        console.log("Routing to player options");
+        showPlayerOption();
+        createButtonEvent();
 
-           $('#guestOptionB').on('click', function() {
-                                 $('body').children().remove();
-                                 //window.location = '/gamepage.html';
-                                 showMainMenu();
-                                 });
+    }
 
-           });
+    else if (event.currentTarget.id == 'playAIB') {
+        clearPage();
+        hotseatSelected = false;
+        if (loggedIn == true) {
+            console.log("Logged in. Routing to board options.");
+            showBoardOption();
+        } else {
+            console.log("Logged out. Routing to login signup options");
+            showLoginSignUpOption();
+        }
+        createButtonEvent();
 
-}
+    }
 
-//show the signup page
-function showSignUp() {
-    $.post("/getStatus", function(data,status) {
+    else if (event.currentTarget.id == 'playHSB') {
+        clearPage();
+        hotseatSelected = true;
+        if (loggedIn == true) {
+            console.log("Logged in. Routing to board options.");
+            showBoardOption();
+        } else {
+            console.log("Logged out. Routing to login signup options");
+            showLoginSignUpOption();
+        }
+        createButtonEvent();
 
-           data = JSON.parse(data);
-           if (data.login == "yes") {
-           showMenuBar("logged in");
-           // showLogout();
-           console.log("Logged in");
-           } else {
-           showMenuBar();
-           }
+    }
 
+    else if (event.currentTarget.id == 'loginOptionB') {
+        clearPage();
+        console.log("Routing to login.");
+        showLogin();
+        createButtonEvent();
 
-           $('body').append('<button class="backButton" id="signUpGoBack"><</button>');
+    }
 
-           $('body').append('<p class="username_label" id="usern_signup_label">Username</p>');
-           $('body').append('<input type=text id="usern_signup_textbox"><br>')
-           $('body').append('<p class="password_label" id="pw_signup_label">Password</p>');
-           $('body').append('<input type=text id="pw_signup_textbox"><br>');
-           $('body').append('<button type="button" class="button" id="signUpSubmitB">Sign up</button>');
+    else if (event.currentTarget.id == 'signOptionB') {
+        clearPage();
 
-           $('#signUpGoBack').on('click', function() {
-                                 $('body').children().remove();
-                                 showSignOptions();
-                                 });
+        console.log("Routing to sign up.");
+        showSignUp();
+        createButtonEvent();
 
-           $('#signUpSubmitB').on('click', function() {
-                                  var username = $('#usern_signup_textbox').val();
-                                  var password = $('#pw_signup_textbox').val();
-                                  var signUpData = {
-                                  'username' : username,
-                                  'password' : password
-                                  }
+    }
 
-                                  $.post("/signUp", signUpData, function(data, status){
-                                         data = JSON.parse(data);
-                                         if (data.status == "invalidUsername") {
-                                         $('body').append('<h3>Invalid username</h3>')
-                                         } else {
-                                         //window.location = data.redirect;
-                                         $('body').children().remove();
-                                         showMainMenu();
-                                         }
-                                         });
-                                  });
-           });
-}
+    else if (event.currentTarget.id == 'guestOptionB') {
 
+        var uName = $('#usern_login_textbox').val();
+        var pass = $('#pw_login_textbox').val();
+        var loginData = {
+            'username' : 'guest',
+            'password' : 'guest'
+        }
 
-//show the login page
-function showLogin() {
-    $.post("/getStatus", function(data,status) {
+        $.post("/login", loginData, function(data, status) {
+            data = JSON.parse(data);
+            if (data.status == "invalidLogin") {
+                clearPage();
+                showLoginSignUpOption();
+                $('#loginOptionContainer').append('<p>Invalid login</p>');
+                createButtonEvent();
 
-           data = JSON.parse(data);
-           if (data.login == "yes") {
-           showMenuBar("logged in");
-           // showLogout();
-           console.log("Logged in");
-           } else {
-           showMenuBar();
-           }
+            } else {
+                clearPage();
+                getStatus();
+                console.log("Routing to board options");
+                showBoardOption();
+                createButtonEvent();
 
+            }
+        });
+    }
 
-           $('body').append('<button class="backButton" id="loginGoBack"><</button>');
+    else if (event.currentTarget.id == 'loginSubmitB') {
+        var uName = $('#usern_login_textbox').val();
+        var pass = $('#pw_login_textbox').val();
+        var loginData = {
+            'username' : uName,
+            'password' : pass
+        }
+        console.log("Attempting to login" + uName);
+        $.post("/login", loginData, function(data, status) {
+            data = JSON.parse(data);
+            if (data.status == "invalidLogin") {
+                clearPage();
+                showLogin();
+                $('#loginContainer').append('<p>Invalid login</p>');
+                createButtonEvent();
 
-           $('body').append('<p class="username_label" id="usern_login_label">Username</p>');
-           $('body').append('<input type=text id="usern_login_textbox"><br>')
-           $('body').append('<p class="password_label" id="pw_login_label">Password</p>');
-           $('body').append('<input type=text id="pw_login_textbox"><br>');
-           $('body').append('<button type="button" class="button" id="loginSubmitB">Log in</button>');
-
-           $('#loginGoBack').on('click', function() {
-                                $('body').children().remove();
-                                showSignOptions();
-                                });
-
-           $('#loginSubmitB').on('click', function() {
-                                 var username = $('#usern_login_textbox').val();
-                                 var password = $('#pw_login_textbox').val();
-                                 var loginData = {
-                                 'username' : username,
-                                 'password' : password
-                                 }
-
-                                 $.post("/login", loginData, function(data, status){
-                                        data = JSON.parse(data);
-                                        if (data.status == "invalidLogin") {
-                                        //could be an alert message
-                                        $('body').append('<p>Invalid login</p>')
-                                        } else {
-                                        //window.location = data.redirect;
-                                        $('body').children().remove();
-                                        showMainMenu();
-
-                                        }
-                                        });
-                                 });
-           });
-}
-
-/*//show the logout option
- function showLogout() {
- $('body').append('<button type="button" class="button" id="logoutB">logout</button>');
- $('#logoutB').on('click', function() {
- $.post("/logout", function(data, status) {
- data = JSON.parse(data);
- if (data.status == "OK") {
- console.log("Logged out");
- window.location = data.redirect;
- }
- });
- });
- }*/
-
-//show menu bar
-function showMenuBar(login) {
-
-    if (login == "logged in") {
-        $('body').append('<ul>' +
-                         '<li><a id="logoutB">Log Out</a></li>' +
-                         '<li><a id="userCenter">User Center</a></li>' +
-                         '<li><a id="aboutUs">About Us</a></li>' +
-                         '</ul>');
-
-        $('#logoutB').on('click', function() {
-                         $.post("/logout", function(data, status) {
-                                data = JSON.parse(data);
-                                if (data.status == "OK") {
-                                    console.log("Logged out");
-                                    window.location = data.redirect;
-                                }
-                        });
+            } else {
+                clearPage();
+                getStatus();
+                console.log("Routing to board options");
+                showBoardOption();
+                createButtonEvent();
+            }
         });
 
-
-        //use stack to go to previous page
-        $('#userCenter').on('click', function() {
-                            $('body').children().remove();
-                            showUserCenter();
-                            });
-
-        $('#aboutUs').on('click', function() {
-                         $('body').children().remove();
-                         showAboutUs();
-                         });
-
     }
+    else if (event.currentTarget.id == 'signUpSubmitB') {
+        var uName = $('#usern_signup_textbox').val();
+        var pass = $('#pw_signup_textbox').val();
+        var signUpData = {
+            'username' : uName,
+            'password' : pass
+        }
+        console.log("Attempting to sign up " + uName);
 
-    else {
-        $('body').append('<ul>' +
-                         '<li><a id="aboutUs">About Us</a></li>' +
-                         '</ul>');
+        $.post("/signUp", signUpData, function(data, status) {
+            data = JSON.parse(data);
+            if (data.status == "invalidUsername") {
+                clearPage();
+                showSignUp();
+                $('#signUpContainer').append('<p>Invalid signup</p>');
+                createButtonEvent();
 
-        $('#aboutUs').on('click', function() {
-                         $('body').children().remove();
-                         showAboutUs();
-                         });
+            } else {
+                clearPage();
+                getStatus();
+                console.log("Routing to board options");
+                showBoardOption();
+                createButtonEvent();
+            }
+        });
     }
-
+    else if (event.currentTarget.id == 'logOutButton') {
+        $.post("/logout", function(data, status) {
+               data = JSON.parse(data);
+               if (data.status == "OK") {
+                   console.log("Logged out");
+                   location.reload();
+               }
+       });
+    }
+    else if (event.currentTarget.id == 'aboutUsButton') {
+        console.log('This button doesnt do anything');
+        location.reload();
+    }
 }
 
-
-//show user center
-function showUserCenter() {
-    $.post("/getStatus", function(data,status) {
-
-           data = JSON.parse(data);
-           if (data.login == "yes") {
-           showMenuBar("logged in");
-           // showLogout();
-           console.log("Logged in");
-           } else {
-           showMenuBar();
-           }
-
-           $('body').append('<button class="backButton" id="userCenterGoBack"><</button>');
-
-           $('body').append('<p class="usercenter_label">Username</p>');
-           $('body').append('<input type=text><br>')
-           $('body').append('<p class="usercenter_label">Score</p>');
-           $('body').append('<input type=text><br>')
-           $('body').append('<p class="usercenter_label">Wins/Losses</p>');
-           $('body').append('<input type=text><br>')
-
-
-           $('#userCenterGoBack').on('click', function() {
-                                     history.go(-1);
-                                     });
-
-
-           });
-}
-
-
-
-//show about us
-function showAboutUs() {
-    $.post("/getStatus", function(data,status) {
-
-           data = JSON.parse(data);
-           if (data.login == "yes") {
-           showMenuBar("logged in");
-           // showLogout();
-           console.log("Logged in");
-           } else {
-           showMenuBar();
-           }
-
-           $('body').append('<button class="backButton" id="aboutUsGoBack"><</button>');
-
-           $('body').append('<input class="input-text" type="text" value="Your Name *"><br>');
-           $('body').append('<input class="input-text" type="text" value="Your E-mail *"<br>');
-           $('body').append('<textarea class="input-text text-area">Your Message *</textarea>');
-
-           $('#aboutUsGoBack').on('click', function() {
-                                  history.go(-1);
-                                  });
-
-           });
-}
-
-
-//main menu for game settings
-function showMainMenu() {
+function getStatus() {
     $.post("/getStatus", function(data,status) {
            data = JSON.parse(data);
            if (data.login == "yes") {
-               showMenuBar("logged in");
-               // showLogout();
-               console.log("Logged in");
+               console.log("Status is logged in");
+               loggedIn = true;
            } else {
-               showMenuBar();
+               console.log("Status is logged out");
+               loggedIn = false;
            }
+           updateNavBar();
     });
-
-   //go back button
-   $('body').append('<button class="backButton" id="mainMenuGoBack"><</button>');
-
-   //selectors
-   $('body').append('<div id=sizeContainer></div>');
-   $('body').append('<div id=colorContainer></div>');
-   $('#sizeContainer').append('Select board size:');
-   $('#sizeContainer').append('<form action=""><input type="radio" name="size" value="9"> 9x9</input><input type="radio" name="size" value="13">13x13</input><input type="radio" name="size" value="19">19x19</input></form>');
-   $('#colorContainer').append('Select board color:');
-   $('#colorContainer').append('<form action=""><input type="radio" name="color" value="red"> red</input><input type="radio" name="color" value="blue">blue</input><input type="radio" name="color" value="green">green</input></form>');
+}
 
 
-   $('body').append('<button class="button" id="startGameB">Start Game</button>');
+function createButtonEvent() {
+    $('.button').on('click',callRouter);
+}
+
+function clearPage() {
+    $('#container').empty();
+    showBackButton();
+}
 
 
-       $('#startGameB').on('click', function() {
+//this is the nav bar at the top of screen, username is name of logged in
+//username is undefined if user not logged in
+function showNavBar() {
 
-            // TODO: Shiyi make this take sizes based on the page options
-            var boardSizeSelected = $("input[type='radio'][name='size']:checked").val();
-            var newGameParameters = {size: boardSizeSelected, hotseat: globals.wantsHotseat};
+    $('#navbar').append('<ul id=navbarList><li id=aboutUsButton class=navbarItem>About Us</li></ul>');
+    $('#aboutUsButton').click(callRouter);
+}
 
-            $.post("/newGame", newGameParameters, function(data, status) {
-                document.cookie = "boardColor=" + $("input[type='radio'][name='color']:checked").val();
-                window.location = '/gamepage.html';
-            });
+function updateNavBar() {
+    if (loggedIn == true) {
+        if ($('#logOutButton').length) {} else {
+            $('#navbarList').append('<li id=logOutButton class=navbarItem>Logout</li><li id=userCenterButton class=navbarItem>User Center</li>');
+            $('#logOutButton').click(callRouter);
+            $('#userCenterButton').click(callRouter);
+        }
+    }
+    if (loggedIn == false) {
+        if ($('#logOutButton').length) {
+            $('#logOutButton').remove();
+            $('#userCenterButton').remove();
+        }
+    }
+}
 
-        });
+function showLogo() {
+    $('#container').append('<div id=logoContainer class=container></div>');
+    $('#logoContainer').append('<div class="title_section1">WELCOME TO</div><div class="title_section2">GO</div><div class="title_section3">BY DEEPFRIEDMILK</div>');
+    $('#logoContainer').click(callRouter);
+}
 
-           /*//NEEDS DEBUGGING!!!!!!!!!!!
-           $('#mainMenuGoBack').on('click', function() {
-                                   $('body').children().remove();
-                                   showSignOptions();
-                                   });
+function showPlayerOption() {
+    $('#container').append('<div id=playerContainer class=container></div>');
+    $('#playerContainer').append('<button type="button" class="button" id="playAIB">Player vs AI</button><br>');
+    $('#playerContainer').append('<button type="button" class="button" id="playHSB">Player vs Player</button><br>');
+}
 
-           });*/
+function showLoginSignUpOption() {
+    $('#container').append('<div id=loginOptionContainer class=container></div>');
+    $('#loginOptionContainer').append('<button type="button" class="button" id="loginOptionB">Login</button><br>');
+    $('#loginOptionContainer').append('<button type="button" class="button" id="signOptionB">Sign up</button><br>');
+    $('#loginOptionContainer').append('<button type="button" class="button" id="guestOptionB">Proceed as guest</button><br>');
+}
+
+function showLogin() {
+    $('#container').append('<div id=loginContainer class=container></div>');
+    $('#loginContainer').append('<p class="username_label" id="usern_login_label">Username</p>');
+    $('#loginContainer').append('<input type=text id="usern_login_textbox"><br>')
+    $('#loginContainer').append('<p class="password_label" id="pw_login_label">Password</p>');
+    $('#loginContainer').append('<input type=text id="pw_login_textbox"><br>');
+    $('#loginContainer').append('<button type="button" class="button" id="loginSubmitB">Log in</button>');
+}
+
+function showSignUp() {
+
+    $('#container').append('<div id=signUpContainer class=container></div>');
+    $('#signUpContainer').append('<p class="username_label" id="usern_signup_label">Username</p>');
+    $('#signUpContainer').append('<input type=text id="usern_signup_textbox"><br>')
+    $('#signUpContainer').append('<p class="password_label" id="pw_signup_label">Password</p>');
+    $('#signUpContainer').append('<input type=text id="pw_signup_textbox"><br>');
+    $('#signUpContainer').append('<button type="button" class="button" id="signUpSubmitB">Sign up</button>');
+}
+
+function showBoardOption() {
+    $('#container').append('<div id=boardOptionContainer class=container></div>');
+    $('#boardOptionContainer').append('<p id="boardSizeLabel">Select board size</p>');
+    $('#boardOptionContainer').append('<form action=""><input type="radio" name="size" value="9"> 9x9</input><input type="radio" name="size" value="13">13x13</input><input type="radio" name="size" value="19">19x19</input></form><br>');
+    $('#boardOptionContainer').append('<p id="boardSizeLabel">Select board color</p>');
+    $('#boardOptionContainer').append('<form action=""><input type="radio" name="color" value="red"> red</input><input type="radio" name="color" value="blue">blue</input><input type="radio" name="color" value="green">green</input></form><br>');
+    $('#boardOptionContainer').append('<button class="button" id="startGameB">Start Game</button>');
+}
+
+function showBackButton() {
+
+    $('#container').append('<div id=backButtonContainer class=container></div>');
+    $('#backButtonContainer').append('<button class="backbutton" id="goBack"><</button><br>');
+    $('.backbutton').on('click',callRouter);
 }
