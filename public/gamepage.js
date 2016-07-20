@@ -1,9 +1,22 @@
 var gameboard = undefined;
 var timer = undefined;
-var aspectRatio = 15/10;
 
 $(document).ready(function() {
 
+    //post request to get status to determine if user is logged in for menu bar
+    $.post("/getStatus", function(data,status) {
+        data = JSON.parse(data);
+        if (data.login == "yes") {
+            console.log("logged in");
+            showMenuBar("logged in");
+        } else {
+            console.log("not logged in");
+            showMenuBar();
+       }
+   });
+
+   //initialize game. if game is ongoing, retrieve game and initialize last board state
+   //otherwise begin new game
     $.get("/game", function(data, status) {
         if (data) {
             longpoll();
@@ -13,19 +26,11 @@ $(document).ready(function() {
             gameboard.updateBoard(data.board);
             score = {black: data.blackScore, white: data.whiteScore}
             updateScore(score);
-        } else {
-            var size = 19;
-            var hotseat = true;
-            $.post("/newGame", { size : size, hotseat : hotseat }, function(data, status) {
-                initBoard(size);
-                //initTimer(data.blackTime,data.whiteTime,1); implement this
-                initTimer(900000,900000,1);
-                longpoll();
-            });
         }
     });
 });
 
+//the player container contains user scores, usernames, timers, etc
 function initPlayerContainer(){
     $('#playerTable').append('<table id="table">');
     $('#playerTable').append('<tr> <th>Pic</th> <th>Players</th> <th>Score</th> <th>Time</th></tr>');
@@ -34,6 +39,8 @@ function initPlayerContainer(){
     $('#playerTable').append('</table>');
 }
 
+
+//these are the buttons responsible for passing and resigning
 function initButtons(){
     $('#buttonContainer').append('<button type="button" class="button passButton">Pass</button>');
     $('.passButton').click(passClicked);
@@ -42,17 +49,19 @@ function initButtons(){
 
 }
 
+//if the user resigns, post to server and write to the player console
 function resignClicked(event) {
     $.post("/game/resign", function(data) {
         writePC("Player resigned<br>");
     });
 }
 
+//if the user passes, post to the server and write to the player console
 function passClicked(event) {
     var move = {x: 0, y: 0, pass: true};
     $.post("/game/makeClientMove", move, function(data,status) {
         if (!data.board) {
-            window.alert(data); // ??????
+            window.alert(data);
         } else {
             gameboard.updateBoard(data.board);
             score = {black: data.blackScore, white: data.whiteScore}
@@ -64,6 +73,9 @@ function passClicked(event) {
     });
 }
 
+
+//initializing the board also initializes the player container which contains stats and the buttons
+//as well as the styles of the page.
 function initBoard(size) {
     initPlayerContainer();
     initButtons();
@@ -74,7 +86,11 @@ function initBoard(size) {
     canvas.height = $('#boardContainer').height();
     $(canvas).click(boardClicked);
     $('#boardContainer').append(canvas);
-    gameboard = new Board(size, $('#boardContainer').width(), canvas);
+    var color = getCookie("boardColor");
+    if (color == undefined) {
+        color = green;
+    }
+    gameboard = new Board(size, $('#boardContainer').width(), canvas, color);
     gameboard.drawCurrentBoard();
     $(window).resize(windowResized);
 }
@@ -90,7 +106,7 @@ function windowResized(event) {
 
 function applyStyle() {
 
-    var hwMin = 1/3
+    var hwMin = 1/2
 
     //the width is greater than the height
     if ($('#container').width() >= $('#container').height()) {
@@ -131,7 +147,7 @@ function applyStyle() {
 
     //set the player table based on the above bounds
     $('#playerTable').width($('#playerContainer').width());
-    $('#playerTable').height($('#playerContainer').height()*(1/3));
+    $('#playerTable').height($('#playerContainer').height()*(2/3));
     $('#playerTable').css('font-size',$('#playerTable').width()*.04);
     $('#playerTable td').css('padding',$('#playerTable').width()*.06);
     $('#playerTable th').css('padding',$('#playerTable').width()*.06);
@@ -145,7 +161,6 @@ function applyStyle() {
     //set the buttons css
     $('.button').css('margin-top', $('.button').width()*(150/130));
     $('.button').css('margin-left', $('#buttonContainer').width()*.07);
-
     $('.button').css('width', $('#buttonContainer').width()*.35);
     $('.button').css('padding-top', $('.button').width()*(10/130));
     $('.button').css('padding-bottom', $('.button').width()*(10/130));
@@ -155,7 +170,7 @@ function applyStyle() {
 
     //create the console window
     $('#playerConsole').width($('#playerContainer').width());
-    $('#playerConsole').height($('#playerContainer').height()*(2/3));
+    $('#playerConsole').height($('#playerContainer').height()-$('#playerTable').height());
     $('#playerConsole').css('top',$('#playerTable').height());
     $('#playerConsole').css('font-size',$('#playerConsole').width()*(5/100));
 
@@ -172,7 +187,7 @@ function boardClicked(event) {
             var move = {x: position.x, y: position.y};
             $.post("/game/makeClientMove", move, function(data,status) {
                 if (!data.board) {
-                    window.alert(data); // ??????
+                    writePC(data +'<br>'); // ??????
                 } else {
                     gameboard.updateBoard(data.board);
                     score = {black: data.blackScore, white: data.whiteScore}
@@ -192,15 +207,16 @@ function longpoll() {
         url: '/game/longpoll',
         success: function(data) {
 
-            console.log(JSON.stringify(data));
-
-            if (data.winner) { // game has ended
-                var winner = data.winner == 1? "Black" : "White";
-                writePC("winner is: " + winner + " whiteScore: " + data.whiteScore + " blackScore: " + data.blackScore);
-            } else if (data.board) { // AI has made move
+            if (data.board) { // AI has made move
                 gameboard.updateBoard(data.board);
                 score = {black: data.blackScore, white: data.whiteScore}
                 updateScore(score);
+                timer.changeTurn();
+            }
+            if (data.winner) { // game has ended
+                endgame();
+                var winner = data.winner == 1? "Black" : "White";
+                writePC("winner is: " + winner + " whiteScore: " + data.whiteScore + " blackScore: " + data.blackScore);
             }
 
         },
@@ -209,114 +225,6 @@ function longpoll() {
     });
 }
 
-
-
-
-//show menu bar
-function showMenuBar(login) {
-
-    if (login == "logged in") {
-        $('body').append('<ul>' +
-                         '<li><a id="logoutB">Log Out</a></li>' +
-                         '<li><a id="userCenter">User Center</a></li>' +
-                         '<li><a id="aboutUs">About Us</a></li>' +
-                         '</ul>');
-
-        $('#logoutB').on('click', function() {
-                         $.post("/logout", function(data, status) {
-                                data = JSON.parse(data);
-                                if (data.status == "OK") {
-                                console.log("Logged out");
-                                window.location = data.redirect;
-                                }
-                                });
-                         });
-
-
-        //use stack to go to previous page
-        $('#userCenter').on('click', function() {
-                            $('body').children().remove();
-                            showUserCenter();
-                            });
-
-        $('#aboutUs').on('click', function() {
-                         $('body').children().remove();
-                         showAboutUs();
-                         });
-
-    }
-
-    else {
-        $('body').append('<ul>' +
-                         '<li><a id="aboutUs">About Us</a></li>' +
-                         '</ul>');
-
-        $('#aboutUs').on('click', function() {
-                         $('body').children().remove();
-                         showAboutUs();
-                         });
-    }
-
-}
-
-
-//show user center
-function showUserCenter() {
-    $.post("/getStatus", function(data,status) {
-
-           data = JSON.parse(data);
-           if (data.login == "yes") {
-           showMenuBar("logged in");
-           // showLogout();
-           console.log("Logged in");
-           } else {
-           showMenuBar();
-           }
-
-           $('body').append('<button class="backButton" id="userCenterGoBack"><</button>');
-
-           $('body').append('<p class="usercenter_label">Username</p>');
-           $('body').append('<input type=text><br>')
-           $('body').append('<p class="usercenter_label">Score</p>');
-           $('body').append('<input type=text><br>')
-           $('body').append('<p class="usercenter_label">Wins/Losses</p>');
-           $('body').append('<input type=text><br>')
-
-
-           $('#userCenterGoBack').on('click', function() {
-                                     history.go(-1);
-                                     });
-
-
-           });
-}
-
-
-
-//show about us
-function showAboutUs() {
-    $.post("/getStatus", function(data,status) {
-
-           data = JSON.parse(data);
-           if (data.login == "yes") {
-           showMenuBar("logged in");
-           // showLogout();
-           console.log("Logged in");
-           } else {
-           showMenuBar();
-           }
-
-           $('body').append('<button class="backButton" id="aboutUsGoBack"><</button>');
-
-           $('body').append('<input class="input-text" type="text" value="Your Name *"><br>');
-           $('body').append('<input class="input-text" type="text" value="Your E-mail *"<br>');
-           $('body').append('<textarea class="input-text text-area">Your Message *</textarea>');
-
-           $('#aboutUsGoBack').on('click', function() {
-                history.go(-1);
-            });
-    });
-}
 
 function updateScore(score) {
     $('#blackScore').empty();
@@ -332,7 +240,6 @@ function initTimer(blackTime,whiteTime, turn) {
 }
 
 function updateTime() {
-    console.log("I am working");
     timer.clientUpdateTime();
     time = timer.returnTime();
     $('#blackTime').empty();
@@ -341,6 +248,116 @@ function updateTime() {
     $('#whiteTime').append(time.whiteTime);
 }
 
+function getCookie(cname) {
+    var name = cname + "=";
+    var ca = document.cookie.split(';');
+    for(var i = 0; i <ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length,c.length);
+        }
+    }
+    return "";
+}
+
 function writePC(text) {
     $('#playerConsole').prepend(text);
+}
+
+//if the game is ended, add a dark transparent overlay to the webpage
+//bring up a new page which asks the user if they want a replay
+function endgame() {
+    $('#container').append('<div id="endgameTrans"></div>');
+    $('#container').append('<div id="endgameOpts"></div>');
+    $('#endgameOpts').width($('#container').width()*.3);
+    $('#endgameOpts').height($('#container').height()*.3);
+
+    //endgame buttons replay and new game
+    $('#endgameOpts').append('<button type="button" id="replay">Replay Game History</button>');
+    $('#endgameOpts').append('<button type="button" id="newGame">New Game</button>');
+
+    //button functionality
+    $('#replay').click(function() {
+        writePC("Replay<br>");
+    });
+    $('#newGame').click(function() {
+        writePC("New Game<br>");
+    });
+
+    $.get("/game/moveHistory", function(data, status) {
+        if (data) {
+            console.log(data);
+        }
+    });
+
+}
+
+//put the game into replay mode where the user can use arrows to move through the game states
+function replay(boardStates) {
+    $('#endgameTrans').remove();
+    initReplayBoard();
+}
+
+//the replay board which cannot be clicked and has no buttons
+function initReplayBoard() {
+    initPlayerContainer();
+    //initButtons();
+    applyStyle();
+    var canvas = document.createElement("CANVAS");
+    canvas.id = "canvas";
+    canvas.width = $('#boardContainer').width();
+    canvas.height = $('#boardContainer').height();
+    //$(canvas).click(boardClicked);
+    $('#boardContainer').append(canvas);
+    var color = getCookie("boardColor");
+    if (color == undefined) {
+        color = green;
+    }
+    gameboard = new Board(size, $('#boardContainer').width(), canvas, color);
+    gameboard.drawCurrentBoard();
+    $(window).resize(windowResized);
+
+}
+
+
+//show menu bar
+function showMenuBar(login) {
+
+    if (login == "logged in") {
+        $('body').append('<ul><li><a id="logoutB">Log Out</a></li><li><a id="userCenter">User Center</a></li><li><a id="aboutUs">About Us</a></li></ul>');
+
+        $('#logoutB').on('click', function() {
+            $.post("/user/logout", function(data, status) {
+                data = JSON.parse(data);
+                if (data.status == "OK") {
+                    console.log("Logged out");
+                    window.location = data.redirect;
+                }
+            });
+        });
+
+        //use stack to go to previous page
+        $('#userCenter').on('click', function() {
+            $('body').children().remove();
+            showUserCenter();
+        });
+
+        $('#aboutUs').on('click', function() {
+            $('body').children().remove();
+            showAboutUs();
+        });
+
+    }
+
+    else {
+        $('body').append('<ul>' + '<li><a id="aboutUs">About Us</a></li>' + '</ul>');
+        $('#aboutUs').on('click', function() {
+            $('body').children().remove();
+            showAboutUs();
+        });
+    }
+
 }
