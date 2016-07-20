@@ -2,15 +2,9 @@
 const mongoose = require('mongoose');
 const constants = require('./game/constants');
 const go = require('./game/go');
+const whiteIntervals = {};
+const blackIntervals = {};
 
-/*
-mongoose.connect('mongodb://localhost/GoData');
-this.db = mongoose.connection;
-this.db.on('error', console.error.bind(console, 'connection error'));
-this.db.once('open', function() {
-    console.log("succesfully connected to mongo");
-});
-*/
 const gameSchema = new mongoose.Schema({
     board: Array,
     turn: Number,
@@ -23,20 +17,23 @@ const gameSchema = new mongoose.Schema({
     winner: Number,
     whiteEndTime: Number,
     whiteMsRemaining: Number,
-    whiteTimeoutId: Object,
     blackEndTime: Number,
-    blackMsRemaining: Number,
-    blackTimeoutId: Object
+    blackMsRemaining: Number
 });
 
 gameSchema.methods.makeMove = function(xPos, yPos, color, pass) {
     const boardUpdates = go.makeMove(this, xPos, yPos, color, pass);
 
-    this.startBlackTimer();
-    this.startWhiteTimer();
-
-   // boardUpdates.whiteTime = this.getPlayerTimes().white; 
-    //boardUpdates.blackTime = this.getPlayerTimes().black; 
+    
+    if (this.turn == constants.black) {
+        this.stopWhiteTimer();
+        this.startBlackTimer();
+    } else { // white turn
+        this.stopBlackTimer();
+        this.startWhiteTimer();
+    } 
+    boardUpdates.whiteTime = this.getPlayerTimes().white; 
+    boardUpdates.blackTime = this.getPlayerTimes().black;  
 
     return boardUpdates;
 }
@@ -46,6 +43,10 @@ gameSchema.methods.getScore = function() {
 }
 
 gameSchema.methods.endGame = function() {
+
+    this.stopWhiteTimer();
+    this.stopBlackTimer();
+
     return go.endGame(this);
 }
 
@@ -61,34 +62,39 @@ gameSchema.methods.getEndGameState = function() {
 }
 
 gameSchema.methods.startWhiteTimer = function() {
-    this.whiteEndTime = Date.now() + this.whiteMsRemaining;
     
-    while (true) {
-        if (Date.now() > this.whiteEndTime) {
+    this.whiteEndTime = Date.now() + this.whiteMsRemaining;
+    whiteIntervals[this._id.id] = setInterval(() => {
+        this.whiteMsRemaining = this.whiteEndTime - Date.now(); 
+        if (this.whiteMsRemaining <= 0) {
+            debugger;
+            this.stopWhiteTimer();
+            this.stopBlackTimer();
             this.endGameWithWinner(constants.black);
-        }
-    }
-
+            debugger;
+        }   
+    }, 100);
 }
 
 gameSchema.methods.stopWhiteTimer = function() {
-    clearInterval(this.whiteTimeoutId);
+    clearInterval(whiteIntervals[this._id.id]);
 }
 
 gameSchema.methods.startBlackTimer = function() {
+
     this.blackEndTime = Date.now() + this.blackMsRemaining;
-    clearInterval(this.blackTimeoutId);
-    this.blackTimeoutId = setInterval(() => {
+    blackIntervals[this._id.id] = setInterval(() => {
         this.blackMsRemaining = this.blackEndTime - Date.now(); 
         if (this.blackMsRemaining <= 0) {
+            this.stopBlackTimer();
+            this.stopWhiteTimer();
             this.endGameWithWinner(constants.white);
-            clearInterval(this.blackTimeoutId);
         }   
-    }, 99999999);
+    }, 100);
 }
 
 gameSchema.methods.stopBlackTimer = function() {
-    clearInterval(this.blackTimeoutId);
+    clearInterval(blackIntervals[this._id.id]);
 }
 
 gameSchema.methods.getPlayerTimes = function() {

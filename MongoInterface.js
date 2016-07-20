@@ -32,6 +32,8 @@ class MongoInterface {
             board[i] = new Array(size).fill(constants.empty);
         }
 
+        const garbageTimeout = setTimeout(function() { }, 1);
+
         const game = new Game({
             board: board,
             turn: constants.black,
@@ -40,10 +42,12 @@ class MongoInterface {
             clientColor: constants.black,
             active: true,
             winner: null,
+            whiteTimeoutId: garbageTimeout,
+            blackTimeoutId: garbageTimeout,
             whiteMsRemaining: constants.startingTimePool,
             blackMsRemaining: constants.startingTimePool
         });
-        
+
         game.save(function (err, game) {
             if (err) callback(err);
             if (!game) callback(new MongoInterfaceException("Error creating new game."));

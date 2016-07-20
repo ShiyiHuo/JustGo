@@ -222,6 +222,8 @@ app.post("/newGame", function(req, res) {
         board[i] = new Array(size).fill(constants.empty);
     }
 
+    const garbageTimeout = setTimeout(function() {}, 1);
+
     const game = new Game({
         board: board,
         turn: constants.black,
@@ -230,14 +232,17 @@ app.post("/newGame", function(req, res) {
         clientColor: constants.black,
         active: true,
         winner: null,
+        whiteTimeoutId: garbageTimeout,
+        blackTimeoutId: garbageTimeout,
         whiteMsRemaining: constants.startingTimePool,
         blackMsRemaining: constants.startingTimePool
     });
 
     game.save(function (err, game) {
         if (err || !game) {
-            res.status(400).write("Error saving game")
-            return res.end();
+            throw err;
+            //res.status(400).write("Error saving game")
+            //return res.end();
         }
         activeGames[game._id.id] = game;
         req.session.gameID = game._id.id;
@@ -289,21 +294,19 @@ app.get("/game/longpoll", function(req, res) {
         res: res,
         timestamp: Date.now()
     });
-    res.end();
 });
-/*
 setInterval(function() {
     
     for (const longpoll of longpollRequests) {    
-        const game = activeGames[longpoll.req.session.gameID];
 
+        const game = activeGames[longpoll.req.session.gameID];
+        debugger;
         if (Date.now() - longpoll.timestamp > 29999) { // server-side timeout
             longpoll.res.end();
             const longpollIndex = longpollRequests.indexOf(longpoll);
             longpollRequests.splice(longpollIndex, 1);
 
         } else if (game.turn != game.clientColor && !game.hotseatMode) { // AI's Turn
-            
             // query the AI 
             AIInterface.query(game, function(data) {
                 let aiMove = JSON.parse(data);
@@ -322,7 +325,6 @@ setInterval(function() {
                         return;
                     }
                 } 
-
                 // respond to longpoll with AI's move and remove requests from queue
                 longpoll.res.json(boardUpdates); 
                 const longpollIndex = longpollRequests.indexOf(longpoll);
@@ -336,6 +338,7 @@ setInterval(function() {
             });  
 
         } else if (!game.active) { // game is over
+            debugger;
             const endGame = game.getEndGameState();
             const longpollIndex = longpollRequests.indexOf(longpoll);
             longpoll.res.json({ winner: endGame.winner, whiteScore: endGame.scores.white, blackScore: endGame.scores.black });
@@ -349,7 +352,7 @@ setInterval(function() {
         }
     }
 }, 100);
-*/
+
 /**
  * Player resigns
  */
@@ -395,6 +398,11 @@ app.post("/game/makeClientMove", function(req, res, next) {
 
     // game should already be active at this point
     const game = activeGames[req.session.gameID];
+    if (!game.active) {
+        res.status(400).send("Cannot make move on game that is inactive");
+        res.end();
+        return;
+    }
 
     // try to make the client's move
     var boardUpdates;
@@ -418,16 +426,15 @@ app.post("/game/makeClientMove", function(req, res, next) {
             return;
         }  
     }
-
+    debugger;
     // move was legal, save game to database
     game.markModified('board');
+    
     game.save(function(err) {
         if (err) {
-            console.log("Database error saving game with id: aefaef " + req.session.gameID);
-            console.log(err);
+            throw err;
         }
-            
-    });
+    }); 
 
     res.json(boardUpdates);  
 });

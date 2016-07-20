@@ -247,11 +247,13 @@ function endGame(game) {
     if (!game.active) 
         throw "Game already ended.";
 
+    debugger;
     var scores = getScore(game);
 
     game.active = false;
 
     var winner = scores.white > scores.black ? constants.white : constants.black;
+    game.winner = winner;
 
     return { winner: winner, scores: scores };
 }
@@ -262,13 +264,11 @@ function endGame(game) {
 function endGameWithWinner(game, winner) {
 
     if (!game.active)
-        throw "Game already ended";
+        throw new Error("The game has already ended");
 
     var scores = getScore(game);
     game.winner = winner;
     game.active = false;
-
-    var winner = scores.white > scores.black ? constants.white : constants.black;
 
     return { winner: winner, scores: scores };
 }
