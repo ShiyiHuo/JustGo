@@ -7,4 +7,9 @@ const userSchema = new mongoose.Schema({
     wins: Number,
     losses: Number
 });
+
+userSchema.methods.login = function() {
+    
+}
+
 module.exports = mongoose.model('User', userSchema);

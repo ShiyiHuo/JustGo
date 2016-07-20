@@ -2,6 +2,9 @@
 const mongoose = require('mongoose');
 const constants = require('./game/constants');
 const go = require('./game/go');
+const User = require('./User');
+
+// for active timers
 const whiteIntervals = {};
 const blackIntervals = {};
 
@@ -12,18 +15,16 @@ const gameSchema = new mongoose.Schema({
     hotseatMode: Boolean,
     clientColor: Number,
     active: Boolean,
-    whiteTimer: { type: mongoose.Schema.Types.ObjectId, ref: 'Timer'},
-    blackTimer: { type: mongoose.Schema.Types.ObjectId, ref: 'Timer'},
     winner: Number,
     whiteEndTime: Number,
     whiteMsRemaining: Number,
     blackEndTime: Number,
-    blackMsRemaining: Number
+    blackMsRemaining: Number,
+    username: String
 });
 
 gameSchema.methods.makeMove = function(xPos, yPos, color, pass) {
     const boardUpdates = go.makeMove(this, xPos, yPos, color, pass);
-
     
     if (this.turn == constants.black) {
         this.stopWhiteTimer();
@@ -43,22 +44,63 @@ gameSchema.methods.getScore = function() {
 }
 
 gameSchema.methods.endGame = function() {
-
     this.stopWhiteTimer();
     this.stopBlackTimer();
 
-    return go.endGame(this);
+    const endGame = go.endGame(this);
+
+    User.findOne({username: this.username}, function (err, user) {
+        if (err || !user) 
+            return console.log("Error saving stats for username: " + this.username);
+        
+        if (endGame.winner = constants.clientColor) {
+            user.wins++;
+        } else {
+            user.losses++;
+        }
+
+        user.save(function (err, user) {
+            if (err || !user) {
+                console.log("Error saving user stats: " + err);
+            }
+        });
+    });
+
+    return endGame;
 }
 
 gameSchema.methods.endGameWithWinner = function(winner) {
+
+    User.findOne({username: this.username}, function (err, user) {
+        if (err || !user) 
+            return console.log("Error saving stats for username: " + this.username);
+        
+        if (winner == constants.clientColor) {
+            user.wins++;
+        } else {
+            user.losses++;
+        }
+
+        user.save(function (err, user) {
+            if (err || !user) {
+                console.log("Error saving user stats: " + err);
+            }
+        });
+    });
+
     return go.endGameWithWinner(this, winner);
 }
 
 gameSchema.methods.getEndGameState = function() {
     if (this.active)
-        throw "Game Active";
+        throw new Error()
 
     return { winner: this.winner, scores: this.getScore() };
+}
+
+gameSchema.methods.resignClient = function() {
+    const winner = this.clientColor == constants.black? constants.white : constants.black;
+    return this.endGameWithWinner(winner);
 }
 
 gameSchema.methods.startWhiteTimer = function() {
@@ -67,11 +109,9 @@ gameSchema.methods.startWhiteTimer = function() {
     whiteIntervals[this._id.id] = setInterval(() => {
         this.whiteMsRemaining = this.whiteEndTime - Date.now(); 
         if (this.whiteMsRemaining <= 0) {
-            debugger;
             this.stopWhiteTimer();
             this.stopBlackTimer();
             this.endGameWithWinner(constants.black);
-            debugger;
         }   
     }, 100);
 }

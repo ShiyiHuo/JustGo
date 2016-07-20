@@ -34,7 +34,7 @@ function showWelcome() {
            
            
            $('#playAIB').on('click', function() {
-                            $.post("/playAIB", function(data, status) {
+                            $.post("/user/playAIB", function(data, status) {
                                    data = JSON.parse(data);
                                    if (data.status == "noSession") {
                                    $('body').children().remove();
@@ -49,7 +49,7 @@ function showWelcome() {
            
            
            $('#playHSB').on('click', function() {
-                            $.post("/playHSB", function(data, status) {
+                            $.post("/user/playHSB", function(data, status) {
                                    data = JSON.parse(data);
                                    if (data.status == "noSession") {
                                    $('body').children().remove();
@@ -239,7 +239,7 @@ function showMenuBar(login) {
                          '</ul>');
         
         $('#logoutB').on('click', function() {
-                         $.post("/logout", function(data, status) {
+                         $.post("/user/logout", function(data, status) {
                                 data = JSON.parse(data);
                                 if (data.status == "OK") {
                                 console.log("Logged out");

@@ -10,6 +10,7 @@ const MongoInterface = require('./MongoInterface');
 const go = require('./game/go');
 const app = express();
 const Game = require('./Game');
+const User = require('./User');
 const activeGames = {};
 
 // set up middleware 
@@ -45,48 +46,43 @@ app.get('/gamepage.html', function (req, res, next) {
 });
 
 /**
- * This route means the user selects to play AI
- * If logged in route to game page, otherwise to login
- *  
- * */
-app.post('/playAIB', function(req, res) {
-    if (req.session && req.session.username){
-        res.write(JSON.stringify({
-            redirect: '/gamepage.html',
-            status: 'OK', // TODO: could be refined?
-            login: 'yes' // boolean?
-        }));
-        res.end();
-    } else {
-        res.write(JSON.stringify({
-            redirect: '',
-            status: 'noSession', 
-            login: 'no'
-        }));
-        res.end();
-    }
-});
+ * User attempts to sign up
+ * 
+ * @param post data should be in the format {username: string, password: string}
+ *  */
+app.post('/signUp', function(req,res) {
 
-/**
- * This route means the user selects to play in hotseat mode
- * If logged in route to game page, otherwise to login
- * */
-app.post('/playHSB', function(req, res) { // TODO: do we even need this path?
-    if (req.session && req.session.username){
-        res.write(JSON.stringify({
-            redirect: '/gamepage.html',
-            status: 'OK',
-            login: 'yes'
-        }));
-        res.end();
-    } else {
-        res.write(JSON.stringify({
-            redirect: '',
-            status: 'noSession',
-            login: 'no'
-        }));
-        res.end();
+    if (!req.body.username || !req.body.password) {
+        console.log("Invalid username/password combination");
+        res.status(400).write("Invalid username/password combination");
+        return res.end();
     }
+
+    const user = new User({
+        username: req.body.username,
+        password: req.body.password,
+        wins: 0,
+        losses: 0
+    });
+
+    user.save(function(err, user) {
+        if (err || !user) {
+            res.write(JSON.stringify({
+                redirect: '',
+                status: 'invalidUsername',
+                login: 'no'
+            }));
+            res.end();
+        } else {
+            req.session.username = user.username;
+            res.write(JSON.stringify({
+                redirect: '/gamepage.html',
+                status: 'OK',
+                login: 'yes'
+            }));
+            res.end();
+        }
+    });
 });
 
 /**
@@ -97,22 +93,21 @@ app.post('/playHSB', function(req, res) { // TODO: do we even need this path?
  * */
 app.post('/login', function(req,res) {
 
-    var user = {username: req.body.username, password: req.body.password};
-    if (!user.username || !user.password) {
+    if (!req.body.username || !req.body.password) {
         console.log("Invalid username/password combination");
         res.status(400).write("Invalid username/password combination");
-        return;
+        return res.end();
     }
 
-    MongoInterface.loginUser(req.body.username, req.body.password, function(err, user) {
-        if (err) {
+    var query = User.findOne({username: req.body.username, password: req.body.password});
+    query.exec(function(err, user) {
+        if (err || !user) {
             res.write(JSON.stringify({
                 redirect: '',
                 status: 'invalidLogin',
                 login: 'no'
             }));
-            res.end();
-            return;
+            return res.end();
         } else {
             req.session.username = user.username; // add login info to session
             res.write(JSON.stringify({
@@ -120,24 +115,10 @@ app.post('/login', function(req,res) {
                 status: 'OK',
                 login: 'yes'
             }));
-            res.end();
-            return;
+            return res.end();
         }
     });
 
-});
-
-/**
- * Client logs out
- */
-app.post('/logout', function(req,res) {
-    req.session.reset();
-    res.write(JSON.stringify({
-        redirect: '/',
-        status: 'OK',
-        login: 'no'
-    }));
-    res.end();
 });
 
 /**
@@ -145,7 +126,7 @@ app.post('/logout', function(req,res) {
  * 
  * @return response containts { login: 'yes' } or { login: 'no' } 
  * */
-app.post('/getStatus', function(req,res){
+app.post('/getStatus', function(req, res){
     if (req.session && req.session.username) {
         res.write(JSON.stringify({
             redirect: '',
@@ -162,50 +143,63 @@ app.post('/getStatus', function(req,res){
     res.end();
 });
 
-/**
- * User attempts to sign up
- * 
- * @param post data should be in the format {username: string, password: string}
- *  */
-app.post('/signUp', function(req,res) {
-
-    const user = {username: req.body.username, password: req.body.password};
-    if (!user.username || !user.password) {
-        console.log("Invalid username/password combination");
-        res.status(400).write("Invalid username/password combination");
-        return;
+app.use('/user', function(req, res, next) {
+    if (!req.session || !req.session.username) {
+        console.log("User not logged in.");
+        res.redirect('/login.html');
+        res.end();
+    } else {
+        next();
     }
+});
 
-    MongoInterface.signUpUser(req.body.username, req.body.password, function(successful) { 
-        if (successful) { 
-            req.session.username = user.username;
-            res.write(JSON.stringify({
-                redirect: '/gamepage.html',
-                status: 'OK',
-                login: 'yes'
-            }));
-            res.end();
+/**
+ * Client logs out
+ */
+app.post('/user/logout', function(req,res) {
+    req.session.reset();
+    res.write(JSON.stringify({
+        redirect: '/',
+        status: 'OK',
+        login: 'no'
+    }));
+    res.end();
+});
+
+/**
+ * This route means the user selects to play AI
+ * If logged in route to game page, otherwise to login
+ *  
+ * */
+app.post('/user/playAIB', function(req, res) {
+    res.redirect('/gamepage.html');
+    res.end();
+});
+
+/**
+ * This route means the user selects to play in hotseat mode
+ * If logged in route to game page, otherwise to login
+ * */
+app.post('/user/playHSB', function(req, res) { // TODO: do we even need this path?
+    res.redirect('/gamepage.html');
+    res.end();
+});
+
+app.post('/user/stats', function(req, res) {
+    var query = User.findOne({username: req.session.username});
+    query.exec(function(err, user) {
+        if (err || !user) {
+            res.status(400).write("Could not find stats for this username");
+            return res.end();
         } else {
-            res.write(JSON.stringify({
-                redirect: '',
-                status: 'invalidUsername',
-                login: 'no'
-            }));
-            res.end();
+            res.json({
+                wins: user.wins,
+                losses: user.losses
+            })
         }
     });
 });
 
-app.post('/user', function(req, res) {
-    if (req.session && req.session.username) {
-        MongoInterface.getUserStatsWithUsername(req.session.username, function(err, wins, losses) {
-            const userData = {username: req.session.username, wins: wins, losses: losses};
-            res.json(userData);
-        });
-    }
-    else 
-        res.end();
-});
 
 /**
  * Create a new game state and store it in database
@@ -213,16 +207,32 @@ app.post('/user', function(req, res) {
  * @param req should be in form { size : int, hotseat : boolean }
  */
 app.post("/newGame", function(req, res) {
-
-    const size = JSON.parse(req.body.size);
-    const hotseat = JSON.parse(req.body.hotseat);
+    
+    if (!req.session || !req.session.username) {
+        console.log("Invalid session cookie: " + JSON.stringify(req.session));
+        res.status(400).write("Could not find client session cookie");
+        return res.end();     
+    }
+    
+    let size;
+    let hotseat;
+    try {
+        size = JSON.parse(req.body.size); // TODO: check correct types
+        hotseat = JSON.parse(req.body.hotseat);
+    } catch (err) {
+        if (err instanceof SyntaxError) {
+            console.log("SyntaxError parsing /newGame post data");
+            res.status(400).write("Error parsing post data");
+            return res.end();
+        } else {
+            console.log("Caught error parsing /newGame post data " + err);
+        }
+    }
 
     let board = [];
     for (var i = 0; i < size; i++) {
         board[i] = new Array(size).fill(constants.empty);
     }
-
-    const garbageTimeout = setTimeout(function() {}, 1);
 
     const game = new Game({
         board: board,
@@ -232,17 +242,16 @@ app.post("/newGame", function(req, res) {
         clientColor: constants.black,
         active: true,
         winner: null,
-        whiteTimeoutId: garbageTimeout,
-        blackTimeoutId: garbageTimeout,
         whiteMsRemaining: constants.startingTimePool,
-        blackMsRemaining: constants.startingTimePool
+        blackMsRemaining: constants.startingTimePool,
+        username: req.session.username
     });
 
     game.save(function (err, game) {
         if (err || !game) {
-            throw err;
-            //res.status(400).write("Error saving game")
-            //return res.end();
+            console.log("Error saving new game: " + err);
+            res.status(400).write("Error saving new game")
+            return res.end();
         }
         activeGames[game._id.id] = game;
         req.session.gameID = game._id.id;
@@ -251,15 +260,13 @@ app.post("/newGame", function(req, res) {
 
 });
 
-
 // middleware for all "/game" routes
 app.use('/game', function(req, res, next) {
     // check if session cookie
-    if (!req.session || !req.session.gameID) {
-        console.log("Could not find client session aefaefe");
+    if (!req.session || !req.session.gameID || !req.session.username) {
+        console.log("Invalid session cookie: " + JSON.stringify(req.session));
         res.status(400).write("Could not find client session");
-        res.end();
-        return;
+        return res.end();
     } 
    
      // initialize game for this gameID if not active
@@ -269,14 +276,16 @@ app.use('/game', function(req, res, next) {
         Game.findById(req.session.gameID, function(err, game) {
             if (err || !game) {
                 res.status(400).write("Could not find game in database");
-                res.end();
-                return;
+                next();
+            } else {
+                activeGames[req.session.gameID] = game;
+                next();        
             }
-            activeGames[req.session.gameID] = game;
-            next();        
         });
     }
 });
+
+
 
 /**
  * Periodic polling request from the client every 30 seconds.
@@ -300,7 +309,7 @@ setInterval(function() {
     for (const longpoll of longpollRequests) {    
 
         const game = activeGames[longpoll.req.session.gameID];
-        debugger;
+
         if (Date.now() - longpoll.timestamp > 29999) { // server-side timeout
             longpoll.res.end();
             const longpollIndex = longpollRequests.indexOf(longpoll);
@@ -309,10 +318,10 @@ setInterval(function() {
         } else if (game.turn != game.clientColor && !game.hotseatMode) { // AI's Turn
             // query the AI 
             AIInterface.query(game, function(data) {
+                    
+                // Try to make the AI's move
                 let aiMove = JSON.parse(data);
                 let boardUpdates;
-                
-                // Try to make the AI's move
                 try {
                     boardUpdates = game.makeMove(aiMove.y, aiMove.x, aiMove.c, aiMove.pass);
                 } catch (err) {
@@ -338,7 +347,6 @@ setInterval(function() {
             });  
 
         } else if (!game.active) { // game is over
-            debugger;
             const endGame = game.getEndGameState();
             const longpollIndex = longpollRequests.indexOf(longpoll);
             longpoll.res.json({ winner: endGame.winner, whiteScore: endGame.scores.white, blackScore: endGame.scores.black });
@@ -346,7 +354,9 @@ setInterval(function() {
 
             game.markModified('board');
             game.save(function(err) {
-                if (err) throw err;
+                if (err) {
+                    console.log("Error saving game: " + err);
+                }
             });
             return;
         }
@@ -358,7 +368,7 @@ setInterval(function() {
  */
 app.post("/game/resign", function(req, res) {
     const game = activeGames[req.session.gameID];
-    game.endGame();
+    game.resignClient();
     res.end();
 });
 
@@ -426,7 +436,7 @@ app.post("/game/makeClientMove", function(req, res, next) {
             return;
         }  
     }
-    debugger;
+
     // move was legal, save game to database
     game.markModified('board');
     

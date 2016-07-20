@@ -23,47 +23,6 @@ class MongoInterface {
     }
     
     /**
-     * Creates a new game and stores it in the database with size or in hotseat options
-     * Callback is called with parameters (err, game, gameID)
-     */
-    newGame(size, hotseatMode, callback) {
-        let board = [];
-        for (var i = 0; i < size; i++) {
-            board[i] = new Array(size).fill(constants.empty);
-        }
-
-        const garbageTimeout = setTimeout(function() { }, 1);
-
-        const game = new Game({
-            board: board,
-            turn: constants.black,
-            moveHistory: [],
-            hotseatMode: hotseatMode,
-            clientColor: constants.black,
-            active: true,
-            winner: null,
-            whiteTimeoutId: garbageTimeout,
-            blackTimeoutId: garbageTimeout,
-            whiteMsRemaining: constants.startingTimePool,
-            blackMsRemaining: constants.startingTimePool
-        });
-
-        game.save(function (err, game) {
-            if (err) callback(err);
-            if (!game) callback(new MongoInterfaceException("Error creating new game."));
-            callback(err, game, game._id.id);
-        });       
-    }
-
-    getGameWithId(id, callback) {
-        Game.findById(id, function(err, game) {
-            if (err) callback(err);
-            if (!game) callback(new MongoInterfaceException("Could not find game with id: " + id));
-            callback(null, game);
-        })
-    }
-
-    /**
      * Get the wins and losses of the player with given username
      * @param {String} username 
      * @param {Function} callback to be executed with (err, wins, losses) parameters

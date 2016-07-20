@@ -2,4 +2,5 @@
 
 2. Error with guest and timeouts
 
-3. AI sometimes takes a long time to respond
+3. Passing after a long game? Passing twice quickly (Double pass request) causes AI to try to make move with wrong color
+
