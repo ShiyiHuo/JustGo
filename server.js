@@ -46,7 +46,8 @@ app.get('/gamepage.html', function (req, res, next) {
 });
 
 /**
- * User attempts to sign up
+ * User attempts to sign up with username/password.
+ * If no username/password are provided. Responds with 400 status
  * @module POST:/signUp
  * @function
  * @param {Object} userInfo 
@@ -92,7 +93,8 @@ app.post('/signUp', function(req,res) {
 });
 
 /**
- * User attempts to log in
+ * User attempts to log in with username/password.
+ * If no username/password are provided respond with 400 status.
  * @module POST:/login
  * @function
  * @param {Object} userInfo 
@@ -159,8 +161,8 @@ app.post('/getStatus', function(req, res){
 });
 
 /**
- * Middleware for all routes starting with /user.
- * If the user attempts to access a /user path and is not logged in, this redirects to login
+ * This is middleware for all routes starting with /user.
+ * If the user attempts to access a /user path and is not logged in this redirects them to login.
  * @module /user
  * @function
  *  */
@@ -302,9 +304,9 @@ app.post("/newGame", function(req, res) {
 });
 
 /**
- * Middleware for all routes starting with /game.
- * If the user attempts to access a /game path and is not logged in, and doesn't have a session gameID
- * then respond with status 400
+ * This is middleware for all routes starting with /game.
+ * If the user attempts to access a /game path and is not logged in or doesn't have a session gameID,
+ * the request is ended with status 400.
  * @module /game
  * @function
  *  */
@@ -336,8 +338,9 @@ app.use('/game', function(req, res, next) {
 
 /**
  * Periodic polling request from the client every ~30 seconds.
- * Responds with a status of 400 if the /game/longpoll is requested on an inactive game
- * The request is responded to with data if an event occurs:
+ * Responds with a status of 400 if the /game/longpoll is requested on an inactive game.
+ * Responds with "aiMove" object after the AI makes a move.
+ * Responds with "endGame" object when the game ends.
  * @module GET:/game/longpoll
  * @function
  * 
@@ -457,10 +460,11 @@ app.get("/game", function(req, res) {
 });
 
 /**
- * If the user has a valid session (handled by /game middleware) 
+ * If the user has a valid session (handled by /game middleware) ,
+ * return the game's move history
  * @module GET:/game/moveHistory
  * @function
- * @return the game's move history
+ * @return {Array} moveHistory 
  */
 app.get('/game/moveHistory', function(req,res) {
     let game = activeGames[req.session.gameID];
@@ -468,7 +472,7 @@ app.get('/game/moveHistory', function(req,res) {
 });
 
 /**
- * Sent when the client clicks the board.
+ * Make move when the client clicks the board.
  * @module POST:/game/makeClientMove
  * @function
  * @param {Object} move 
