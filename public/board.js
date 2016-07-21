@@ -7,10 +7,10 @@ var COLOR = {
 
 class Board {
 
-    constructor(boardSize, canvasSize, canvas) {
+    constructor(boardSize, canvasSize, canvas, color) {
 
         this.boardSize = boardSize;
-
+        this.color = color;
         //variables we'll need to draw the board
         this.leftOffset; // this is the left offset
         this.topOffset; //this is the top offset
@@ -52,7 +52,7 @@ class Board {
 
     drawEmptyBoard() {
         //draw the board background
-        this.context.fillStyle = "#F5DEB3";
+        this.context.fillStyle = this.color;
         this.context.fillRect(0,0,this.canvasSize,this.canvasSize);
 
         //draw vertical lines

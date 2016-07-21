@@ -5,6 +5,8 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="./board.js"></script>
     <script src="./gamepage.js"></script>
+    <script src="./timer.js"></script>
+
     <link rel="stylesheet" type="text/css" href="./gamepage.css" />
     <title>Gamepage</title>
 
@@ -12,43 +14,19 @@
 
 <div id="container">
     <div id="gameContainer">
-        <div id="boardContainer">
-        </div>
-        
+
+        <div id="boardContainer"></div>
+
         <div id="dataContainer">
-            <div class="playerContainer">
-                <table>
-                    <tr>
-                        <th>Pic</th>
-                        <th>Players</th>
-                        <th>Score</th>
-                        <th>Time</th>
-                    </tr>
-                    <tr>
-                        <td>Black</td>
-                        <td>Player1</td>
-                        <td>Score</td>
-                        <td>Time</td>
-                    </tr>
-                    <tr>
-                        <td>White</td>
-                        <td>Players</td>
-                        <td>Score</td>
-                        <td>Time</td>
-                    </tr>
-                    
-                </table>
-                
+            <div id="playerContainer">
+                <div id="playerTable"></div>
+                <div id="playerConsole"></div>
             </div>
-            <div class="ratingContainer">
-            </div>
-            <button class="button passButton" onclick="pass()">Pass</button>
-            <button class="button resignButton" onclick="resign()">Resign</button>
+            <div id="buttonContainer"></div>
         </div>
     </div>
-    
-    
 </div>
+
 
     </body>
 </html>

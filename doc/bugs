@@ -1,0 +1,5 @@
+1. Multiple tabs open on the game page causes longpoll responses to behave unpredictably
+
+2. Error with guest and timeouts
+
+3. AI sometimes takes a long time to respond

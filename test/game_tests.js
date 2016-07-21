@@ -15,12 +15,13 @@ function GameDocument(size, hotseatMode) {
   this.active = true;
 }
 
-describe('Game of size 3 turn checking', function() {
+describe('Game of size 3: turn checking', function() {
 
     const game = new GameDocument(3, false);
 
     it('should not allow white to move initially', function(done) {
         let gameExceptionThrown = false;
+		//console.log("before attempt to move",game.board);
         try {      
             go.makeMove(game, 0, 0, constants.white, false);
         } catch (err) {
@@ -30,6 +31,7 @@ describe('Game of size 3 turn checking', function() {
         }
         assert(gameExceptionThrown);
         assert.equal(game.board[0][0], constants.empty);
+		//console.log("after attempt to move",game.board);
         done();
     });
 
@@ -64,7 +66,26 @@ describe('Game of size 3 turn checking', function() {
     });
 });
 
-describe('game of size 3 double passing throw exception', function() {
+describe('Game of size 3: Cannot pass when not your turn', function() {
+    const game = new GameDocument(3, false);
+    it('initially it should not allow pass from white', function(done) {
+        assert.equal(game.turn, constants.black);
+        let gameExceptionThrown = false;
+        try {
+            go.makeMove(game, 0, 0, constants.white, true)
+        } catch (err) {
+            if (err instanceof go.GameException) 
+                gameExceptionThrown = true;
+        }
+        assert(gameExceptionThrown);
+        assert.equal(game.turn, constants.black);
+        done();
+    });
+    it()    
+        
+})
+
+describe('Game of size 3: double passing throw exception', function() {
     const game = new GameDocument(3, false);
     it('should allow first pass from black', function(done) {
         go.makeMove(game, null, null, constants.black, true);
@@ -92,7 +113,7 @@ describe('game of size 3 double passing throw exception', function() {
 })
 
 
-describe('game of size 3: passing is okay if not squential', function() {
+describe('Game of size 3: passing is okay if not sequential', function() {
     const game = new GameDocument(3, false);
     it('should allow first pass from black', function(done) {
         go.makeMove(game, null, null, constants.black, true);
@@ -116,11 +137,10 @@ describe('game of size 3: passing is okay if not squential', function() {
         assert.equal(game.turn, constants.white);
         done();
     })
+});
 
-})
 
-
-describe('game of size 3 board checking', function() {
+describe('Game of size 3: board checking', function() {
     
     it('should update the board', function() {
         for (var y = 0; y < 3; y++) {
@@ -152,7 +172,32 @@ describe('game of size 3 board checking', function() {
     
 });
 
-
+/*
+describe('Testing ko rule', function() {
+    
+    it('should throw GameException for violation of ko rule', function() {
+		var W = constants.white;
+		var B = constants.black;
+		var game = new GameDocument(5, false);
+		game.board =  [ [ 0, 0, B, W, 0 ],
+						[ 0, B, 0, 0, W ],
+						[ 0, 0, B, W, 0 ],
+						[ 0, 0, 0, 0, 0 ],
+						[ 0, 0, 0, 0, 0 ] ];
+		go.makeMove(game, "pass", "pass", B, true);
+console.log(game.board);
+		go.makeMove(game, 2, 1, W, false);
+console.log(game.board);
+		go.makeMove(game, 3, 1, B, false);
+console.log(game.board);
+		try{
+			go.makeMove(game, 2, 1, W, false);
+		}catch(err){
+			assert.equal(err.message, "You cannot play a move which may lead to an infinite game");
+		}
+	});
+});
+*/
 describe("Game of size 5: capturing and suicide", function() {
 
   describe('makeMove() capture pieces testing', function() {
@@ -160,12 +205,15 @@ describe("Game of size 5: capturing and suicide", function() {
       var game = new GameDocument(5, false);
       var W = constants.white;
       var B = constants.black;
+	  //following 2 lines are needed to ensure moveHistory exists
+	  game.turn = W;
+	  go.makeMove(game, "pass", "pass", W, true);
       game.board = [[0, B, 0, 0, 0],
                     [B, W, 0, 0, 0],
                     [0, B, 0, 0, 0],
                     [0, 0, 0, 0, 0]
                     [0, 0, 0, 0, 0]];
-
+					
       go.makeMove(game, 2, 1, B, false);
       assert.equal(game.board[1][1], constants.empty);
     });
@@ -174,6 +222,8 @@ describe("Game of size 5: capturing and suicide", function() {
       var game = new GameDocument(5, false);
       var W = constants.white;
       var B = constants.black;
+	  game.turn = W;
+	  go.makeMove(game, "pass", "pass", W, true);
       game.board = [[0, B, B, 0, 0],
                     [B, W, W, 0, 0],
                     [0, B, B, 0, 0],
@@ -189,9 +239,12 @@ describe("Game of size 5: capturing and suicide", function() {
 
 describe('Game of Size 9', function() {
     
-    it('should not allow suicide on a large board', function() {
-      var game = new GameDocument(9, false);
-     game.board = [ [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+    it('should not allow suicide on 9x9 board, single piece', function() {
+		var game = new GameDocument(9, false);
+		var W = constants.white;
+		var B = constants.black;
+		//this is bad you should use constants instead of numbers
+		game.board = [ [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
                     [ 0, 0, 0, 0, 2, 0, 0, 0, 0 ],
                     [ 0, 1, 1, 2, 0, 2, 0, 0, 0 ],
                     [ 2, 1, 1, 1, 2, 0, 0, 0, 0 ],
@@ -202,16 +255,25 @@ describe('Game of Size 9', function() {
                     [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ] ];
       var exceptionThrown = false;
       try {
+		game.turn = W;
+		go.makeMove(game, "pass", "pass", W, true);
         go.makeMove(game, 4, 2, constants.black, false);
+		//console.log (board);
       } catch (err) {
+		  //console.log (err.message);
         if (err instanceof go.GameException) {
           exceptionThrown = true;
         }
       }
       assert(exceptionThrown);
       assert.equal(game.turn, constants.black);
+	  });
  
-      game.board = [[ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+     it('should not allow suicide on 9x9 board, 2 suicidal pieces', function() {
+		var game = new GameDocument(9, false);
+		var W = constants.white;
+		var B = constants.black;
+		game.board = [[ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
                     [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
                     [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
                     [ 2, 2, 0, 0, 0, 0, 0, 0, 0 ],
@@ -222,14 +284,92 @@ describe('Game of Size 9', function() {
                     [ 2, 2, 0, 0, 0, 0, 0, 0, 0 ] ];
      var ethrown = false;
      try {
-      go.makeMove(game, 1, 7, constants.black, false);
+		game.turn = W;
+		go.makeMove(game, "pass", "pass", W, true);
+		go.makeMove(game, 1, 7, constants.black, false);
      } catch (err) {
-       ethrown = true;
+		 //console.log (err.message);
+		if (err instanceof go.GameException) {
+			ethrown = true;
+        }
      }
      assert(ethrown)
      assert.equal(game.turn, constants.black);
-
     });
 });
 
-
+//should the deepEquals function from go.js be tested separately?
+describe('Testing board deepCopy', function() {
+    
+    it('should copy 3x3 board of zeros', function() {
+		
+		var game = new GameDocument(3, false);
+		game.board =  [ [ 0, 0, 0 ],
+						[ 0, 0, 0 ],
+						[ 0, 0, 0 ] ];
+		var boardCopy = go.deepCopy(game.board);
+		assert.equal(game.board.length, boardCopy.length);
+		assert.equal(game.board[0].length, boardCopy[0].length);
+		for(var i = 0; i< game.board.length; i++){
+			for(var j = 0; j< game.board[0].length; j++){
+				assert.equal(game.board[i][j], boardCopy[i][j]);
+			}
+		}
+		assert(go.deepEquals(game.board,boardCopy));
+	});
+		//why am I doing this
+	it('should copy 3x3 board of mixed primitives', function() {
+		var board =  [ [ 0, 1, -1 ],
+					[ 1.5, '1', 'a' ],
+					[ '', true, false ] ];
+		var boardCopy = go.deepCopy(board);
+		assert.equal(board.length, boardCopy.length);
+		assert.equal(board[0].length, boardCopy[0].length);
+		for(var i = 0; j< board.length; i++){
+			for(var j = 0; i< board[0].length; j++){
+				assert.equal(board[i][j], boardCopy[i][j]);
+			}
+		}
+		assert(go.deepEquals(board,boardCopy));
+	});
+	
+		//i dont even
+		
+	it('should copy mixed-length array of mixed primitives', function() {
+		var board =  [ [ 0, 1, -1 ],
+						[ 1.5], 
+						['1', 'a', '', true, false ]];
+		var boardCopy = go.deepCopy(board);
+		assert.equal(board.length, boardCopy.length);
+		assert.equal(board[0].length, boardCopy[0].length);
+		for(var i = 0; j< board.length; i++){
+			for(var j = 0; i< board[0].length; j++){
+				assert.equal(board[i][j], boardCopy[i][j]);
+			}
+		}
+		assert(go.deepEquals(board,boardCopy));
+	});
+ 
+	it('should copy 9x9 valid board', function() {
+		var game = new GameDocument(9, false);
+		game.board = [ [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+						[ 0, 0, 0, 0, 2, 0, 0, 0, 0 ],
+						[ 0, 1, 1, 2, 0, 2, 0, 0, 0 ],
+						[ 2, 1, 1, 1, 2, 0, 0, 0, 0 ],
+						[ 0, 0, 1, 2, 0, 0, 0, 0, 0 ],
+						[ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+						[ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+						[ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+						[ 0, 0, 0, 0, 0, 0, 0, 0, 0 ] ];
+		var boardCopy = go.deepCopy(game.board);
+		assert.equal(game.board.length, boardCopy.length);
+		assert.equal(game.board[0].length, boardCopy[0].length);
+		for(var i = 0; i< game.board.length; i++){
+			for(var j = 0; j< game.board[0].length; j++){
+				assert.equal(game.board[i][j], boardCopy[i][j]);
+			}
+		}
+		assert(go.deepEquals(game.board,boardCopy));
+	});
+	
+});

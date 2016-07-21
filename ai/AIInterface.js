@@ -1,5 +1,6 @@
-var http = require("http");
-var options = {
+"use strict";
+const http = require("http");
+const options = {
   hostname: '127.0.0.1',
   port: 3000,
   path: '/ai/attackEnemy',
@@ -11,11 +12,18 @@ var options = {
 
 const paths = ['/ai/maxlibs', '/ai/attackEnemy', '/ai/formEyes'];
 
+class AIInterfaceException extends Error {
+    constructor(message) {
+        super(message);
+    }
+}
+
+
 /**
  * Post request to AI Server
  * 
  * @param postData should be in the format: 
-    { board: [[1,0,0],[0,0,0],[0,0,0]],
+    { board: [[1,0,0], [0,0,0], [0,0,0]],
       size: 3,
       last: {x:0, y:0, pass : false, c : 1} };
  *   
@@ -23,15 +31,23 @@ const paths = ['/ai/maxlibs', '/ai/attackEnemy', '/ai/formEyes'];
  */
 function query(postData, callback) {
     var randomIndex = Math.floor(Math.random() * (paths.length - 1));
-    options.path = paths[randomIndex];
+    options.path = paths[randomIndex]; // ????
 
     var req = http.request(options, function(res) {
-      debugger;
-      res.on('data', callback);
+        res.on('data', callback);
+    });
+
+    req.on('socket', function (socket) {
+        socket.setTimeout(5 * 1000);  
+        socket.on('timeout', function() {
+            console.log("AI took too long to respond");
+            callback()
+            req.abort();
+        });
     });
 
     req.on('error', function(e) {
-      console.log('problem with request: ' + e.message);
+        console.log('problem with request: ' + e.message);
     });
 
     req.write(JSON.stringify(postData));
