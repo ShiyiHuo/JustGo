@@ -12,6 +12,7 @@ class Timer {
         this.whiteTime = whiteTime;
         this.turn = turn;
         this.timerStart = new Date().getTime();
+        this.timerStop = false;
     }
 
     changeTurn() {
@@ -31,19 +32,21 @@ class Timer {
     }
 
     clientUpdateTime() {
-        var timePassed = new Date().getTime() - this.timerStart;
-        if (this.turn == COLOR.black) {
-            this.blackTime = this.blackTime - timePassed;
-            if (this.blackTime <= 0) {
-                this.blackTime = 0;
+        if (this.timerStop == false) {
+            var timePassed = new Date().getTime() - this.timerStart;
+            if (this.turn == COLOR.black) {
+                this.blackTime = this.blackTime - timePassed;
+                if (this.blackTime <= 0) {
+                    this.blackTime = 0;
+                }
+            } else {
+                this.whiteTime = this.whiteTime - timePassed;
+                if (this.whiteTime <= 0) {
+                    this.whiteTime = 0;
+                }
             }
-        } else {
-            this.whiteTime = this.whiteTime - timePassed;
-            if (this.whiteTime <= 0) {
-                this.whiteTime = 0;
-            }
+            this.timerStart = new Date().getTime();
         }
-        this.timerStart = new Date().getTime();
     }
 
     returnTime() {
@@ -51,6 +54,14 @@ class Timer {
             'blackTime': msToTime(this.blackTime),
             'whiteTime': msToTime(this.whiteTime)
         }
+    }
+
+    stopTimer() {
+        this.timerStop = true;
+    }
+
+    restartTimer() {
+        this.timerStop = false;
     }
 }
 
