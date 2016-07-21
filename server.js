@@ -3,12 +3,12 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const sessions = require('client-sessions');
 
-const constants = require('./game/constants');
+const constants = require('./constants');
 const AIInterface = require('./ai/AIInterface');
 
-const go = require('./game/go');
 const app = express();
 const Game = require('./Game');
+const Rule = require('./Rule');
 const User = require('./User');
 
 const activeGames = {};
@@ -384,7 +384,6 @@ app.get("/game/longpoll", function(req, res) {
     }, 30000)
 });
 setInterval(function() {
-    
     for (const longpoll of longpollRequests) {    
 
         const game = activeGames[longpoll.req.session.gameID];
@@ -401,18 +400,15 @@ setInterval(function() {
                 try {
                     boardUpdates = game.makeMove(aiMove.x, aiMove.y, aiMove.c, aiMove.pass);
                 } catch (err) {
-                    if (err instanceof go.DoublePassException) { // two passes occured in a row. The game is over
+                    if (err instanceof Rule.DoublePassException) { // two passes occured in a row. The game is over
                         console.log("Two passes occured in a row. Ending game...");
                         game.endGame();
                         return;
-                    } else if (err instanceof go.GameException) { // ai made some illegal move
+                    } else if (err instanceof Rule.GameException) { // ai made some illegal move
                         console.log("AI made some illegal move");
                         return;
                     }
                 } 
-                boardUpdates.x = aiMove.x
-                boardUpdates.y = aiMove.y
-                debugger;
                 // respond to longpoll with AI's move and remove requests from queue
                 longpoll.res.json(boardUpdates); 
                 const longpollIndex = longpollRequests.indexOf(longpoll);
@@ -431,6 +427,8 @@ setInterval(function() {
             longpoll.res.json({ winner: endGame.winner, whiteScore: endGame.scores.white, blackScore: endGame.scores.black });
             longpollRequests.splice(longpollIndex, 1);
 
+            game.markModified('moveHistory');
+            game.markModified('moveHistory.board');
             game.markModified('board');
             game.save(function(err) {
                 if (err) {
@@ -484,6 +482,7 @@ app.get("/game", function(req, res) {
  */
 app.get('/game/moveHistory', function(req,res) {
     let game = activeGames[req.session.gameID];
+    debugger;
     res.json(game.moveHistory);
 });
 
@@ -504,7 +503,6 @@ app.get('/game/moveHistory', function(req,res) {
  * @return {number} boardUpdates.blackTime 
  */
 app.post("/game/makeClientMove", function(req, res, next) {
-
     // game should already be active at this point
     const game = activeGames[req.session.gameID];
     if (!game.active) {
@@ -519,31 +517,28 @@ app.post("/game/makeClientMove", function(req, res, next) {
     try {
         boardUpdates = game.makeMove(req.body.x, req.body.y, clientTurn, req.body.pass);
     } catch (err) { // Handle game errors by ending response and returning from function 
-
-        if (err instanceof go.DoublePassException) { // two passes occured in a row
+        if (err instanceof Rule.DoublePassException) { // two passes occured in a row
             game.endGame(); // end the game so the longpoll request is responded to
             res.end();
             return;
-        } else if (err instanceof go.GameException) { // client made some illegal move
+        } else if (err instanceof Rule.GameException) { // client made some illegal move
             res.write(err.message);
             res.end();
             return;
         } else { // Uncaught error
             console.log("Server error making move on the game: " + err);
-            res.status(400).send("Server error making move on the game");
-            res.end();
-            return;
+            return res.status(400).send("Server error making move on the game");
         }  
     }
-
+    debugger;
     // move was legal, save game to database
+    game.markModified('moveHistory');
     game.markModified('board');
     game.save(function(err) {
         if (err) {
             throw err;
         }
     }); 
-
     res.json(boardUpdates);  
 });
 

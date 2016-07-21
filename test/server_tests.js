@@ -214,6 +214,7 @@ describe('Gameplay: AI vs AI test', function() {
             .expect(200)
             .end(function(err, res) {
                 if (err) throw err;
+                debugger;
                 game = res.body;
                 assert(res.body.hasOwnProperty('x'));
                 assert(res.body.hasOwnProperty('y'));
@@ -228,7 +229,7 @@ describe('Gameplay: AI vs AI test', function() {
                 done();
             })
     });
-
+    
     it('/game/longpoll should have response', function(done) {
         testSession.get('/game/longpoll')
             .expect(200)
@@ -265,19 +266,15 @@ describe('Gameplay: AI vs AI test', function() {
 
         let x = Math.floor(Math.random() * 4)
         let y = Math.floor(Math.random() * 4)
-
-        AIInterface.query(game, function(move) {
-            testSession.post('/game/makeClientMove')
-                .send({x: move.x, y: move.y, pass: move.pass})
-                .expect(200)
-                .end(function(err, res) {
-                    if (err) throw err;
-                    done();
-                })
-        });
-
+        testSession.post('/game/makeClientMove') // small chance this is occupied
+            .send({x: x, y: y, pass: false})
+            .expect(200)
+            .end(function(err, res) {
+                if (err) throw err;
+                done();
+            })
     });
-    /*
+    
     it('/game/longpoll should have response', function(done) {
         testSession.get('/game/longpoll')
             .expect(200)
@@ -287,7 +284,7 @@ describe('Gameplay: AI vs AI test', function() {
             })
     });
 
-    it('should allow client move (3,3)', function(done) { // occupied???
+    it('should allow client pass', function(done) { // occupied???
         testSession.post('/game/makeClientMove')
             .send({x: 3, y: 3, pass: true})
             .expect(200)
@@ -298,13 +295,15 @@ describe('Gameplay: AI vs AI test', function() {
     });
 
     it('/game/longpoll should have response', function(done) {
+        this.timeout(35 * 1000)
         testSession.get('/game/longpoll')
-            .expect(200)
+            .expect(200) // if game is over should pass else shouldnt
             .end(function(err, res) {
                 if (err) throw err;
-                console.log(res.text)
+                assert(res.body.hasOwnProperty('winner'));
+                assert(res.body.hasOwnProperty('whiteScore'));
+                assert(res.body.hasOwnProperty('blackScore'));
                 done();
             })
-    }); */
-
+    }); 
 });    

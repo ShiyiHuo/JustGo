@@ -2,7 +2,7 @@
 const assert = require('assert');
 const AIInterface = require('../ai/AIInterface');
 const go = require('../game/go');
-const constants = require('../game/constants')
+const constants = require('../constants')
 
 /**
  * Post request to AI Server

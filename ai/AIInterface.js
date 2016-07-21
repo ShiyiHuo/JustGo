@@ -10,7 +10,7 @@ const options = {
   }
 };
 
-const paths = ['/ai/maxLibs', '/ai/attackEnemy', '/ai/formEyes', '/ai/random'];
+const paths = ['/ai/maxLibs', '/ai/attackEnemy', '/ai/formEyes'];
 
 class AIInterfaceException extends Error {
     constructor(message) {
@@ -50,7 +50,9 @@ function query(game, callback) {
             const temp = aiMove.x;
             aiMove.x = aiMove.y // swap x's and y's for prof's "AI"
             aiMove.y = temp; 
-            aiMove.pass = true /// CHANGED
+            aiMove.pass = aiMove.pass
+            if (aiMove.pass)
+                console.log("AI passes");
             callback(aiMove);
         });
     });
