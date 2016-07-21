@@ -89,21 +89,20 @@ gameSchema.methods.makeMove = function(xPos, yPos, color, pass) {
         }
         // create move for return and moveHistory
         const scores = this.getScore();
+        const boardCopy = JSON.parse(JSON.stringify(this.board))
         const move = new Move({
             x: 0,
             y: 0,
             color: color,
             pass: true,
             capturedPieces: [],
-            board: this.board,
+            board: boardCopy,
             whiteScore: scores.white,
             blackScore: scores.black,
             whiteTime: this.getPlayerTimes().white,
             blackTime: this.getPlayerTimes().black
         });
         this.moveHistory.push(move);
-        this.markModified('moveHistory.board');
-        debugger;
         switchTimers();
 
         return move;
@@ -205,6 +204,8 @@ gameSchema.methods.makeMove = function(xPos, yPos, color, pass) {
             this.board[piece.y][piece.x] = constants.empty;
         }
 
+        const boardCopy = JSON.parse(JSON.stringify(this.board)); // need a deep copy 
+
         // create move object for return and moveHistory
         const scores = this.getScore();
         const move = new Move({
@@ -213,7 +214,7 @@ gameSchema.methods.makeMove = function(xPos, yPos, color, pass) {
             color: color,
             pass: false,
             capturedPieces: capturedPieces,
-            board: this.board,
+            board: boardCopy,
             whiteScore: scores.white,
             blackScore: scores.black,
             whiteTime: this.getPlayerTimes().white,

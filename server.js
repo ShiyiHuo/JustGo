@@ -530,10 +530,6 @@ app.post("/game/makeClientMove", function(req, res, next) {
             return res.status(400).send("Server error making move on the game");
         }  
     }
-    debugger;
-    // move was legal, save game to database
-    game.markModified('moveHistory');
-    game.markModified('board');
     game.save(function(err) {
         if (err) {
             throw err;
