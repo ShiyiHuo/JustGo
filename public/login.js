@@ -288,7 +288,7 @@ function showBoardOption() {
     $('#boardOptionContainer').append('<p id="boardSizeLabel">Select board size</p>');
     $('#boardOptionContainer').append('<form action=""><input type="radio" name="size" value="9"> 9x9</input><input type="radio" name="size" value="13">13x13</input><input type="radio" name="size" value="19">19x19</input></form><br>');
     $('#boardOptionContainer').append('<p id="boardSizeLabel">Select board color</p>');
-    $('#boardOptionContainer').append('<form action=""><input type="radio" name="color" value="red"> red</input><input type="radio" name="color" value="blue">blue</input><input type="radio" name="color" value="green">green</input></form><br>');
+    $('#boardOptionContainer').append('<form action=""><input type="radio" name="color" value="#C2DFFF"> red</input><input type="radio" name="color" value="blue">blue</input><input type="radio" name="color" value="green">green</input></form><br>');
     $('#boardOptionContainer').append('<button class="button" id="startGameB">Start Game</button>');
 }
 

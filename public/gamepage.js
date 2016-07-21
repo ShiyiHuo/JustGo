@@ -1,81 +1,204 @@
-var gameboard = undefined;
-var timer = undefined;
+var loggedIn = true;
+var longpollID;
+var gameHasEnded;
 
 $(document).ready(function() {
-
-    //post request to get status to determine if user is logged in for menu bar
-    $.post("/getStatus", function(data,status) {
-        data = JSON.parse(data);
-        if (data.login == "yes") {
-            console.log("logged in");
-            showMenuBar("logged in");
-        } else {
-            console.log("not logged in");
-            showMenuBar();
-       }
-   });
-
-   //initialize game. if game is ongoing, retrieve game and initialize last board state
-   //otherwise begin new game
-    $.get("/game", function(data, status) {
-        if (data) {
-            longpoll();
-            initBoard(data.board.length);
-            //initTimer(data.whiteTime,data.blackTime,1); implement this
-            initTimer(900000,900000,1);
-            gameboard.updateBoard(data.board);
-            score = {black: data.blackScore, white: data.whiteScore}
-            updateScore(score);
-        }
-    });
+    initPage();
 });
 
-//the player container contains user scores, usernames, timers, etc
-function initPlayerContainer(){
-    $('#playerTable').append('<table id="table">');
-    $('#playerTable').append('<tr> <th>Pic</th> <th>Players</th> <th>Score</th> <th>Time</th></tr>');
-    $('#playerTable').append('<tr> <td>Black</td><td>Player1</td><td id="blackScore"></td><td id="blackTime"></td></tr>');
-    $('#playerTable').append('<tr> <td>White</td><td>Player1</td><td id="whiteScore"></td><td id="whiteTime"></td></tr>');
-    $('#playerTable').append('</table>');
+function initPage() {
+    showNavBar();
+    getStatus();
+    gameEventHandler('getGame');
+    $(window).trigger('resize');
 }
 
+//handles all game related events
+function gameEventHandler(eventType, data) {
 
-//these are the buttons responsible for passing and resigning
-function initButtons(){
-    $('#buttonContainer').append('<button type="button" class="button passButton">Pass</button>');
-    $('.passButton').click(passClicked);
-    $('#buttonContainer').append('<button type="button" class="button resignButton">Resign</button>');
-    $('.resignButton').click(resignClicked);
+    if (eventType == 'getGame') {
+        console.log("Getting existing game");
+        $.get("/game", function(data, status) {
+            if (data) {
+                longpoll();
+                gameEventHandler('initBoard', data);
+                initTimer(900000,900000,1);
+                console.log("Timers set for 15 minutes.")
+                gameEventHandler('boardUpdate', data);
+                gameEventHandler('scoreChange',data);
+                if (data.winner) {
+                    gameEventHandler('endGame',data);
+                }
+            }
+            else {
+                console.log("Couldnt get existing game");
+            }
+        });
+    }
 
-}
+    else if (eventType == 'aiMove') {
+        console.log("AI made move");
+        gameEventHandler('boardUpdate', data);
+        gameEventHandler('scoreChange', data);
+        gameEventHandler('turnChange');
+    }
 
-//if the user resigns, post to server and write to the player console
-function resignClicked(event) {
-    $.post("/game/resign", function(data) {
-        writePC("Player resigned<br>");
-    });
-}
+    else if (eventType == 'scoreChange') {
+        console.log("Change in score");
+        $('#blackScore').empty();
+        $('#blackScore').append(data.blackScore);
+        $('#whiteScore').empty();
+        $('#whiteScore').append(data.whiteScore);
+    }
+    else if (eventType == 'turnChange') {
+        console.log('change in turn');
+        timer.changeTurn();
+    }
+    else if (eventType == 'boardUpdate') {
+        console.log('board update');
+        gameboard.updateBoard(data.board);
+    }
+    else if (eventType == 'stopTimer') {
+        timer.stopTimer();
+    }
+    else if (eventType == 'newGame') {
 
-//if the user passes, post to the server and write to the player console
-function passClicked(event) {
-    var move = {x: 0, y: 0, pass: true};
-    $.post("/game/makeClientMove", move, function(data,status) {
-        if (!data.board) {
-            window.alert(data);
-        } else {
-            gameboard.updateBoard(data.board);
-            score = {black: data.blackScore, white: data.whiteScore}
-            updateScore(score);
-            writePC("player passed<br>")
-            writePC("whiteTime: " + data.whiteTime + " blackTime: " + data.blackTime + '<br>');
-            timer.changeTurn();
+        gameHasEnded = false;
+        console.log("Starting new game");
+        var boardSizeSelected = 9;
+        var hotseatSelected = false;
+        var newGameParameters = {size: boardSizeSelected, hotseat: hotseatSelected};
+        $.post("/newGame", newGameParameters, function(data, status) {
+            window.location = '/gamepage.html';
+        });
+    }
+
+    else if (eventType == 'endGame') {
+        gameHasEnded = true;
+        console.log('Game has ended');
+        gameEventHandler('stopTimer');
+        var winner = data.winner == 1? "Black" : "White";
+        writePC("winner is: " + winner + " whiteScore: " + data.whiteScore + " blackScore: " + data.blackScore);
+
+        $('#container').append('<div id="endgameTrans"></div>');
+        $('#container').append('<div id="endgameOpts"></div>');
+        $('#endgameOpts').width($('#container').width()*.3);
+        $('#endgameOpts').height($('#container').height()*.15);
+
+        //endgame buttons replay and new game
+        $('#endgameOpts').append('<button type="button" class="endgameButton" id="replay">Replay Game History</button><br>');
+        $('#endgameOpts').append('<button type="button" class="endgameButton" id="newGame">New Game</button>');
+
+        //button styling
+        $('.endgameButton').width($('#endgameOpts').width()*.9);
+        $('.endgameButton').height($('#endgameOpts').height()*.25);
+        $('.endgameButton').css('margin-left','0 auto');
+        $('.endgameButton').css('margin-right','0 auto');
+        $('.endgameButton').css('margin-top', $('#endgameOpts').height()*.1);
+
+
+        //button functionality
+        $('#replay').click(function() {
+            writePC("Replay<br>");
+        });
+        $('#newGame').click(function() {
+            gameEventHandler('newGame');
+        });
+        /*
+        $.get("/game/moveHistory", function(data, status) {
+            if (data) {
+                console.log(data);
+            }
+        });
+        */
+    }
+    else if (eventType == 'initBoard') {
+        console.log('initializing board');
+        initBoard(data.board.length);
+    }
+    else if (eventType == 'resignClicked') {
+        console.log('Player resigned');
+        $.post("/game/resign", function(data) {
+            writePC("Player resigned<br>");
+            //gameEventHandler('endGame',data);
+        });
+    }
+    else if (eventType == 'passClicked') {
+
+        writePC('Client passed');
+        var move = {x: 0, y: 0, pass: true};
+        gameEventHandler('clientMove', move);
+
+    }
+    else if (eventType == 'boardClicked'){
+        var position = gameboard.getIntersection(event.clientX, event.clientY);
+        if (position) {
+            if (gameboard.board[position.y][position.x] != 0) {
+                writePC("You cannot place a piece here<br>");
+            } else {
+                var move = {x: position.x, y: position.y};
+                gameEventHandler('clientMove', move);
+            }
         }
+    }
+
+    else if (eventType == 'clientMove') {
+        $.post("/game/makeClientMove", data, function(data,status) {
+            if (!data.board) {
+                writePC(data);
+            } else {
+                gameEventHandler('boardUpdate', data);
+                gameEventHandler('scoreChange', data);
+                gameEventHandler('turnChange');
+                writePC("whiteTime: " + data.whiteTime + " blackTime: " + data.blackTime + '<br>');
+            }
+        });
+    }
+
+    else if (eventType == 'updateTime') {
+        timer.clientUpdateTime();
+        time = timer.returnTime();
+        $('#blackTime').empty();
+        $('#blackTime').append(time.blackTime);
+        $('#whiteTime').empty();
+        $('#whiteTime').append(time.whiteTime);
+    }
+
+    else {
+        window.alert("CASE NOT HANDLED"+ eventType);
+    }
+
+}
+
+function windowResized(event) {
+
+    applyStyle();
+    canvas.width = $('#boardContainer').width();
+    canvas.height = $('#boardContainer').height();
+    gameboard.calibrate(canvas,$('#boardContainer').width());
+    gameboard.drawCurrentBoard();
+}
+
+function longpoll() {
+
+    console.log("Beginning long poll");
+    $.ajax({
+        method: 'GET',
+        url: '/game/longpoll',
+        success: function(data) {
+            if (data.board) { // AI has made move
+                gameEventHandler('aiMove', data);
+            }
+
+            if (data.winner) { // game has ended
+                gameEventHandler('endGame', data);
+            }
+        },
+        complete: longpoll,
+        timeout: 30000
     });
 }
 
-
-//initializing the board also initializes the player container which contains stats and the buttons
-//as well as the styles of the page.
 function initBoard(size) {
     initPlayerContainer();
     initButtons();
@@ -88,26 +211,134 @@ function initBoard(size) {
     $('#boardContainer').append(canvas);
     var color = getCookie("boardColor");
     if (color == undefined) {
-        color = green;
+        color = white;
     }
     gameboard = new Board(size, $('#boardContainer').width(), canvas, color);
     gameboard.drawCurrentBoard();
     $(window).resize(windowResized);
 }
 
-function windowResized(event) {
-
-    applyStyle();
-    canvas.width = $('#boardContainer').width();
-    canvas.height = $('#boardContainer').height();
-    gameboard.calibrate(canvas,$('#boardContainer').width());
-    gameboard.drawCurrentBoard();
+function boardClicked(event) {
+    gameEventHandler('boardClicked', event);
 }
 
+
+//the player container contains user scores, usernames, timers, etc
+function initPlayerContainer(){
+    $('#playerTable').append('<table id="table" frame="box" rules="none" border=1>');
+    $('#playerTable').append('<tr> <th>Pic</th> <th>Players</th> <th>Score</th> <th>Time</th></tr>');
+    $('#playerTable').append('<tr> <td>Black</td><td>Player1</td><td id="blackScore"></td><td id="blackTime"></td></tr>');
+    $('#playerTable').append('<tr> <td>White</td><td>Player1</td><td id="whiteScore"></td><td id="whiteTime"></td></tr>');
+    $('#playerTable').append('</table>');
+}
+
+//these are the buttons responsible for passing and resigning
+function initButtons(){
+    $('#buttonContainer').append('<button type="button" class="button passButton">Pass</button><br>');
+    $('.passButton').click(passClicked);
+    $('#buttonContainer').append('<button type="button" class="button resignButton">Resign</button>');
+    $('.resignButton').click(resignClicked);
+
+}
+
+//if the user resigns, post to server and write to the player console
+function resignClicked(event) {
+    gameEventHandler('resignClicked',event);
+}
+
+//if the user passes, post to the server and write to the player console
+function passClicked(event) {
+    gameEventHandler('passClicked',event);
+}
+
+
+
+function callRouter(event) {
+
+    if (event.currentTarget.id == 'aboutUsButton') {
+        console.log('This button doesnt do anything');
+    }
+    else if (event.currentTarget.id == 'logOutButton') {
+        $.post("/user/logout", function(data, status) {
+               data = JSON.parse(data);
+               if (data.status == "OK") {
+                   console.log("Logged out");
+                   window.location = 'login.html';
+               }
+       });
+    }
+    else if (event.currentTarget.id == 'userCenterButton') {
+        console.log('This button doesnt do anything');
+    }
+}
+
+
+function getStatus() {
+    $.post("/getStatus", function(data,status) {
+           data = JSON.parse(data);
+           if (data.login == "yes") {
+               console.log("Status is logged in");
+               loggedIn = true;
+           } else {
+               console.log("Status is logged out");
+               loggedIn = false;
+           }
+           updateNavBar();
+    });
+}
+
+
+
+function initTimer(blackTime,whiteTime, turn) {
+    timer = new Timer(blackTime,whiteTime,turn);
+    var myvar = setInterval(function() {
+        gameEventHandler('updateTime');
+    },1000);
+}
+
+function showNavBar() {
+    $('#navbar').append('<ul id=navbarList><li id=aboutUsButton class=navbarItem>About Us</li></ul>');
+    $('#aboutUsButton').click(callRouter);
+}
+
+function updateNavBar() {
+    if (loggedIn == true) {
+        if ($('#logOutButton').length) {} else {
+            $('#navbarList').append('<li id=logOutButton class=navbarItem>Logout</li><li id=userCenterButton class=navbarItem>User Center</li>');
+            $('#logOutButton').click(callRouter);
+            $('#userCenterButton').click(callRouter);
+        }
+    }
+    if (loggedIn == false) {
+        if ($('#logOutButton').length) {
+            $('#logOutButton').remove();
+            $('#userCenterButton').remove();
+        }
+    }
+}
+
+function getCookie(cname) {
+    var name = cname + "=";
+    var ca = document.cookie.split(';');
+    for(var i = 0; i <ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length,c.length);
+        }
+    }
+    return "";
+}
+
+function writePC(text) {
+    $('#playerConsole').prepend(text);
+}
+
+
 function applyStyle() {
-
     var hwMin = 1/2
-
     //the width is greater than the height
     if ($('#container').width() >= $('#container').height()) {
 
@@ -159,13 +390,15 @@ function applyStyle() {
 
 
     //set the buttons css
-    $('.button').css('margin-top', $('.button').width()*(150/130));
-    $('.button').css('margin-left', $('#buttonContainer').width()*.07);
-    $('.button').css('width', $('#buttonContainer').width()*.35);
+    $('.button').css('margin-top', $('#buttonContainer').height()*.05);
+    $('.button').css('margin-left', $('#buttonContainer').height()*.05);
+    $('.button').css('margin-right', $('#buttonContainer').height()*.05);
+
+    $('.button').css('width', $('#buttonContainer').width()*.9);
+
     $('.button').css('padding-top', $('.button').width()*(10/130));
     $('.button').css('padding-bottom', $('.button').width()*(10/130));
-    $('.button').css('font-size', $('.button').width()*.25);
-    $('.button').css('border', $('.button').width()*(1/130)+" solid Salmon");
+    $('.button').css('font-size', $('.button').width()*.1);
     $('.button').css('border-radius', $('.button').width()*(1000/130));
 
     //create the console window
@@ -173,191 +406,5 @@ function applyStyle() {
     $('#playerConsole').height($('#playerContainer').height()-$('#playerTable').height());
     $('#playerConsole').css('top',$('#playerTable').height());
     $('#playerConsole').css('font-size',$('#playerConsole').width()*(5/100));
-
-}
-
-function boardClicked(event) {
-
-    var position = gameboard.getIntersection(event.clientX, event.clientY);
-
-    if (position) {
-        if (gameboard.board[position.y][position.x] != 0) {
-            writePC("You cannot place a piece here<br>");
-        } else {
-            var move = {x: position.x, y: position.y};
-            $.post("/game/makeClientMove", move, function(data,status) {
-                if (!data.board) {
-                    writePC(data +'<br>'); // ??????
-                } else {
-                    gameboard.updateBoard(data.board);
-                    score = {black: data.blackScore, white: data.whiteScore}
-                    updateScore(score);
-                    timer.changeTurn();
-                    writePC("whiteTime: " + data.whiteTime + " blackTime: " + data.blackTime + '<br>');
-                }
-            });
-        }
-    }
-}
-
-function longpoll() {
-
-    $.ajax({
-        method: 'GET',
-        url: '/game/longpoll',
-        success: function(data) {
-
-            if (data.board) { // AI has made move
-                gameboard.updateBoard(data.board);
-                score = {black: data.blackScore, white: data.whiteScore}
-                updateScore(score);
-                timer.changeTurn();
-            }
-            if (data.winner) { // game has ended
-                endgame();
-                var winner = data.winner == 1? "Black" : "White";
-                writePC("winner is: " + winner + " whiteScore: " + data.whiteScore + " blackScore: " + data.blackScore);
-            }
-
-        },
-        complete: longpoll,
-        timeout: 30000
-    });
-}
-
-
-function updateScore(score) {
-    $('#blackScore').empty();
-    $('#blackScore').append(score.black);
-    $('#whiteScore').empty();
-    $('#whiteScore').append(score.white);
-
-}
-
-function initTimer(blackTime,whiteTime, turn) {
-    timer = new Timer(blackTime,whiteTime,turn);
-    var myvar = setInterval(updateTime,1000);
-}
-
-function updateTime() {
-    timer.clientUpdateTime();
-    time = timer.returnTime();
-    $('#blackTime').empty();
-    $('#blackTime').append(time.blackTime);
-    $('#whiteTime').empty();
-    $('#whiteTime').append(time.whiteTime);
-}
-
-function getCookie(cname) {
-    var name = cname + "=";
-    var ca = document.cookie.split(';');
-    for(var i = 0; i <ca.length; i++) {
-        var c = ca[i];
-        while (c.charAt(0)==' ') {
-            c = c.substring(1);
-        }
-        if (c.indexOf(name) == 0) {
-            return c.substring(name.length,c.length);
-        }
-    }
-    return "";
-}
-
-function writePC(text) {
-    $('#playerConsole').prepend(text);
-}
-
-//if the game is ended, add a dark transparent overlay to the webpage
-//bring up a new page which asks the user if they want a replay
-function endgame() {
-    $('#container').append('<div id="endgameTrans"></div>');
-    $('#container').append('<div id="endgameOpts"></div>');
-    $('#endgameOpts').width($('#container').width()*.3);
-    $('#endgameOpts').height($('#container').height()*.3);
-
-    //endgame buttons replay and new game
-    $('#endgameOpts').append('<button type="button" id="replay">Replay Game History</button>');
-    $('#endgameOpts').append('<button type="button" id="newGame">New Game</button>');
-
-    //button functionality
-    $('#replay').click(function() {
-        writePC("Replay<br>");
-    });
-    $('#newGame').click(function() {
-        writePC("New Game<br>");
-    });
-
-    $.get("/game/moveHistory", function(data, status) {
-        if (data) {
-            console.log(data);
-        }
-    });
-
-}
-
-//put the game into replay mode where the user can use arrows to move through the game states
-function replay(boardStates) {
-    $('#endgameTrans').remove();
-    initReplayBoard();
-}
-
-//the replay board which cannot be clicked and has no buttons
-function initReplayBoard() {
-    initPlayerContainer();
-    //initButtons();
-    applyStyle();
-    var canvas = document.createElement("CANVAS");
-    canvas.id = "canvas";
-    canvas.width = $('#boardContainer').width();
-    canvas.height = $('#boardContainer').height();
-    //$(canvas).click(boardClicked);
-    $('#boardContainer').append(canvas);
-    var color = getCookie("boardColor");
-    if (color == undefined) {
-        color = green;
-    }
-    gameboard = new Board(size, $('#boardContainer').width(), canvas, color);
-    gameboard.drawCurrentBoard();
-    $(window).resize(windowResized);
-
-}
-
-
-//show menu bar
-function showMenuBar(login) {
-
-    if (login == "logged in") {
-        $('body').append('<ul><li><a id="logoutB">Log Out</a></li><li><a id="userCenter">User Center</a></li><li><a id="aboutUs">About Us</a></li></ul>');
-
-        $('#logoutB').on('click', function() {
-            $.post("/user/logout", function(data, status) {
-                data = JSON.parse(data);
-                if (data.status == "OK") {
-                    console.log("Logged out");
-                    window.location = data.redirect;
-                }
-            });
-        });
-
-        //use stack to go to previous page
-        $('#userCenter').on('click', function() {
-            $('body').children().remove();
-            showUserCenter();
-        });
-
-        $('#aboutUs').on('click', function() {
-            $('body').children().remove();
-            showAboutUs();
-        });
-
-    }
-
-    else {
-        $('body').append('<ul>' + '<li><a id="aboutUs">About Us</a></li>' + '</ul>');
-        $('#aboutUs').on('click', function() {
-            $('body').children().remove();
-            showAboutUs();
-        });
-    }
 
 }
