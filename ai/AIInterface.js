@@ -10,7 +10,7 @@ const options = {
   }
 };
 
-const paths = ['/ai/maxLibs', '/ai/attackEnemy', '/ai/formEyes'];
+const paths = ['/ai/maxLibs', '/ai/attackEnemy', '/ai/formEyes', '/ai/random'];
 
 class AIInterfaceException extends Error {
     constructor(message) {
@@ -32,20 +32,31 @@ class AIInterfaceException extends Error {
 function query(game, callback) {
     const randomIndex = Math.floor(Math.random() * (paths.length - 1)); // choose random index for the ai paths
     options.path = paths[randomIndex]; 
+    
+    if (!game.moveHistory || game.moveHistory.length < 1) {
+        throw new AIInterfaceException("Prof's AI requires a previous move.");
+    } 
+    let lastMove = game.moveHistory[game.moveHistory.length - 1];
 
-    const lastMove = game.moveHistory[game.moveHistory.length - 1];
     const postData = {
         board: game.board,
         size: game.board.length,
-        last: { x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c: lastMove.color }
+        last: { x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c: lastMove.color } // swap x and y's for prof's "AI"
     };
 
     var req = http.request(options, function(res) {
-        res.on('data', callback);
+        res.on('data', function(data) {
+            const aiMove = JSON.parse(data);
+            const temp = aiMove.x;
+            aiMove.x = aiMove.y // swap x's and y's for prof's "AI"
+            aiMove.y = temp; 
+            aiMove.pass = true /// CHANGED
+            callback(aiMove);
+        });
     });
 
     req.on('error', function(e) {
-        console.log('problem with request: ' + e.message);
+        throw new AIInterfaceException("Error on request: " + e);
     });
 
     req.write(JSON.stringify(postData));

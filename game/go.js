@@ -32,6 +32,7 @@ class GameException extends Error {
 class DoublePassException extends GameException {
     constructor() {
         super("Two passes occured in a row. The game is over.");
+        console.error("Two passes occured in a row. The game is over.");
     }
 }
 
@@ -68,17 +69,17 @@ function makeMove(game, xPos, yPos, color, pass) {
         }
 
         const scores = getScore(game);
-        const move = new Move(0, 0, color, [], game.board, scores.whiteScore, scores.blackScore, true)
+
+        const move = new Move(0, 0, color, [], game.board, scores.white, scores.black, true)
 
         game.moveHistory.push(move);
-
+        debugger;
         return move;
     }
 
     if (game.board[yPos][xPos] != constants.empty) {
         throw new GameException("Occupied Place.");
     }  
-
 
     game.board[yPos][xPos] = color;  // update the board 
 
@@ -247,7 +248,6 @@ function endGame(game) {
     if (!game.active) 
         throw "Game already ended.";
 
-    debugger;
     var scores = getScore(game);
 
     game.active = false;

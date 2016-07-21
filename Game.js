@@ -4,7 +4,7 @@ const constants = require('./game/constants');
 const go = require('./game/go');
 const User = require('./User');
 
-// for active timers
+// for active timers indexed by gameID
 const whiteIntervals = {};
 const blackIntervals = {};
 
@@ -99,7 +99,14 @@ gameSchema.methods.getEndGameState = function() {
 }
 
 gameSchema.methods.resignClient = function() {
-    const winner = this.clientColor == constants.black? constants.white : constants.black;
+    
+    var winner;
+    if (this.hotseatMode) {
+        winner = (this.turn == constants.black)? constants.white : constants.black
+    } else {
+        winner = this.clientColor == constants.black? constants.white : constants.black;
+    }
+    debugger;
     return this.endGameWithWinner(winner);
 }
 
