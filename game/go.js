@@ -52,6 +52,9 @@ function makeMove(game, xPos, yPos, color, pass) {
 		throw new GameException("Not your turn. " + " color = " + color + " game.turn = " + game.turn);  
     }
 	
+	const oppositeColor = (game.turn === constants.black) ? constants.white : constants.black;
+	
+	
 	var move = undefined;
 	
     if (pass) {
@@ -75,6 +78,7 @@ function makeMove(game, xPos, yPos, color, pass) {
 		//this statement executes before adding a piece
 		var boardIsEmpty = isEmpty(game.board);
 		
+		//this places the piece
 		game.board[yPos][xPos] = color;
 		
 		//basically an empty array
@@ -89,75 +93,107 @@ function makeMove(game, xPos, yPos, color, pass) {
 				//initialize 2D array corresponding to board
 				visited[i] = new Array(game.board.length).fill(false);
 			}
-
-			// For all tiles with pieces on board, find armies to calculate liberties
-			// append to capturedPieces if an army has no liberties
-			for (var i = 0; i < game.board.length; i++) {
-				for (var j = 0; j < game.board.length; j++) {
-					
-					if (game.board[i][j] !== constants.empty && !visited[i][j]) { // there is a piece on this board "tile"  TODO: test auxillary matrix that stores if we've visited this piece so we don't have to do ever tile multiple times?     
-
-						// perform depth first search to get armies connected to this piece
-						var pieceColor = game.board[i][j];
-						var army = new Set();
-						//getArmy mutates army and visited
-						getArmy(j, i, pieceColor, game.board, army, visited);
-						//if no liberties schedule for deletion
-						if(!armyHasLiberties(game.board, army)){
-							army.forEach((element) => {
-								capturedPieces.add(element);
-							});
-						}//end if
-					}//end if
-				}//end j
-			}//end i
 			
-			//ko (repeated board) rule
-			//this is done AFTER placing the player's piece and BEFORE removed captured
-			//expects game.moveHistory to not be empty
-			if(koRule(game,yPos,xPos,capturedPieces)){
-				game.board[yPos][xPos] = constants.empty; // undo the board update
-				throw new GameException("You cannot play a move which may lead to an infinite game");
+			//this mess handles capturing by brute force checking the 4 adjacent armies to the played piece
+			var armyToCap = new Set();
+			getArmy(x, y+1, oppositeColor, game.board, armyToCap, visited);
+			if(armyToCap.length > 0 && !armyHasLiberties(game.board, armyToCap)){
+				army.forEach((element) => {
+					capturedPieces.add(element);
+				});
 			}
-			
-			
-			//suicide case
-			if (capturedPieces.has(point(xPos, yPos))) {
-				
-				
-				game.board[yPos][xPos] = constants.empty; // undo the board update
-				throw new GameException("You cannot commit suicide.");
-			} 
-		
+			armyToCap = new Set();
+			getArmy(x, y-1, oppositeColor, game.board, armyToCap, visited);
+			if(armyToCap.length > 0 && !armyHasLiberties(game.board, armyToCap)){
+				army.forEach((element) => {
+					capturedPieces.add(element);
+				});
+			}
+			armyToCap = new Set();
+			getArmy(x+1, y, oppositeColor, game.board, armyToCap, visited);
+			if(armyToCap.length > 0 && !armyHasLiberties(game.board, armyToCap)){
+				army.forEach((element) => {
+					capturedPieces.add(element);
+				});
+			}
+			armyToCap = new Set();
+			getArmy(x-1, y, oppositeColor, game.board, armyToCap, visited);
+			if(armyToCap.length > 0 && !armyHasLiberties(game.board, armyToCap)){
+				army.forEach((element) => {
+					capturedPieces.add(element);
+				});
+			}
+			//the army created by current player move
+			var newArmyCreated = new Set();
+			getArmy(x, y, color, game.board, newArmyCreated, visited);
+			//suicide is checked only if nothing captured
+			if(capturedPieces.length === 0){
+				if (!armyHasLiberties(game.board, newArmyCreated)) {
+					game.board[yPos][xPos] = constants.empty; // undo the board update
+					throw new GameException("You cannot commit suicide.");
+				} 
+			}
+			//koRule is checked only if something captured
+			else{
+				//ko (repeated board) rule
+				//this is done AFTER placing the player's piece and BEFORE removed captured
+				//expects game.moveHistory to not be empty
+				if(koRule(game,yPos,xPos,capturedPieces)){
+					game.board[yPos][xPos] = constants.empty; // undo the board update
+					throw new GameException("You cannot play a move which may lead to an infinite game");
+				}
+			}
+
 			// remove captured pieces from board
 			for (var pieceString of capturedPieces) {
 				let piece = JSON.parse(pieceString); // convert to object since army and captured pieces are JSON strings
 				game.board[piece.y][piece.x] = constants.empty;
 			}	
-		}
+
+/*
+			var listOfAllArmies = [];
+			//visited was defined above, but resetting it to empty here
+			visited = [];
+			for (var i = 0; i < game.board.length; i++) {
+				//initialize 2D array corresponding to board
+				visited[i] = new Array(game.board.length).fill(false);
+			}
+			
+			// loop through board and get list of all armies
+			for (var i = 0; i < game.board.length; i++) {
+				for (var j = 0; j < game.board.length; j++) {
+					if (game.board[i][j] !== constants.empty && !visited[i][j]) {
+						var army = new Set();
+						//getArmy mutates army and visited
+						//game.board[i][j] sets initial color for the recursion
+						//j becomes x and i becomes y
+						getArmy(j, i, game.board[i][j], game.board, army, visited);
+						
+						listOfAllArmies.push(army);}
+					}
+				}//end j
+			}//end i
+			
+			*/
+		}//end if(board not empty)
 		
 		const scores = getScore(game);
 		//Move(x, y, color, capturedPieces, board, whiteScore, blackScore, pass)
 		move = new Move(xPos, yPos, color, capturedPieces, game.board, scores.white, scores.black, false);
 		
-	}//end else
+	}//end else (no pass)
 		
-	// switch turn state to opposite color
-	if (game.turn === constants.black) {
-        game.turn = constants.white;
-    } else {
-        game.turn = constants.black;
-    }
+	// turn done, switch turn state to opposite color
+	game.turn = oppositeColor;
 
 	game.moveHistory.push(move);
 	return move;
 		
 }//end function makeMove
 	
-// JSON representation of a point. We use string addition here because 
-// JSON.stringify seems inconsistent with adding quotation marks around the values (e.g. '{"foo":"3"}' vs '{"foo":3}' )
-function point(x, y) {
-	return '{"x":' + x + ',"y":' + y + '}';
+//represents a single member of an army, which has coordinates and color
+function armyElement(x, y, color) {
+	return '{"x":' + x + ',"y":' + y + ',"color":' + color + '}';
 }
 	
 // recursive depth-first search for armies
@@ -169,9 +205,8 @@ function getArmy(x, y, color, board, army, visited) {  //called as getArmy(j,i,.
 
 	//if next index is: not out of bounds; same color; not already in army
 	if (inBounds && (board[y][x] === color) && !visited[y][x]) {//[y][x]???
-		// Returns a JSON-string representation of a "point". 
-		// Strings are used to create primitive values for points to allow lookup in Sets in constant time. [[not anymore]]
-		army.add(point(x, y));
+		
+		army.add(armyElement(x, y, color));
 		visited[y][x] = true;
 		
         // north??? y/x confusion

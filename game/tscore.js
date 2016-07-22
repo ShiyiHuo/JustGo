@@ -2,15 +2,16 @@ const constants = require('./constants.js');
 
 const threshold = 2;
 
-function getScore(board) {
+function getScore(board, komi) {
 	
 	var blackScore = 0;
-	var whiteScore = 0;
+	var whiteScore = komi ? komi : 0;
 	var influence = [];
 	for (var i = 0; i < board.length; i++) {
 		influence[i] = new Array(board.length).fill(0);
 	}
     
+	//this is bad because it defines every piece on board as an influence source
 	for (var i = 0; i < board.length; i++) {
 		for (var j = 0; j < board.length; j++) {
 			if (board[i][j] !== constants.empty) {
@@ -18,6 +19,10 @@ function getScore(board) {
 			} 
 		}
 	}
+	//----------
+	
+	//for each in list of influence sources create influence
+	//-------
 
     for (var i = 0; i < influence.length; i++) {
         for (var j = 0; j < influence.length; j++) {
@@ -87,8 +92,8 @@ function printBoardAndInf(board, influence){
 
 
 
-var W = constants.white;
-var B = constants.black;
+const W = constants.white;
+const B = constants.black;
 
 
 
@@ -96,28 +101,27 @@ var B = constants.black;
 
 
 
-/*
 var brd = [[0, B, B, 0, 0],
 			[B, W, W, 0, 0],
 			[0, B, B, 0, 0],
 			[0, 0, 0, 0, W],
 			[0, 0, 0, W, W]];
-var s = getScore(brd);
+var s = getScore(brd,0);
 
 console.log("left: original board; mid: influence values; right:territory\n");
 console.log(printBoardAndInf(brd,s.influence));
 console.log("white,",s.white);
 console.log("black,",s.black);
 console.log("disputed,",(brd.length*brd.length-s.white-s.black));
-*/
+
 
 
 var brd = [[0, 0, 0, 0, 0],
-			[0, 0, 0, 0, 0],
-			[B, 0, 0, 0, 0],
-			[0, 0, 0, 0, 0],
-			[B, 0, 0, 0, 0]];
-var s = getScore(brd);
+			[0, B, 0, 0, 0],
+			[B, W, B, 0, 0],
+			[W, W, B, 0, 0],
+			[B, 0, W, 0, 0]];
+var s = getScore(brd,0);
 
 console.log("left: original board; mid: influence values; right:territory\n");
 console.log(printBoardAndInf(brd,s.influence));
