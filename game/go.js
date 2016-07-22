@@ -96,38 +96,39 @@ function makeMove(game, xPos, yPos, color, pass) {
 			
 			//this mess handles capturing by brute force checking the 4 adjacent armies to the played piece
 			var armyToCap = new Set();
-			getArmy(x, y+1, oppositeColor, game.board, armyToCap, visited);
-			if(armyToCap.length > 0 && !armyHasLiberties(game.board, armyToCap)){
-				army.forEach((element) => {
+			getArmy(xPos, yPos+1, oppositeColor, game.board, armyToCap, visited);
+			if(armyToCap.size > 0 && !armyHasLiberties(game.board, armyToCap)){
+				armyToCap.forEach((element) => {
 					capturedPieces.add(element);
 				});
 			}
 			armyToCap = new Set();
-			getArmy(x, y-1, oppositeColor, game.board, armyToCap, visited);
-			if(armyToCap.length > 0 && !armyHasLiberties(game.board, armyToCap)){
-				army.forEach((element) => {
+			getArmy(xPos, yPos-1, oppositeColor, game.board, armyToCap, visited);
+			if(armyToCap.size > 0 && !armyHasLiberties(game.board, armyToCap)){
+				armyToCap.forEach((element) => {
 					capturedPieces.add(element);
 				});
 			}
 			armyToCap = new Set();
-			getArmy(x+1, y, oppositeColor, game.board, armyToCap, visited);
-			if(armyToCap.length > 0 && !armyHasLiberties(game.board, armyToCap)){
-				army.forEach((element) => {
+			getArmy(xPos+1, yPos, oppositeColor, game.board, armyToCap, visited);
+			if(armyToCap.size > 0 && !armyHasLiberties(game.board, armyToCap)){
+				armyToCap.forEach((element) => {
 					capturedPieces.add(element);
 				});
 			}
 			armyToCap = new Set();
-			getArmy(x-1, y, oppositeColor, game.board, armyToCap, visited);
-			if(armyToCap.length > 0 && !armyHasLiberties(game.board, armyToCap)){
-				army.forEach((element) => {
+			getArmy(xPos-1, yPos, oppositeColor, game.board, armyToCap, visited);
+			if(armyToCap.size > 0 && !armyHasLiberties(game.board, armyToCap)){
+				armyToCap.forEach((element) => {
 					capturedPieces.add(element);
 				});
 			}
 			//the army created by current player move
 			var newArmyCreated = new Set();
-			getArmy(x, y, color, game.board, newArmyCreated, visited);
+			getArmy(xPos, yPos, color, game.board, newArmyCreated, visited);
+			
 			//suicide is checked only if nothing captured
-			if(capturedPieces.length === 0){
+			if(capturedPieces.size === 0){
 				if (!armyHasLiberties(game.board, newArmyCreated)) {
 					game.board[yPos][xPos] = constants.empty; // undo the board update
 					throw new GameException("You cannot commit suicide.");

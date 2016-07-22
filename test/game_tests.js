@@ -81,7 +81,6 @@ describe('Game of size 3: Cannot pass when not your turn', function() {
         assert.equal(game.turn, constants.black);
         done();
     });
-    it()    
         
 })
 
@@ -172,7 +171,7 @@ describe('Game of size 3: board checking', function() {
     
 });
 
-/*
+
 describe('Testing ko rule', function() {
     
     it('should throw GameException for violation of ko rule', function() {
@@ -197,7 +196,7 @@ console.log(game.board);
 		}
 	});
 });
-*/
+
 describe("Game of size 5: capturing and suicide", function() {
 
   describe('makeMove() capture pieces testing', function() {
