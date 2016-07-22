@@ -232,57 +232,64 @@ gameSchema.methods.makeMove = function(xPos, yPos, color, pass) {
         function point(x, y) {
             return '{"x":' + x + ',"y":' + y + '}';
         }
-
     }
 }
 
-gameSchema.methods.getScore = function() {     
-
-    const createBlackInfluence = (i, j) => {
-        for (var y = 0; y < influence.length; y++) {
-            for (var x = 0; x < influence.length; x++) {
-                influence[y][x] += Math.round(this.board.length - Math.sqrt((x-i)*(x-i) + (y-j)*(y-j)));
-            }
-        }
-    }
-
-    const createWhiteInfluence = (i, j) => {
-        for (var y = 0; y < influence.length; y++) {
-            for (var x = 0; x < influence.length; x++) {
-                influence[y][x] += Math.round(-this.board.length + Math.sqrt((x-i)*(x-i) + (y-j)*(y-j)));
-            }
-        }
-    }
-
-    var blackScore = 0;
-    var whiteScore = 0;
-    var influence = [];
-    for (var i = 0; i < this.board.length; i++) {
-        influence[i] = new Array(this.board.length).fill(0);
-    }
+gameSchema.methods.getScore = function(komi) {
+	
+	const threshold = 2;
+	var blackScore = 0;
+	var whiteScore = komi ? komi : 0;
+	var influence = [];
+	for (var i = 0; i < this.board.length; i++) {
+		influence[i] = new Array(this.board.length).fill(0);
+	}
     
-    for (var i = 0; i < this.board.length; i++) {
-        for (var j = 0; j < this.board.length; j++) {
-            if (this.board[i][j] == constants.black) {
-                createBlackInfluence(i, j);    
-            } 
-            if (this.board[i][j] == constants.white) {
-                createWhiteInfluence(i, j);
-            }
-        }
-    }
+	//this is bad because it defines every piece on board as an influence source
+	for (var i = 0; i < this.board.length; i++) {
+		for (var j = 0; j < this.board.length; j++) {
+			if (this.board[i][j] !== constants.empty) {
+				createInfluence(this.board[i][j], i, j, influence);    
+			} 
+		}
+	}
+	//----------
+	
+	//for each in list of influence sources create influence
+	//-------
 
     for (var i = 0; i < influence.length; i++) {
         for (var j = 0; j < influence.length; j++) {
-            if (influence[i][j] > 0) {
+            if (influence[i][j] > threshold) {
                 blackScore++;
-            } else if (influence[i][j] < 0) {
+            } else if (influence[i][j] < -threshold) {
                 whiteScore++;
             }
         }
     }
-        
-    return { white: whiteScore, black: blackScore };
+    return { white: whiteScore, black: blackScore , influence : influence};
+}
+
+function createInfluence(color, i, j, influenceArr) {
+	var multiplier = 0;
+	if(color === constants.black) multiplier = 1;
+	if(color === constants.white) multiplier = -1;
+	
+	for (var y = 0; y < influenceArr.length; y++) {
+		for (var x = 0; x < influenceArr.length; x++) {
+			var dist = Math.sqrt((x-i)*(x-i) + (y-j)*(y-j));
+			influenceArr[x][y] += multiplier * influenceFunction(dist, influenceArr.length);
+		}
+	}
+}
+
+/**
+*converts a distance to an influence value
+*a larger distance translates to a smaller influence value
+*/
+function influenceFunction(dist, boardSize){
+	//to be adjusted experimentally
+	return 16 / Math.pow(4,dist);
 }
 
 gameSchema.methods.endGame = function() {

@@ -539,7 +539,6 @@ app.post("/game/makeClientMove", function(req, res, next) {
             throw err;
         }
     });
-    console.log(boardUpdates);
     res.json(boardUpdates);
 });
 
