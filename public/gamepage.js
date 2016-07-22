@@ -1,5 +1,4 @@
 var loggedIn = true;
-var longpollID;
 var gameHasEnded;
 var replayData;
 var replayPos = 0;
@@ -22,7 +21,7 @@ function gameEventHandler(eventType, data) {
         console.log("Getting existing game");
         $.get("/game", function(data, status) {
             if (data) {
-                startLongPoll();
+                longpoll();
                 gameEventHandler('initBoard', data);
                 initTimer(900000,900000,1);
                 console.log("Timers set for 15 minutes.")
@@ -82,8 +81,6 @@ function gameEventHandler(eventType, data) {
         var winner = data.winner == 1? "Black" : "White";
         writePC("winner is: " + winner + " whiteScore: " + data.whiteScore + " blackScore: " + data.blackScore);
         showEndGameOpts();
-        stopLongPoll();
-
     }
 
     else if (eventType == 'replay') {
@@ -212,11 +209,8 @@ function windowResized(event) {
     gameboard.drawCurrentBoard();
 }
 
-
-
+var gameActive = true;
 function longpoll() {
-
-    //console.log("Sending long poll");
     $.ajax({
         method: 'GET',
         url: '/game/longpoll',
@@ -226,24 +220,17 @@ function longpoll() {
             }
 
             if (data.winner) { // game has ended
+                gameActive = false;
                 gameEventHandler('endGame', data);
             }
         },
-        complete: {},
+        complete: function() {
+            if (gameActive) {
+                longpoll();
+            }
+        }, 
         timeout: 30000
     });
-}
-
-function startLongPoll() {
-    console.log("Beginning long poll");
-    longpollID = setInterval(function() {
-        longpoll();
-    },1000)
-}
-
-function stopLongPoll() {
-        console.log('Ending long poll');
-        clearInterval(longpollID);
 }
 
 function showEndGameOpts() {
