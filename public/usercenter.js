@@ -13,10 +13,10 @@ $(document).ready(function() {
         $('body').append('<p class="usercenter_label">Skill level :<span id="usercenter_skilllevel"></span></p>');
         $('body').append('<p class="usercenter_label">Wins :<span id="usercenter_wins"></span></p>');
         $('body').append('<p class="usercenter_label">Losses :<span id="usercenter_losses"></span></p>');
-        
+
 
         //get data from server and put it into textfield
-        $.post("/user", function(data, status) {
+        $.post("/user/stats", function(data, status) {
             //data = JSON.parse(data);
             console.log(data);
             document.getElementById('usercenter_username').innerHTML=data.username;
