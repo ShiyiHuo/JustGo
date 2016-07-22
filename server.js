@@ -3,14 +3,14 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const sessions = require('client-sessions');
 
-const constants = require('./game/constants');
+const constants = require('./constants');
 const AIInterface = require('./ai/AIInterface');
-const MongoInterface = require('./MongoInterface');
 
-const go = require('./game/go');
 const app = express();
 const Game = require('./Game');
+const Rule = require('./Rule');
 const User = require('./User');
+
 const activeGames = {};
 
 // set up middleware 
@@ -26,6 +26,23 @@ app.use(express.static("public"));
 
 // listen on port assigned by class
 app.listen(30144, function() {
+    // connect to mongoose
+    const mongoose = require('mongoose');
+    mongoose.connect('mongodb://localhost/GoData');
+    mongoose.connection.on('error', console.error.bind(console, 'connection error'));
+    mongoose.connection.once('open', function() {
+        console.log("succesfully connected to mongo");
+    });
+
+    // make sure guest account exists by upserting
+    User.findOneAndUpdate(
+        { username: 'guest', password: 'guest'}, 
+        { username: 'guest', password: 'guest', wins: 0, losses: 0},
+        { upsert: 'true'}).exec(function(err, user) {
+            if (err)
+                console.log("Error initialize the guest account: " + err);
+    })
+
     console.log("Express listening on port 30144");
 });
 
@@ -53,7 +70,7 @@ app.get('/gamepage.html', function (req, res, next) {
  * @param {Object} userInfo 
  * @param {String} userInfo.username 
  * @param {String} userInfo.password 
- * @return {String} loginStatus
+ * @return {Object} loginStatus
  * @return {String} loginStatus.redirect - '' or '/gampage.html'
  * @return {String} loginStatus.status - 'invalidUsername' or 'OK'
  * @return {String} loginsStatus.login - 'yes' or 'no'
@@ -102,16 +119,15 @@ app.post('/signUp', function(req,res) {
  * @param {String} userInfo.password 
  * @return {String} loginStatus
  * @return {String} loginStatus.redirect - '' or '/gampage.html'
- * @return {String} loginStatus.status - 'invalidUsername' or 'OK'
+ * @return {String} loginStatus.status - 'invalidLogin' or 'OK'
  * @return {String} loginsStatus.login - 'yes' or 'no'
  *  */
 app.post('/login', function(req,res) {
-
+ 
     if (!req.body.username || !req.body.password) {
         console.log("Invalid username/password combination");
         return res.status(400).send("Invalid username/password combination");
     }
-
     var query = User.findOne({username: req.body.username, password: req.body.password});
     query.exec(function(err, user) {
         if (err || !user) {
@@ -249,12 +265,9 @@ app.post('/user/stats', function(req, res) {
  * @param {Boolean} gameParam.hotseat
  */
 app.post("/newGame", function(req, res) {
-    
-    if (!req.session || !req.session.username) {
-        console.log("Invalid session cookie: " + JSON.stringify(req.session));
-        res.status(400).write("Could not find client session cookie");
-        return res.end();     
-    }
+
+    if (!req.session || !req.session.username || !req.body.size || req.body.size < 3 || req.body.hotseat === undefined) 
+        return res.status(400).send("Invalid request format");   
     
     let size;
     let hotseat;
@@ -313,7 +326,7 @@ app.post("/newGame", function(req, res) {
 app.use('/game', function(req, res, next) {
     // check if session cookie
     if (!req.session || !req.session.gameID || !req.session.username) {
-        console.log("Invalid session cookie: " + JSON.stringify(req.session));
+        console.log("Invalid session cookie");
         res.status(400).write("Could not find client session");
         return res.end();
     } 
@@ -346,6 +359,9 @@ app.use('/game', function(req, res, next) {
  * 
  * @return {Object} aiMove 
  * @return {Array} aiMove.board
+ * @return {Number} aiMove.x
+ * @return {Number} aiMove.y
+ * @reurn {Boolean} aiMove.pass
  * @return {Array} aiMove.capturedPieces
  * @return {Number} aiMove.whiteScore
  * @return {Number} aiMove.blackScore
@@ -368,31 +384,27 @@ app.get("/game/longpoll", function(req, res) {
     }, 30000)
 });
 setInterval(function() {
-    
     for (const longpoll of longpollRequests) {    
 
         const game = activeGames[longpoll.req.session.gameID];
-
         if (Date.now() - longpoll.timestamp > 29999) { // server-side timeout
             longpoll.res.end();
             const longpollIndex = longpollRequests.indexOf(longpoll);
             longpollRequests.splice(longpollIndex, 1);
 
-        } else if (game.turn != game.clientColor && !game.hotseatMode) { // AI's Turn
+        } else if (game.turn != game.clientColor && !game.hotseatMode && game.active) { // AI's Turn
             // query the AI 
-            AIInterface.query(game, function(data) {
-                    
+            AIInterface.query(game, function(aiMove) {
                 // Try to make the AI's move
-                let aiMove = JSON.parse(data);
                 let boardUpdates;
                 try {
-                    boardUpdates = game.makeMove(aiMove.y, aiMove.x, aiMove.c, aiMove.pass);
+                    boardUpdates = game.makeMove(aiMove.x, aiMove.y, aiMove.c, aiMove.pass);
                 } catch (err) {
-                    if (err instanceof go.DoublePassException) { // two passes occured in a row. The game is over
+                    if (err instanceof Rule.DoublePassException) { // two passes occured in a row. The game is over
                         console.log("Two passes occured in a row. Ending game...");
                         game.endGame();
                         return;
-                    } else if (err instanceof go.GameException) { // ai made some illegal move
+                    } else if (err instanceof Rule.GameException) { // ai made some illegal move
                         console.log("AI made some illegal move");
                         return;
                     }
@@ -415,6 +427,8 @@ setInterval(function() {
             longpoll.res.json({ winner: endGame.winner, whiteScore: endGame.scores.white, blackScore: endGame.scores.black });
             longpollRequests.splice(longpollIndex, 1);
 
+            game.markModified('moveHistory');
+            game.markModified('moveHistory.board');
             game.markModified('board');
             game.save(function(err) {
                 if (err) {
@@ -468,6 +482,7 @@ app.get("/game", function(req, res) {
  */
 app.get('/game/moveHistory', function(req,res) {
     let game = activeGames[req.session.gameID];
+    debugger;
     res.json(game.moveHistory);
 });
 
@@ -488,7 +503,6 @@ app.get('/game/moveHistory', function(req,res) {
  * @return {number} boardUpdates.blackTime 
  */
 app.post("/game/makeClientMove", function(req, res, next) {
-
     // game should already be active at this point
     const game = activeGames[req.session.gameID];
     if (!game.active) {
@@ -503,30 +517,25 @@ app.post("/game/makeClientMove", function(req, res, next) {
     try {
         boardUpdates = game.makeMove(req.body.x, req.body.y, clientTurn, req.body.pass);
     } catch (err) { // Handle game errors by ending response and returning from function 
-
-        if (err instanceof go.DoublePassException) { // two passes occured in a row
+        if (err instanceof Rule.DoublePassException) { // two passes occured in a row
             game.endGame(); // end the game so the longpoll request is responded to
             res.end();
             return;
-        } else if (err instanceof go.GameException) { // client made some illegal move
+        } else if (err instanceof Rule.GameException) { // client made some illegal move
             res.write(err.message);
             res.end();
             return;
         } else { // Uncaught error
             console.log("Server error making move on the game: " + err);
-            res.status(400).send("Server error making move on the game");
-            res.end();
-            return;
+            return res.status(400).send("Server error making move on the game");
         }  
     }
-
-    // move was legal, save game to database
-    game.markModified('board');
     game.save(function(err) {
         if (err) {
             throw err;
         }
     }); 
-
     res.json(boardUpdates);  
 });
+
+module.exports = app;
