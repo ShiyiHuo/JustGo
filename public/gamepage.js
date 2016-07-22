@@ -87,7 +87,7 @@ function gameEventHandler(eventType, data) {
         console.log('Game has ended');
         gameEventHandler('stopTimer');
         var winner = data.winner == 1? "Black" : "White";
-        writePC("winner is: " + winner + " whiteScore: " + data.whiteScore + " blackScore: " + data.blackScore);
+        writePC("winner is: " + winner + '<br>' + " whiteScore: " + data.whiteScore + '<br>' +" blackScore: " + data.blackScore);
         showEndGameOpts();
     }
 
