@@ -115,6 +115,7 @@ function gameEventHandler(eventType, data) {
                 writePC("Cannot move forward <br>");
             }
         }
+
         else {
             console.log("Replay unavailable");
             writePC("Replay unavailable <br>");
@@ -122,7 +123,7 @@ function gameEventHandler(eventType, data) {
     }
 
     else if (eventType == 'animateRemovedPieces') {
-        gameboard.animateRemove(data.capturedPieces);
+            gameboard.animateRemove((data.capturedPieces));    
     }
 
     else if (eventType == 'backwardClicked') {
@@ -146,9 +147,9 @@ function gameEventHandler(eventType, data) {
     }
     else if (eventType == 'mouseMoved') {
             var position = gameboard.getIntersection(event.clientX,event.clientY);
-            if (position) {
+            if (typeof position !== 'undefined') {
                 if (gameboard.board[position.y][position.x] == 0) {
-                    gameboard.drawTempPiece(position.x,position.y,1);
+                    gameboard.drawTempPiece(position.x,position.y);
                 } else {
                     gameboard.drawCurrentBoard();
                 }
@@ -192,8 +193,9 @@ function gameEventHandler(eventType, data) {
             if (!data.board) {
                 writePC(data);
             } else {
-                gameEventHandler('animateRemovedPieces', data);
                 gameEventHandler('boardUpdate', data);
+                gameEventHandler('animateRemovedPieces', data);
+
                 gameEventHandler('scoreChange', data);
                 gameEventHandler('turnChange');
                 if (data.color == 2) {

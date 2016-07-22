@@ -120,7 +120,35 @@ class Board {
     }
 
     animateRemove(capturedPieces) {
-        console.log(capturedPieces);
+
+        var alpha = 1;
+        const frame = () => {
+            if (alpha < 0.1) {
+                clearInterval(id);
+                this.drawCurrentBoard();
+            } else {
+                this.drawCurrentBoard();
+                alpha = alpha - .01;
+                //get the x and y coords of the line drawn
+                for (var i = 0; i < capturedPieces.length; i++) {
+                    var xcoord = this.gridMargin - this.lineSize/2 + this.gridWidth/(this.boardSize-1)*capturedPieces[i].x;
+                    var ycoord = this.gridMargin - this.lineSize/2 + this.gridHeight/(this.boardSize-1)*capturedPieces[i].y;
+
+                    //draw the circle based on the size of the board squares and color passed
+                    var radius = this.squareSize*.3;
+
+                    this.context.beginPath();
+                    this.context.arc(xcoord, ycoord, radius, 0, 2 * Math.PI, false);
+                    this.context.globalAlpha = alpha;
+                    this.context.fillStyle = "red";
+                    this.context.fill();
+                }
+                    this.context.globalAlpha = 1;
+            }
+        }
+        var id = setInterval(frame,10);
+
+
 
     }
 
