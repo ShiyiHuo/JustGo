@@ -248,7 +248,7 @@ app.post('/user/stats', function(req, res) {
         if (err || !user) {
             return res.status(400).send("Could not find stats for this username");
         } else {
-            const skill = user.wins / (user.losse + 1);
+            const skill = user.wins / (user.losses + 1);
             res.json({
                 wins: user.wins,
                 losses: user.losses,
