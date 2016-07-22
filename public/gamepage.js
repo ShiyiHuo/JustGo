@@ -40,6 +40,14 @@ function gameEventHandler(eventType, data) {
 
     else if (eventType == 'aiMove') {
         console.log("AI made move");
+        if (data.pass === 'true') {
+            writePC('AI passed');
+        }
+        if (data.color == 2) {
+            writePC('Blacks move');
+        } else {
+            writePC('Whites move');
+        }
         gameEventHandler('boardUpdate', data);
         gameEventHandler('scoreChange', data);
         gameEventHandler('turnChange');
@@ -176,7 +184,11 @@ function gameEventHandler(eventType, data) {
                 gameEventHandler('boardUpdate', data);
                 gameEventHandler('scoreChange', data);
                 gameEventHandler('turnChange');
-                writePC("whiteTime: " + data.whiteTime + " blackTime: " + data.blackTime + '<br>');
+                if (data.color == 2) {
+                    writePC('Blacks move');
+                } else {
+                    writePC('Whites move');
+                }
             }
         });
     }
@@ -375,7 +387,7 @@ function passClicked(event) {
 function callRouter(event) {
 
     if (event.currentTarget.id == 'aboutUsButton') {
-        console.log('This button doesnt do anything');
+        window.location = './aboutus.html';
     }
     else if (event.currentTarget.id == 'logOutButton') {
         $.post("/user/logout", function(data, status) {
@@ -387,7 +399,7 @@ function callRouter(event) {
        });
     }
     else if (event.currentTarget.id == 'userCenterButton') {
-        console.log('This button doesnt do anything');
+        window.location = './usercenter.html';
     }
 }
 
@@ -398,6 +410,7 @@ function getStatus() {
            if (data.login == "yes") {
                console.log("Status is logged in");
                loggedIn = true;
+               username = data.username;
            } else {
                console.log("Status is logged out");
                loggedIn = false;
@@ -452,7 +465,7 @@ function getCookie(cname) {
 }
 
 function writePC(text) {
-    $('#playerConsole').prepend(text);
+    $('#playerConsole').prepend(text + '<br>');
 }
 
 
