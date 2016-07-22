@@ -282,9 +282,7 @@ gameSchema.methods.getScore = function() {
             }
         }
     }
-
-
-    
+        
     return { white: whiteScore, black: blackScore };
 }
 
@@ -296,12 +294,11 @@ gameSchema.methods.endGame = function() {
     this.stopWhiteTimer();
     this.stopBlackTimer();
     
-    this.active = false 
-    
     // decide on winner then mark winner state
     var scores = this.getScore();
     var winner = scores.white > scores.black ? constants.white : constants.black;
     this.winner = winner;
+    this.active = false 
 
     // update user stats
     User.findOne({username: this.username}, function (err, user) {
@@ -320,7 +317,6 @@ gameSchema.methods.endGame = function() {
             }
         });
     });
-    debugger;
 
     return { winner: winner, scores: scores };
 }
@@ -329,6 +325,11 @@ gameSchema.methods.endGameWithWinner = function(winner) {
     if (!this.active)
         throw new Error("The game has already ended");
 
+    // stop the timers
+    this.stopBlackTimer();
+    this.stopWhiteTimer();
+
+    // update user stats
     User.findOne({username: this.username}, function (err, user) {
         if (err || !user) 
             return console.log("Error saving stats for username: " + this.username);
@@ -364,7 +365,7 @@ gameSchema.methods.resignClient = function() {
     if (this.hotseatMode) {
         winner = (this.turn == constants.black)? constants.white : constants.black
     } else {
-        winner = this.clientColor == constants.black? constants.white : constants.black;
+        winner = (this.clientColor == constants.black)? constants.white : constants.black;
     }
     return this.endGameWithWinner(winner);
 }
@@ -374,8 +375,6 @@ gameSchema.methods.startWhiteTimer = function() {
     whiteIntervals[this._id.id] = setInterval(() => {
         this.whiteMsRemaining = this.whiteEndTime - Date.now(); 
         if (this.whiteMsRemaining <= 0) {
-            this.stopWhiteTimer();
-            this.stopBlackTimer();
             this.endGameWithWinner(constants.black);
         }   
     }, 100);
@@ -390,8 +389,6 @@ gameSchema.methods.startBlackTimer = function() {
     blackIntervals[this._id.id] = setInterval(() => {
         this.blackMsRemaining = this.blackEndTime - Date.now(); 
         if (this.blackMsRemaining <= 0) {
-            this.stopBlackTimer();
-            this.stopWhiteTimer();
             this.endGameWithWinner(constants.white);
         }   
     }, 100);
