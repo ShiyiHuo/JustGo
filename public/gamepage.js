@@ -1,6 +1,8 @@
 var loggedIn = true;
 var longpollID;
 var gameHasEnded;
+var replayData;
+var replayPos = 0;
 
 $(document).ready(function() {
     initPage();
@@ -20,7 +22,7 @@ function gameEventHandler(eventType, data) {
         console.log("Getting existing game");
         $.get("/game", function(data, status) {
             if (data) {
-                longpoll();
+                startLongPoll();
                 gameEventHandler('initBoard', data);
                 initTimer(900000,900000,1);
                 console.log("Timers set for 15 minutes.")
@@ -79,39 +81,65 @@ function gameEventHandler(eventType, data) {
         gameEventHandler('stopTimer');
         var winner = data.winner == 1? "Black" : "White";
         writePC("winner is: " + winner + " whiteScore: " + data.whiteScore + " blackScore: " + data.blackScore);
+        showEndGameOpts();
+        stopLongPoll();
 
-        $('#container').append('<div id="endgameTrans"></div>');
-        $('#container').append('<div id="endgameOpts"></div>');
-        $('#endgameOpts').width($('#container').width()*.3);
-        $('#endgameOpts').height($('#container').height()*.15);
+    }
 
-        //endgame buttons replay and new game
-        $('#endgameOpts').append('<button type="button" class="endgameButton" id="replay">Replay Game History</button><br>');
-        $('#endgameOpts').append('<button type="button" class="endgameButton" id="newGame">New Game</button>');
-
-        //button styling
-        $('.endgameButton').width($('#endgameOpts').width()*.9);
-        $('.endgameButton').height($('#endgameOpts').height()*.25);
-        $('.endgameButton').css('margin-left','0 auto');
-        $('.endgameButton').css('margin-right','0 auto');
-        $('.endgameButton').css('margin-top', $('#endgameOpts').height()*.1);
-
-
-        //button functionality
-        $('#replay').click(function() {
-            writePC("Replay<br>");
-        });
-        $('#newGame').click(function() {
-            gameEventHandler('newGame');
-        });
-        /*
+    else if (eventType == 'replay') {
+        console.log("initializing replay with data \n");
         $.get("/game/moveHistory", function(data, status) {
             if (data) {
-                console.log(data);
+                replayData = data;
+                removeGameBoard();
+                removeGameButtons();
+                removeEndGameOpts();
+                initReplayBoard(gameboard.boardSize);
             }
         });
-        */
     }
+    else if (eventType == 'forwardClicked') {
+        console.log('forward clicked');
+        if (typeof replayData !== 'undefined') {
+            if (replayPos < replayData.length-1) {
+                replayPos = replayPos+1;
+                gameEventHandler('boardUpdate',replayData[replayPos]);
+            }
+            else {
+                console.log("Cannot move forward");
+                writePC("Cannot move forward <br>");
+            }
+        }
+        else {
+            console.log("Replay unavailable");
+            writePC("Replay unavailable <br>");
+        }
+    }
+
+    else if (eventType == 'animateRemovedPieces') {
+        //gambeboard.animate(data);
+    }
+
+    else if (eventType == 'backwardClicked') {
+
+        console.log('backward clicked');
+        if (typeof replayData !== 'undefined') {
+            if (replayPos > 0) {
+                replayPos = replayPos-1;
+                gameEventHandler('boardUpdate',replayData[replayPos]);
+            }
+            else {
+                console.log("Cannot move backward");
+                writePC("Cannot move backward <br>");
+            }
+        }
+        else {
+            console.log("Replay unavailable");
+            writePC("Replay unavailable <br>");
+        }
+
+    }
+
     else if (eventType == 'initBoard') {
         console.log('initializing board');
         initBoard(data.board.length);
@@ -164,6 +192,11 @@ function gameEventHandler(eventType, data) {
         $('#whiteTime').append(time.whiteTime);
     }
 
+    else if (eventType == 'stopReplay') {
+        removeReplayButtons();
+        showEndGameOpts();
+    }
+
     else {
         window.alert("CASE NOT HANDLED"+ eventType);
     }
@@ -179,9 +212,11 @@ function windowResized(event) {
     gameboard.drawCurrentBoard();
 }
 
+
+
 function longpoll() {
 
-    console.log("Beginning long poll");
+    //console.log("Sending long poll");
     $.ajax({
         method: 'GET',
         url: '/game/longpoll',
@@ -194,9 +229,82 @@ function longpoll() {
                 gameEventHandler('endGame', data);
             }
         },
-        complete: longpoll,
+        complete: {},
         timeout: 30000
     });
+}
+
+function startLongPoll() {
+    console.log("Beginning long poll");
+    longpollID = setInterval(function() {
+        longpoll();
+    },1000)
+}
+
+function stopLongPoll() {
+        console.log('Ending long poll');
+        clearInterval(longpollID);
+}
+
+function showEndGameOpts() {
+    $('#container').append('<div id="endgameTrans"></div>');
+    $('#container').append('<div id="endgameOpts"></div>');
+    $('#endgameOpts').width($('#container').width()*.3);
+    $('#endgameOpts').height($('#container').height()*.15);
+
+    //endgame buttons replay and new game
+    $('#endgameOpts').append('<button type="button" class="endgameButton" id="replay">Replay Game History</button><br>');
+    $('#endgameOpts').append('<button type="button" class="endgameButton" id="newGame">New Game</button>');
+
+    //button styling
+    $('.endgameButton').width($('#endgameOpts').width()*.9);
+    $('.endgameButton').height($('#endgameOpts').height()*.25);
+    $('.endgameButton').css('margin-left','0 auto');
+    $('.endgameButton').css('margin-right','0 auto');
+    $('.endgameButton').css('margin-top', $('#endgameOpts').height()*.1);
+
+    //button functionality
+    $('#replay').click(function() {
+        gameEventHandler('replay');
+    });
+    $('#newGame').click(function() {
+        gameEventHandler('newGame');
+    });
+}
+
+function removeEndGameOpts() {
+    $('#endgameTrans').remove();
+    $('#endgameOpts').remove();
+}
+
+function removeReplayButtons() {
+    $('#buttonContainer').empty();
+    $('#stopReplayContainer').remove();
+}
+
+function removeGameBoard() {
+    $('#boardContainer').empty();
+}
+
+function removeGameButtons() {
+    $('#buttonContainer').empty();
+}
+
+function initReplayBoard(size) {
+    initReplayButtons();
+    applyStyle();
+    var canvas = document.createElement("CANVAS");
+    canvas.id = "canvas";
+    canvas.width = $('#boardContainer').width();
+    canvas.height = $('#boardContainer').height();
+    $('#boardContainer').append(canvas);
+    var color = getCookie("boardColor");
+    if (color == undefined) {
+        color = white;
+    }
+    gameboard = new Board(size, $('#boardContainer').width(), canvas, color);
+    gameboard.drawCurrentBoard();
+
 }
 
 function initBoard(size) {
@@ -240,6 +348,29 @@ function initButtons(){
     $('.resignButton').click(resignClicked);
 
 }
+
+//these are the buttons responsible for going forward and backward in replay
+function initReplayButtons(){
+    $('#buttonContainer').append('<button type="button" class="button forwardButton">Forward</button><br>');
+    $('.forwardButton').click(forwardClicked);
+    $('#buttonContainer').append('<button type="button" class="button backwardButton">Backward</button>');
+    $('.backwardButton').click(backwardClicked);
+
+    $('#gameContainer').append('<div id=stopReplayContainer></div>');
+    $('#stopReplayContainer').append('<button type="button" class="stopReplayButton">x</button>');
+    $('.stopReplayButton').click(function() {
+        gameEventHandler('stopReplay');
+    });
+}
+
+function backwardClicked(event) {
+    gameEventHandler('backwardClicked',event);
+}
+
+function forwardClicked(event) {
+    gameEventHandler('forwardClicked',event);
+}
+
 
 //if the user resigns, post to server and write to the player console
 function resignClicked(event) {
@@ -400,6 +531,15 @@ function applyStyle() {
     $('.button').css('padding-bottom', $('.button').width()*(10/130));
     $('.button').css('font-size', $('.button').width()*.1);
     $('.button').css('border-radius', $('.button').width()*(1000/130));
+
+    //set the game replay button
+    $('#stopReplayContainer').width($('#boardContainer').width()*.05);
+    $('#stopReplayContainer').height($('#boardContainer').width()*.05);
+    $('.stopReplayButton').width($('#stopReplayContainer').width()*.4);
+    $('.stopReplayButton').height($('#stopReplayContainer').height()*.5);
+    $('.stopReplayButton').css('font-size',$('#stopReplayButton').height());
+
+
 
     //create the console window
     $('#playerConsole').width($('#playerContainer').width());

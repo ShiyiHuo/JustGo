@@ -74,8 +74,8 @@ li.navbarItem:hover {
 #gameContainer {
 
     position: absolute;
-    /*border-style: solid;
-    border-color: red;*/
+    border-style: solid;
+    border-color: green;
 }
 
 #boardContainer {
@@ -147,6 +147,7 @@ li.navbarItem:hover {
 }
 
 
+
 #playerConsole {
 
     font-family: Century Gothic, sans-serif;
@@ -179,4 +180,34 @@ th {
 td {
     border-left: none;
     border-right: none;
+}
+
+#stopReplayContainer {
+    position: fixed;
+    border-style: solid;
+    border-color: purple;
+    top: 70px;
+    left: 0;
+    text-align: center;
+}
+
+.stopReplayButton {
+    position: absolute;
+    left: 0;
+
+    background-color: black; /* Green */
+    border: none;
+    color: white;
+    /*padding: 15px 32px;*/
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    /*margin: 4px 2px;*/
+    cursor: pointer;
+    border-radius: 100%;
+
+
+
+
+
 }
