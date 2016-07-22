@@ -2,6 +2,7 @@ var loggedIn = true;
 var gameHasEnded;
 var replayData;
 var replayPos = 0;
+var username = "player1";
 
 $(document).ready(function() {
     initPage();
@@ -66,7 +67,7 @@ function gameEventHandler(eventType, data) {
 
         gameHasEnded = false;
         console.log("Starting new game");
-        var boardSizeSelected = 9;
+        var boardSizeSelected = gameboard.boardSize;
         var hotseatSelected = false;
         var newGameParameters = {size: boardSizeSelected, hotseat: hotseatSelected};
         $.post("/newGame", newGameParameters, function(data, status) {
@@ -228,7 +229,7 @@ function longpoll() {
             if (gameActive) {
                 longpoll();
             }
-        }, 
+        },
         timeout: 30000
     });
 }
@@ -320,10 +321,11 @@ function boardClicked(event) {
 
 //the player container contains user scores, usernames, timers, etc
 function initPlayerContainer(){
-    $('#playerTable').append('<table id="table" frame="box" rules="none" border=1>');
-    $('#playerTable').append('<tr> <th>Pic</th> <th>Players</th> <th>Score</th> <th>Time</th></tr>');
-    $('#playerTable').append('<tr> <td>Black</td><td>Player1</td><td id="blackScore"></td><td id="blackTime"></td></tr>');
-    $('#playerTable').append('<tr> <td>White</td><td>Player1</td><td id="whiteScore"></td><td id="whiteTime"></td></tr>');
+
+    $('#playerTable').append('<table id="table" frame="box" rules="none" border="0">');
+    $('#playerTable').append('<tr> <th>Color</th> <th>Players</th> <th>Score</th> <th>Time</th></tr>');
+    $('#playerTable').append('<tr> <td>Black</td><td>'+ username +'</td><td id="blackScore"></td><td id="blackTime"></td></tr>');
+    $('#playerTable').append('<tr> <td>White</td><td>Player2</td><td id="whiteScore"></td><td id="whiteTime"></td></tr>');
     $('#playerTable').append('</table>');
 }
 
@@ -474,8 +476,15 @@ function applyStyle() {
         //the board container is the height of the game container
         $('#boardContainer').width($('#gameContainer').height());
         $('#boardContainer').height($('#gameContainer').height());
-        $('#dataContainer').width($('#gameContainer').width()-$('#boardContainer').width());
+        $('#boardContainer').css('margin-left', $('#gameContainer').width()*(1/100));
+
+
+        $('#dataContainer').width($('#gameContainer').width()-$('#boardContainer').width()-$('#gameContainer').width()*(4/100));
         $('#dataContainer').height($('#boardContainer').height());
+        $('#dataContainer').css('margin-left', $('#gameContainer').width()*(3/100));
+
+
+
 
     } else {
     //the height is greater than the width
@@ -496,10 +505,10 @@ function applyStyle() {
 
     //set the player table based on the above bounds
     $('#playerTable').width($('#playerContainer').width());
-    $('#playerTable').height($('#playerContainer').height()*(2/3));
-    $('#playerTable').css('font-size',$('#playerTable').width()*.04);
-    $('#playerTable td').css('padding',$('#playerTable').width()*.06);
-    $('#playerTable th').css('padding',$('#playerTable').width()*.06);
+    $('#playerTable').height($('#playerContainer').height()*(1/2));
+    $('#playerTable').css('font-size',$('#playerTable').width()*.06);
+    $('#playerTable td').css('padding',$('#playerTable').width()*.04);
+    $('#playerTable th').css('padding',$('#playerTable').width()*.04);
 
     //set the button container based on the above bounds
     $('#buttonContainer').css('top', $('#playerContainer').height());
