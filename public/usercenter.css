@@ -1,6 +1,6 @@
 /* back button */
 .backButton {
-    margin-top: 30px;
+    margin-top: 110px;
     margin-left: 30px;
     display:block;
     width:60px;
@@ -29,36 +29,40 @@
 
 /* user center labels */
 .usercenter_label {
-    font-size: 25px;
+    font-size: 30px;
+    font-weight: bold;
     font-family: Century Gothic, sans-serif;
     margin-top: 50px;
     margin-left: 550px;
 }
 
 #usercenter_username {
-
-    font-size: 25px;
+    font-weight: normal;
+    font-size: 40px;
     font-family: Century Gothic, sans-serif;
     margin-top: 50px;
     margin-left: 50px;
 }
 
 #usercenter_skilllevel {
-    font-size: 25px;
+    font-weight: normal;
+    font-size: 40px;
     font-family: Century Gothic, sans-serif;
     margin-top: 50px;
     margin-left: 50px;
 }
 
 #usercenter_wins {
-    font-size: 25px;
+    font-weight: normal;
+    font-size: 40px;
     font-family: Century Gothic, sans-serif;
     margin-top: 50px;
     margin-left: 50px;
 }
 
 #usercenter_losses {
-    font-size: 25px;
+    font-weight: normal;
+    font-size: 40px;
     font-family: Century Gothic, sans-serif;
     margin-top: 50px;
     margin-left: 50px;
@@ -80,6 +84,19 @@ input[type=text], select {
 
 
 /* Navigation Bar */
+.navbar_container {
+    position: fixed;
+    /*border-style: solid;*/
+    /*border-color: red;*/
+    width: 100vw;
+    height: 75px;
+    left: 0;
+    margin-left: 0 auto;
+    margin-right: 0 auto;
+    top: 0;
+}
+
+
 ul {
     list-style-type: none;
     overflow: hidden;
@@ -112,19 +129,8 @@ li a:hover {
 
 
 
-/* background color */
-html, body {
-    margin-top: 0px;
-    width: 100%;
-    height:100%;
-    font-family: 'Open Sans', sans-serif;
-    color: white;
-    font-weight: 600;
-    background: #092756;
-    background: -moz-radial-gradient(0% 100%, ellipse cover, rgba(104,128,138,.4) 10%,rgba(138,114,76,0) 40%),-moz-linear-gradient(top,  rgba(57,173,219,.25) 0%, rgba(42,60,87,.4) 100%), -moz-linear-gradient(-45deg,  #670d10 0%, #092756 100%);
-    background: -webkit-radial-gradient(0% 100%, ellipse cover, rgba(104,128,138,.4) 10%,rgba(138,114,76,0) 40%), -webkit-linear-gradient(top,  rgba(57,173,219,.25) 0%,rgba(42,60,87,.4) 100%), -webkit-linear-gradient(-45deg,  #670d10 0%,#092756 100%);
-    background: -o-radial-gradient(0% 100%, ellipse cover, rgba(104,128,138,.4) 10%,rgba(138,114,76,0) 40%), -o-linear-gradient(top,  rgba(57,173,219,.25) 0%,rgba(42,60,87,.4) 100%), -o-linear-gradient(-45deg,  #670d10 0%,#092756 100%);
-    background: -ms-radial-gradient(0% 100%, ellipse cover, rgba(104,128,138,.4) 10%,rgba(138,114,76,0) 40%), -ms-linear-gradient(top,  rgba(57,173,219,.25) 0%,rgba(42,60,87,.4) 100%), -ms-linear-gradient(-45deg,  #670d10 0%,#092756 100%);
-    background: -webkit-radial-gradient(0% 100%, ellipse cover, rgba(104,128,138,.4) 10%,rgba(138,114,76,0) 40%), linear-gradient(to bottom,  rgba(57,173,219,.25) 0%,rgba(42,60,87,.4) 100%), linear-gradient(135deg,  #670d10 0%,#092756 100%);
-    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#3E1D6D', endColorstr='#092756',GradientType=1 );
+
+@font-face {
+    font-family: Open Sans;
+    src: url(./fonts/OpenSans-Regular.ttf);
 }

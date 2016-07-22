@@ -190,8 +190,13 @@ function callRouter(event) {
        });
     }
     else if (event.currentTarget.id == 'aboutUsButton') {
-        console.log('This button doesnt do anything');
-        location.reload();
+        location.href="/aboutus.html";
+        //location.reload();
+    }
+
+    else if (event.currentTarget.id == 'userCenterButton') {
+        location.href="/usercenter.html";
+        //location.reload();
     }
 }
 

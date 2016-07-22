@@ -21,14 +21,14 @@ $(document).ready(function() {
 function showMenuBar(login) {
 
     if (login == "logged in") {
-        $('body').append('<ul>' +
+        $('body').append('<div class="navbar_container"><ul>' +
+                         '<li><a id="aboutUs" href="/aboutus.html">About Us</a></li>'+
                          '<li><a id="logoutB">Log Out</a></li>' +
                          '<li><a id="userCenter" href="/usercenter.html">User Center</a></li>' +
-                         '<li><a id="aboutUs" href="/aboutus.html">About Us</a></li>' +
-                         '</ul>');
+                         '</ul></div>');
 
         $('#logoutB').on('click', function() {
-            $.post("/logout", function(data, status) {
+            $.post("/user/logout", function(data, status) {
                 data = JSON.parse(data);
                 if (data.status == "OK") {
                     console.log("Logged out");
