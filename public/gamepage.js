@@ -218,7 +218,6 @@ function longpoll() {
             if (data.board) { // AI has made move
                 gameEventHandler('aiMove', data);
             }
-
             if (data.winner) { // game has ended
                 gameActive = false;
                 gameEventHandler('endGame', data);
