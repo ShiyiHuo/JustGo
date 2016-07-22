@@ -375,6 +375,7 @@ app.use('/game', function(req, res, next) {
  */
 const longpollRequests = [];
 app.get("/game/longpoll", function(req, res) {
+    console.log("GET: /game/longpoll");
     const game = activeGames[req.session.gameID];
     if (game.active) 
         longpollRequests.push({ req: req, res: res, timestamp: Date.now() });
