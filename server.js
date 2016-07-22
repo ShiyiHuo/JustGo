@@ -13,7 +13,7 @@ const User = require('./User');
 
 const activeGames = {};
 
-// set up middleware 
+// set up middleware
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 app.use(sessions({
@@ -22,7 +22,7 @@ app.use(sessions({
     duration: 60 * 60 * 1000,
     activeDuration: 60 * 60 * 1000
 }));
-app.use(express.static("public")); 
+app.use(express.static("public"));
 
 // listen on port assigned by class
 app.listen(30144, function() {
@@ -36,7 +36,7 @@ app.listen(30144, function() {
 
     // make sure guest account exists by upserting
     User.findOneAndUpdate(
-        { username: 'guest', password: 'guest'}, 
+        { username: 'guest', password: 'guest'},
         { username: 'guest', password: 'guest', wins: 0, losses: 0},
         { upsert: 'true'}).exec(function(err, user) {
             if (err)
@@ -67,9 +67,9 @@ app.get('/gamepage.html', function (req, res, next) {
  * If no username/password are provided. Responds with 400 status
  * @module POST:/signUp
  * @function
- * @param {Object} userInfo 
- * @param {String} userInfo.username 
- * @param {String} userInfo.password 
+ * @param {Object} userInfo
+ * @param {String} userInfo.username
+ * @param {String} userInfo.password
  * @return {Object} loginStatus
  * @return {String} loginStatus.redirect - '' or '/gampage.html'
  * @return {String} loginStatus.status - 'invalidUsername' or 'OK'
@@ -114,16 +114,16 @@ app.post('/signUp', function(req,res) {
  * If no username/password are provided respond with 400 status.
  * @module POST:/login
  * @function
- * @param {Object} userInfo 
- * @param {String} userInfo.username 
- * @param {String} userInfo.password 
+ * @param {Object} userInfo
+ * @param {String} userInfo.username
+ * @param {String} userInfo.password
  * @return {String} loginStatus
  * @return {String} loginStatus.redirect - '' or '/gampage.html'
  * @return {String} loginStatus.status - 'invalidLogin' or 'OK'
  * @return {String} loginsStatus.login - 'yes' or 'no'
  *  */
 app.post('/login', function(req,res) {
- 
+
     if (!req.body.username || !req.body.password) {
         console.log("Invalid username/password combination");
         return res.status(400).send("Invalid username/password combination");
@@ -140,7 +140,7 @@ app.post('/login', function(req,res) {
         } else {
             req.session.username = user.username; // add login info to session
             res.write(JSON.stringify({
-                redirect: '/gamepage.html', 
+                redirect: '/gamepage.html',
                 status: 'OK',
                 login: 'yes'
             }));
@@ -153,9 +153,9 @@ app.post('/login', function(req,res) {
 
 /**
  * Get login status of user's session cookie
- * 
+ *
  * @return {Object} loginStatus
- * @return {String} loginStatus.redirect - '' 
+ * @return {String} loginStatus.redirect - ''
  * @return {String} loginStatus.status - 'OK'
  * @return {String} loginsStatus.login - 'yes' or 'no'
  *  */
@@ -198,7 +198,7 @@ app.use('/user', function(req, res, next) {
  * @module POST:/user/logout
  * @function
  * @return {Object} loginStatus
- * @return {String} loginStatus.redirect - '/' 
+ * @return {String} loginStatus.redirect - '/'
  * @return {String} loginStatus.status - 'OK'
  * @return {String} loginsStatus.login - 'no'
  *  */
@@ -213,10 +213,10 @@ app.post('/user/logout', function(req,res) {
 });
 
 /**
- * User selects to play AI. 
+ * User selects to play AI.
  * If the user is logged in (handled by /user middleware), redirect to /gamepage.html
  * @module POST:/user/playAIB
- * @function 
+ * @function
  * */
 app.post('/user/playAIB', function(req, res) {
     res.redirect('/gamepage.html');
@@ -224,7 +224,7 @@ app.post('/user/playAIB', function(req, res) {
 });
 
 /**
- * User selects to play AI. 
+ * User selects to play AI.
  * If the user is logged in (handled by /user middleware), redirect to /gamepage.html
  * @module POST:/user/playHSB
  * @function
@@ -239,7 +239,7 @@ app.post('/user/playHSB', function(req, res) { // TODO: do we even need this pat
  * @module POST:/user/stats
  * @function
  * @return {Object} userStats
- * @return {Number} userStats.wins 
+ * @return {Number} userStats.wins
  * @return {Number} userStats.losses
  **/
 app.post('/user/stats', function(req, res) {
@@ -270,9 +270,9 @@ app.post('/user/stats', function(req, res) {
  */
 app.post("/newGame", function(req, res) {
 
-    if (!req.session || !req.session.username || !req.body.size || req.body.size < 3 || req.body.hotseat === undefined) 
-        return res.status(400).send("Invalid request format");   
-    
+    if (!req.session || !req.session.username || !req.body.size || req.body.size < 3 || req.body.hotseat === undefined)
+        return res.status(400).send("Invalid request format");
+
     let size;
     let hotseat;
     try {
@@ -316,7 +316,7 @@ app.post("/newGame", function(req, res) {
         game.startBlackTimer();
         req.session.gameID = game._id.id;
         res.end();
-    });  
+    });
 
 });
 
@@ -333,19 +333,19 @@ app.use('/game', function(req, res, next) {
         console.log("Invalid session cookie");
         res.status(400).write("Could not find client session");
         return res.end();
-    } 
-   
+    }
+
      // initialize game for this gameID if not active
     if (activeGames[req.session.gameID]) {
         next();
-    } else { 
+    } else {
         Game.findById(req.session.gameID, function(err, game) {
             if (err || !game) {
                 res.status(400).write("Could not find game in database");
                 res.end();
             } else {
                 activeGames[req.session.gameID] = game;
-                next();        
+                next();
             }
         });
     }
@@ -360,8 +360,8 @@ app.use('/game', function(req, res, next) {
  * Responds with "endGame" object when the game ends.
  * @module GET:/game/longpoll
  * @function
- * 
- * @return {Object} aiMove 
+ *
+ * @return {Object} aiMove
  * @return {Array} aiMove.board
  * @return {Number} aiMove.x
  * @return {Number} aiMove.y
@@ -371,7 +371,7 @@ app.use('/game', function(req, res, next) {
  * @return {Number} aiMove.blackScore
  * @return {Number} aiMove.whiteTime
  * @return {Number} aiMove.blackTime
- * 
+ *
  * @return {Object} endGame
  * @return {Number} endGame.winner
  * @return {Number} endGame.whiteScore
@@ -381,7 +381,7 @@ const longpollRequests = [];
 app.get("/game/longpoll", function(req, res) {
     console.log("GET: /game/longpoll");
     const game = activeGames[req.session.gameID];
-    if (game.active) 
+    if (game.active)
         longpollRequests.push({ req: req, res: res, timestamp: Date.now() });
     else setTimeout(function() {
         res.status(400).write("The game is over");
@@ -389,7 +389,7 @@ app.get("/game/longpoll", function(req, res) {
     }, 30000)
 });
 setInterval(function() {
-    for (const longpoll of longpollRequests) {    
+    for (const longpoll of longpollRequests) {
 
         const game = activeGames[longpoll.req.session.gameID];
         if (Date.now() - longpoll.timestamp > 29999) { // server-side timeout
@@ -398,7 +398,7 @@ setInterval(function() {
             longpollRequests.splice(longpollIndex, 1);
 
         } else if (game.turn != game.clientColor && !game.hotseatMode && game.active) { // AI's Turn
-            // query the AI 
+            // query the AI
             AIInterface.query(game, function(aiMove) {
                 // Try to make the AI's move
                 let boardUpdates;
@@ -413,9 +413,9 @@ setInterval(function() {
                         console.log("AI made some illegal move");
                         return;
                     }
-                } 
+                }
                 // respond to longpoll with AI's move and remove requests from queue
-                longpoll.res.json(boardUpdates); 
+                longpoll.res.json(boardUpdates);
                 const longpollIndex = longpollRequests.indexOf(longpoll);
                 longpollRequests.splice(longpollIndex, 1);
 
@@ -424,7 +424,7 @@ setInterval(function() {
                 game.save(function(err) {
                     if (err) throw err;
                 });
-            });  
+            });
 
         } else if (!game.active) { // game is over
             const endGame = game.getEndGameState();
@@ -446,7 +446,7 @@ setInterval(function() {
 }, 100);
 
 /**
- * Player resigns. 
+ * Player resigns.
  * Makes game inactive so the /game/longpoll is responded to
  * @module POST:/game/resign
  * @function
@@ -469,7 +469,7 @@ app.get("/game", function(req, res) {
         if (longpoll.req.session.gameID == req.session.gameID) {
             // delete this longpoll from the array
             const longpollIndex = longpollRequests.indexOf(longpoll);
-            longpollRequests.splice(longpollIndex, 1);             
+            longpollRequests.splice(longpollIndex, 1);
         }
     }
     // find game and respond with it
@@ -483,11 +483,10 @@ app.get("/game", function(req, res) {
  * return the game's move history
  * @module GET:/game/moveHistory
  * @function
- * @return {Array} moveHistory 
+ * @return {Array} moveHistory
  */
 app.get('/game/moveHistory', function(req,res) {
     let game = activeGames[req.session.gameID];
-    debugger;
     res.json(game.moveHistory);
 });
 
@@ -495,17 +494,17 @@ app.get('/game/moveHistory', function(req,res) {
  * Make move when the client clicks the board.
  * @module POST:/game/makeClientMove
  * @function
- * @param {Object} move 
+ * @param {Object} move
  * @param {Number} move.x - the row of the board
  * @param {Number} move.y - the column of the board
  * @param {Boolean} move.pass - if the player passes
  * @return {Object} boardUpdates
- * @return {Array} boardUpdates.board 
+ * @return {Array} boardUpdates.board
  * @return {Array} boardUpdates.capturedPieces
  * @return {Number} boardUpdates.whiteScore
  * @return {Number} boardUpdates.blackScore
  * @return {Number} boardUpdates.whiteTime
- * @return {number} boardUpdates.blackTime 
+ * @return {number} boardUpdates.blackTime
  */
 app.post("/game/makeClientMove", function(req, res, next) {
     // game should already be active at this point
@@ -521,7 +520,7 @@ app.post("/game/makeClientMove", function(req, res, next) {
     let clientTurn = game.hotseatMode? game.turn : game.clientColor;
     try {
         boardUpdates = game.makeMove(req.body.x, req.body.y, clientTurn, req.body.pass);
-    } catch (err) { // Handle game errors by ending response and returning from function 
+    } catch (err) { // Handle game errors by ending response and returning from function
         if (err instanceof Rule.DoublePassException) { // two passes occured in a row
             game.endGame(); // end the game so the longpoll request is responded to
             res.end();
@@ -533,14 +532,15 @@ app.post("/game/makeClientMove", function(req, res, next) {
         } else { // Uncaught error
             console.log("Server error making move on the game: " + err);
             return res.status(400).send("Server error making move on the game");
-        }  
+        }
     }
     game.save(function(err) {
         if (err) {
             throw err;
         }
-    }); 
-    res.json(boardUpdates);  
+    });
+    console.log(boardUpdates);
+    res.json(boardUpdates);
 });
 
 module.exports = app;
