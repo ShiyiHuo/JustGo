@@ -4,6 +4,23 @@
     box-sizing: border-box;
 }
 
+.logo_text {
+    font-family: Open Sans, sans-serif;
+    font-size: 20px;
+    margin-left: 250;
+}
+
+
+
+.boardOption {
+    font-size: 20px;
+}
+
+input[type="radio"] {
+    margin: 0 10px 0 40px;
+}
+
+
 #container {
     position: fixed;
     /*border-style: solid;*/
@@ -26,7 +43,7 @@
     left: 0;
     right: 0;
     width: 700px;
-    height: 350px;
+    height: 500px;
     top: 150px;
 }
 
@@ -81,7 +98,7 @@
     font-family: Century Gothic, sans-serif;
     /*font-family: Verdana, Geneva, sans-serif;*/
     font-weight: bold;
-    margin: 4px 2px;
+    margin: 10px 2px;
     border: 1px solid black;
     color: black;
     text-decoration: none;
@@ -268,7 +285,7 @@ li.navbarItem {
     display: block;
     color: white;
     text-align: center;
-    padding: 16px 16px;
+    padding: 24px 16px;
     text-decoration: none;
 }
 
@@ -277,9 +294,16 @@ li.navbarItem:hover {
     background-color: #111;
 }
 
+body {
 
+}
 
 @font-face {
     font-family: cocogoose;
     src: url(./fonts/Cocogoose_trial.otf);
+}
+
+@font-face {
+    font-family: Open Sans;
+    src: url(./fonts/OpenSans-Regular.ttf);
 }

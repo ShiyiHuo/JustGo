@@ -5,7 +5,6 @@ var hotseatSelected = false;
 
 $(document).ready(function() {
     initiatePage();
-    showBackButton();
     showNavBar(loggedIn);
 });
 
@@ -247,7 +246,7 @@ function updateNavBar() {
 
 function showLogo() {
     $('#container').append('<div id=logoContainer class=container></div>');
-    $('#logoContainer').append('<div class="title_section1">WELCOME TO</div><div class="title_section2">GO</div><div class="title_section3">BY DEEPFRIEDMILK</div>');
+    $('#logoContainer').append('<div class="title_section1">WELCOME TO</div><div class="title_section2">GO</div><div class="title_section3">BY DEEPFRIEDMILK</div><br><br><br><div class="logo_text">Click anywhere to start</div>');
     $('#logoContainer').click(callRouter);
 }
 
@@ -286,9 +285,9 @@ function showSignUp() {
 function showBoardOption() {
     $('#container').append('<div id=boardOptionContainer class=container></div>');
     $('#boardOptionContainer').append('<p id="boardSizeLabel">Select board size</p>');
-    $('#boardOptionContainer').append('<form action=""><input type="radio" name="size" value="9"> 9x9</input><input type="radio" name="size" value="13">13x13</input><input type="radio" name="size" value="19">19x19</input></form><br>');
+    $('#boardOptionContainer').append('<form class="boardOption" action=""><input type="radio" name="size" value="9">  9x9       </input><input type="radio" name="size" value="13">13x13</input><input type="radio" name="size" value="19">19x19</input></form><br>');
     $('#boardOptionContainer').append('<p id="boardSizeLabel">Select board color</p>');
-    $('#boardOptionContainer').append('<form action=""><input type="radio" name="color" value="#C2DFFF"> red</input><input type="radio" name="color" value="blue">blue</input><input type="radio" name="color" value="green">green</input></form><br>');
+    $('#boardOptionContainer').append('<form class="boardOption" action=""><input type="radio" name="color" value="#f5f5dc"> beige</input><input type="radio" name="color" value="#c5908e">rose</input><input type="radio" name="color" value="green">green</input></form><br>');
     $('#boardOptionContainer').append('<button class="button" id="startGameB">Start Game</button>');
 }
 
