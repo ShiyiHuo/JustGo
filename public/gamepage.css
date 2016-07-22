@@ -5,6 +5,7 @@
     top: 75px;
     width: 97vw;
     height: calc(97vh - 75px);
+    font-family: Open sans;
 }
 
 #endgameTrans {
@@ -209,4 +210,9 @@ td {
     /*margin: 4px 2px;*/
     cursor: pointer;
 
+}
+
+@font-face {
+    font-family: Open Sans;
+    src: url(./fonts/OpenSans-Regular.ttf);
 }

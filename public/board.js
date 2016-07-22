@@ -98,8 +98,28 @@ class Board {
         }
 
         this.context.fill();
+    }
+
+    drawTempPiece(x, y) {
+
+        this.drawCurrentBoard();
+        //get the x and y coords of the line drawn
+        var xcoord = this.gridMargin - this.lineSize/2 + this.gridWidth/(this.boardSize-1)*x;
+        var ycoord = this.gridMargin - this.lineSize/2 + this.gridHeight/(this.boardSize-1)*y;
+
+        //draw the circle based on the size of the board squares and color passed
+        var radius = this.squareSize*.3;
+
+        this.context.beginPath();
+        this.context.arc(xcoord, ycoord, radius, 0, 2 * Math.PI, false);
+        this.context.globalAlpha = .25;
+        this.context.fillStyle = "blue";
+        this.context.fill();
+        this.context.globalAlpha = 1;
 
     }
+
+
 
     drawCurrentBoard() {
         this.drawEmptyBoard();

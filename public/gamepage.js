@@ -1,3 +1,4 @@
+var gameboard;
 var loggedIn = true;
 var gameHasEnded;
 var replayData;
@@ -145,6 +146,17 @@ function gameEventHandler(eventType, data) {
         }
 
     }
+    else if (eventType == 'mouseMoved') {
+            var position = gameboard.getIntersection(event.clientX,event.clientY);
+            if (position) {
+                if (gameboard.board[position.y][position.x] == 0) {
+                    gameboard.drawTempPiece(position.x,position.y,1);
+                }
+            }
+    }
+    else if (eventType == 'mouseLeft') {
+        gameboard.drawCurrentBoard();
+    }
 
     else if (eventType == 'initBoard') {
         console.log('initializing board');
@@ -154,7 +166,6 @@ function gameEventHandler(eventType, data) {
         console.log('Player resigned');
         $.post("/game/resign", function(data) {
             writePC("Player resigned<br>");
-            //gameEventHandler('endGame',data);
         });
     }
     else if (eventType == 'passClicked') {
@@ -314,6 +325,8 @@ function initBoard(size) {
     canvas.id = "canvas";
     canvas.width = $('#boardContainer').width();
     canvas.height = $('#boardContainer').height();
+    $(canvas).mousemove(boardMove);
+    $(canvas).mouseleave(boardLeft);
     $(canvas).click(boardClicked);
     $('#boardContainer').append(canvas);
     var color = getCookie("boardColor");
@@ -323,6 +336,14 @@ function initBoard(size) {
     gameboard = new Board(size, $('#boardContainer').width(), canvas, color);
     gameboard.drawCurrentBoard();
     $(window).resize(windowResized);
+}
+
+function boardMove(event) {
+    gameEventHandler('mouseMoved', event);
+}
+
+function boardLeft(event) {
+    gameEventHandler('mouseLeft', event);
 }
 
 function boardClicked(event) {
