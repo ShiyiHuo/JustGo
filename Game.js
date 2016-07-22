@@ -241,7 +241,7 @@ gameSchema.methods.getScore = function() {
     const createBlackInfluence = (i, j) => {
         for (var y = 0; y < influence.length; y++) {
             for (var x = 0; x < influence.length; x++) {
-                influence[y][x] += Math.round(this.board.length - Math.sqrt((x-i)*(x-i) + (y-i)*(y-i)));
+                influence[y][x] += Math.round(this.board.length - Math.sqrt((x-i)*(x-i) + (y-j)*(y-j)));
             }
         }
     }
@@ -249,11 +249,10 @@ gameSchema.methods.getScore = function() {
     const createWhiteInfluence = (i, j) => {
         for (var y = 0; y < influence.length; y++) {
             for (var x = 0; x < influence.length; x++) {
-                influence[y][x] += Math.round(-this.board.length + Math.sqrt((x-i)*(x-i) + (y-i)*(y-i)));
+                influence[y][x] += Math.round(-this.board.length + Math.sqrt((x-i)*(x-i) + (y-j)*(y-j)));
             }
         }
     }
-
 
     var blackScore = 0;
     var whiteScore = 0;
