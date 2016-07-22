@@ -45,9 +45,7 @@ function gameEventHandler(eventType, data) {
             writePC('AI passed');
         }
         if (data.color == 2) {
-            writePC('Blacks move');
         } else {
-            writePC('Whites move');
         }
         gameEventHandler('boardUpdate', data);
         gameEventHandler('scoreChange', data);
@@ -124,7 +122,7 @@ function gameEventHandler(eventType, data) {
     }
 
     else if (eventType == 'animateRemovedPieces') {
-        //gambeboard.animate(data);
+        gameboard.animateRemove(data.capturedPieces);
     }
 
     else if (eventType == 'backwardClicked') {
@@ -151,6 +149,8 @@ function gameEventHandler(eventType, data) {
             if (position) {
                 if (gameboard.board[position.y][position.x] == 0) {
                     gameboard.drawTempPiece(position.x,position.y,1);
+                } else {
+                    gameboard.drawCurrentBoard();
                 }
             }
     }
@@ -192,13 +192,12 @@ function gameEventHandler(eventType, data) {
             if (!data.board) {
                 writePC(data);
             } else {
+                gameEventHandler('animateRemovedPieces', data);
                 gameEventHandler('boardUpdate', data);
                 gameEventHandler('scoreChange', data);
                 gameEventHandler('turnChange');
                 if (data.color == 2) {
-                    writePC('Blacks move');
                 } else {
-                    writePC('Whites move');
                 }
             }
         });

@@ -119,7 +119,10 @@ class Board {
 
     }
 
+    animateRemove(capturedPieces) {
+        console.log(capturedPieces);
 
+    }
 
     drawCurrentBoard() {
         this.drawEmptyBoard();

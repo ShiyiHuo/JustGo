@@ -152,11 +152,10 @@ li.navbarItem:hover {
     font-family: Century Gothic, sans-serif;
     position: absolute;
     /*border-style: solid;
-    border-color: red;*/
+    border-color: grey;*/
     text-align: left;
     overflow: scroll;
-
-
+    
 }
 
 table {
