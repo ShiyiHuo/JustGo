@@ -48,6 +48,7 @@ function gameEventHandler(eventType, data) {
         } else {
         }
         gameEventHandler('boardUpdate', data);
+        gameEventHandler('animateRemovedPieces', data);
         gameEventHandler('scoreChange', data);
         gameEventHandler('turnChange');
     }
@@ -123,7 +124,7 @@ function gameEventHandler(eventType, data) {
     }
 
     else if (eventType == 'animateRemovedPieces') {
-            gameboard.animateRemove((data.capturedPieces));    
+            //gameboard.animateRemove((data.capturedPieces));
     }
 
     else if (eventType == 'backwardClicked') {
