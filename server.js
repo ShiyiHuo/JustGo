@@ -19,8 +19,8 @@ app.use(bodyParser.json());
 app.use(sessions({
     cookieName: 'session',
     secret: 'sh',
-    duration: 5 * 60 * 1000,
-    activeDuration: 5 * 60 * 1000
+    duration: 60 * 60 * 1000,
+    activeDuration: 60 * 60 * 1000
 }));
 app.use(express.static("public")); 
 
@@ -162,6 +162,7 @@ app.post('/login', function(req,res) {
 app.post('/getStatus', function(req, res){
     if (req.session && req.session.username) {
         res.write(JSON.stringify({
+            username: req.session.username,
             redirect: '',
             status: 'OK',
             login: 'yes'
@@ -247,9 +248,12 @@ app.post('/user/stats', function(req, res) {
         if (err || !user) {
             return res.status(400).send("Could not find stats for this username");
         } else {
+            const skill = user.wins / (user.losse + 1);
             res.json({
                 wins: user.wins,
-                losses: user.losses
+                losses: user.losses,
+                username: user.username,
+                skill: skill
             })
         }
     });

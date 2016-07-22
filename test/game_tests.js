@@ -59,7 +59,7 @@ describe('Game of size 3: turn checking', function() {
         try {      
             game.makeMove(1, 1, constants.black, false);
         } catch (err) {
-            if (err) {
+            if (err instanceof Rule.GameException) {
                 gameExceptionThrown = true;
             }
         }
@@ -216,7 +216,7 @@ describe("Game of size 5: capturing and suicide", function() {
     });
   });
 });
-/*
+
 describe('Game of Size 9', function() {
     
     it('should not allow suicide on a large board', function() {
@@ -234,7 +234,7 @@ describe('Game of Size 9', function() {
       try {
         game.makeMove(4, 2, constants.black, false);
       } catch (err) {
-        if (err instanceof go.GameException) {
+        if (err instanceof Rule.GameException) {
           exceptionThrown = true;
         }
       }
@@ -262,4 +262,3 @@ describe('Game of Size 9', function() {
 });
 
 
-*/

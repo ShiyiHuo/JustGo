@@ -3,11 +3,11 @@ const assert = require('assert');
 const server = require('../server');
 const request = require('supertest')(server);
 const User = require('../User');
-
 const superagent = require('superagent');
 const session = require('supertest-session');
-
 const AIInterface = require('../ai/AIInterface');
+
+
 
 describe('POST:/signUp signs up user with username/password', function() {
     it('Should not allow empty username and password', function(done) {
