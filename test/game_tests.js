@@ -210,7 +210,7 @@ describe("Game of size 5: capturing and suicide", function() {
       game.board = [[0, B, 0, 0, 0],
                     [B, W, 0, 0, 0],
                     [0, B, 0, 0, 0],
-                    [0, 0, 0, 0, 0]
+                    [0, 0, 0, 0, 0],
                     [0, 0, 0, 0, 0]];
 					
       go.makeMove(game, 2, 1, B, false);
@@ -224,12 +224,12 @@ describe("Game of size 5: capturing and suicide", function() {
 	  game.turn = W;
 	  go.makeMove(game, "pass", "pass", W, true);
       game.board = [[0, B, B, 0, 0],
-                    [B, W, W, 0, 0],
+                    [0, W, W, B, 0],
                     [0, B, B, 0, 0],
-                    [0, 0, 0, 0, 0]
+                    [0, 0, 0, 0, 0],
                     [0, 0, 0, 0, 0]];
 
-      go.makeMove(game, 3, 1, B, false);
+      go.makeMove(game, 0, 1, B, false);
       assert.equal(game.board[1][1], constants.empty);
       assert.equal(game.board[1][2], constants.empty);
     });

@@ -150,32 +150,7 @@ function makeMove(game, xPos, yPos, color, pass) {
 				let piece = JSON.parse(pieceString); // convert to object since army and captured pieces are JSON strings
 				game.board[piece.y][piece.x] = constants.empty;
 			}	
-
-/*
-			var listOfAllArmies = [];
-			//visited was defined above, but resetting it to empty here
-			visited = [];
-			for (var i = 0; i < game.board.length; i++) {
-				//initialize 2D array corresponding to board
-				visited[i] = new Array(game.board.length).fill(false);
-			}
 			
-			// loop through board and get list of all armies
-			for (var i = 0; i < game.board.length; i++) {
-				for (var j = 0; j < game.board.length; j++) {
-					if (game.board[i][j] !== constants.empty && !visited[i][j]) {
-						var army = new Set();
-						//getArmy mutates army and visited
-						//game.board[i][j] sets initial color for the recursion
-						//j becomes x and i becomes y
-						getArmy(j, i, game.board[i][j], game.board, army, visited);
-						
-						listOfAllArmies.push(army);}
-					}
-				}//end j
-			}//end i
-			
-			*/
 		}//end if(board not empty)
 		
 		const scores = getScore(game);
@@ -325,55 +300,137 @@ function koRule(game,yPos,xPos,capturedPieces){
 	return deepEquals(newBoard,previousBoard);
 	
 }
-	
-function getScore(game) {
-    
-    var blackScore = 0;
-    var whiteScore = 0;
-    var influence = [];
-    for (var i = 0; i < game.board.length; i++) {
-        influence[i] = new Array(game.board.length).fill(0);
-    }
-    
-    for (var i = 0; i < game.board.length; i++) {
-        for (var j = 0; j < game.board.length; j++) {
-            if (game.board[i][j] == constants.black) {
-                createBlackInfluence(i, j);    
-            } 
-            if (game.board[i][j] == constants.white) {
-                createWhiteInfluence(i, j);
-            }
-        }
-    }
 
+
+function getScore(board, komi) {
+	//influence threshold for a space to count as territory
+	const threshold = 2;
+	var blackScore = 0;
+	var whiteScore = komi ? komi : 0;
+	var visited = [];
+	var influenceSources = [];
+	var influence = [];
+	for (var i = 0; i < board.length; i++) {
+		influence[i] = new Array(board.length).fill(0);
+		visited[i] = new Array(board.length).fill(false);
+	}
+    
+	//this is bad because it defines every piece on board as an influence source
+	for (var i = 0; i < board.length; i++) {
+		for (var j = 0; j < board.length; j++) {
+			if (board[i][j] !== constants.empty) {
+				createInfluence(board[i][j], i, j, influence);    
+			} 
+		}
+	}
+	
+	var listOfAllArmies = new Set();
+	// loop through board and get list of all armies
+	for (var i = 0; i < board.length; i++) {
+		for (var j = 0; j < board.length; j++) {
+			if (board[i][j] !== constants.empty && !visited[i][j]) {
+				var army = new Set();
+				//getArmy mutates army and visited
+				//board[i][j] sets initial color for the recursion
+				//j becomes x and i becomes y
+				getArmy(j, i, board[i][j], board, army, visited);			
+				listOfAllArmies.add(army);}
+			}
+		}
+	}
+	//loop through board and look for eyes
+	for (var i = 0; i < board.length; i++) {
+		for (var j = 0; j < board.length; j++) {
+			if (board[i][j] === constants.empty && !visited[i][j]) {
+				var army = new Set();
+				//getArmy mutates army and visited
+				//board[i][j] sets initial color for the recursion
+				//j becomes x and i becomes y
+				getArmy(j, i, board[i][j], board, army, visited);			
+				listOfAllArmies.add(army);}
+			}
+		}
+	}
+	
+	/*
+	var armyAlive = false;
+	for(var a of listOfAllArmies){
+		a.forEach((element) => {
+			if;
+		});
+	}*/
+	
+
+	
+	
+
+	
     for (var i = 0; i < influence.length; i++) {
         for (var j = 0; j < influence.length; j++) {
-            if (influence[i][j] > 0) {
+            if (influence[i][j] > threshold) {
                 blackScore++;
-            } else if (influence[i][j] < 0) {
+            } else if (influence[i][j] < -threshold) {
                 whiteScore++;
             }
         }
     }
-
-    function createBlackInfluence(i, j) {
-        for (var y = 0; y < influence.length; y++) {
-            for (var x = 0; x < influence.length; x++) {
-                influence[y][x] += Math.round(game.board.length - Math.sqrt((x-i)*(x-i) + (y-i)*(y-i)));
-            }
-        }
-    }
-
-    function createWhiteInfluence(i, j) {
-        for (var y = 0; y < influence.length; y++) {
-            for (var x = 0; x < influence.length; x++) {
-                influence[y][x] += Math.round(-game.board.length + Math.sqrt((x-i)*(x-i) + (y-i)*(y-i)));
-            }
-        }
-    }
-    
-    return { white: whiteScore, black: blackScore };
+    return { white: whiteScore, black: blackScore , influence : influence};
 }
+function createInfluence(color, i, j, influenceArr) {
+	var multiplier = 0;
+	if(color === constants.black) multiplier = 1;
+	if(color === constants.white) multiplier = -1;
+	
+	for (var y = 0; y < influenceArr.length; y++) {
+		for (var x = 0; x < influenceArr.length; x++) {
+			var dist = Math.sqrt((x-i)*(x-i) + (y-j)*(y-j));
+			influenceArr[x][y] += multiplier * influenceFunction(dist, influenceArr.length);
+		}
+	}
+}
+
+/**
+*converts a distance to an influence value
+*a larger distance translates to a smaller influence value
+*/
+function influenceFunction(dist, boardSize){
+	//to be adjusted experimentally
+	return 8 / Math.pow(2,dist);
+}
+
+function printBoardAndInf(board, influence){
+	var str = "";
+    for (var i = 0; i < board.length; i++) {
+		str += "[ ";
+        for (var j = 0; j < board.length; j++) {
+			if(board[i][j]===constants.empty) str += 0;
+			if(board[i][j]===constants.black) str += "B";
+			if(board[i][j]===constants.white) str += "W";
+			str += " ";
+		}
+		str += "] [ ";
+		for (var j = 0; j < influence.length; j++) {
+			var s = ""+(influence[i][j])+"    ";//padding to make the arrays align when printed
+			str += s.substr(0,4);
+			str += " ";
+		}
+		str += "] [ ";
+		for (var j = 0; j < influence.length; j++) {
+			if(Math.abs(influence[i][j]) > threshold){
+				str += (influence[i][j]>0) ? "B" : "W";
+			}
+			else{ str += 0;}
+			str += " ";
+		}
+
+
+
+		str += "]";
+		str += "\n";
+	}
+	return str;
+}
+
 
 /**
  * "Ends"" a game document. 

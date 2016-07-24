@@ -1,14 +1,45 @@
 const constants = require('./constants.js');
 
-const threshold = 2;
+	const threshold = 2;
+
+//represents a single member of an army, which has coordinates and color
+function armyElement(x, y, color) {
+	return '{"x":' + x + ',"y":' + y + ',"color":' + color + '}';
+}
+
+function getArmyAndCreateReferences(x, y, color, board, army, visited) {  //called as getArmyAndCreateReferences(j,i,...)
+	
+	//check for out of bounds
+	var inBounds = (x >= 0 && x < board.length && y >= 0 && y < board.length);
+
+	//if next index is: not out of bounds; same color; not already in army
+	if (inBounds && (board[y][x] === color) && visited[y][x]===false) {//[y][x]???
+		
+		var a = armyElement(x, y, color);
+		army.add(a);
+		visited[y][x] = a;
+		
+        // north??? y/x confusion
+        getArmyAndCreateReferences(x, y+1, color, board, army, visited);
+        // south
+		getArmyAndCreateReferences(x, y-1, color, board, army, visited);
+		// east
+		getArmyAndCreateReferences(x+1, y, color, board, army, visited);
+		// west
+		getArmyAndCreateReferences(x-1, y, color, board, army, visited);
+	}//end if
+}//end function
 
 function getScore(board, komi) {
-	
+	//influence threshold for a space to count as territory
 	var blackScore = 0;
 	var whiteScore = komi ? komi : 0;
+	var armyReferenceArray = [];
+	var influenceSources = [];
 	var influence = [];
 	for (var i = 0; i < board.length; i++) {
 		influence[i] = new Array(board.length).fill(0);
+		armyReferenceArray[i] = new Array(board.length).fill(false);
 	}
     
 	//this is bad because it defines every piece on board as an influence source
@@ -19,11 +50,49 @@ function getScore(board, komi) {
 			} 
 		}
 	}
-	//----------
 	
-	//for each in list of influence sources create influence
-	//-------
+	var listOfAllArmies = new Set();
+	// loop through board and get list of all armies
+	for (var i = 0; i < board.length; i++) {
+		for (var j = 0; j < board.length; j++) {
+			if (board[i][j] !== constants.empty && armyReferenceArray[i][j]===false) {
+				var army = new Set();
+				//getArmyAndCreateReferences mutates army and visited
+				//board[i][j] sets initial color for the recursion
+				//j becomes x and i becomes y
+				getArmyAndCreateReferences(j, i, board[i][j], board, army, armyReferenceArray);			
+				listOfAllArmies.add(army);
+			}
+		}
+	}
+	
+	//loop through board and look for eyes
+	for (var i = 0; i < board.length; i++) {
+		for (var j = 0; j < board.length; j++) {
+			if (board[i][j] === constants.empty) {
+				var a = [];
+				if(board[i+1] < board.length)	a.push(armyReferenceArray[i+1][j]);
+				if(board[i-1] >= 0)	a.push(armyReferenceArray[i-1][j]);
+				if(board[i][j+1] < board.length)	a.push(armyReferenceArray[i][j+1]);
+				if(board[i][j-1] >= 0)	a.push(armyReferenceArray[i][j-1]);
+				console.log("AAAAAA",a);
+			}
+		}
+	}
+	
+	/*
+	var armyAlive = false;
+	for(var a of listOfAllArmies){
+		a.forEach((element) => {
+			if;
+		});
+	}*/
+	
 
+	
+	
+
+	
     for (var i = 0; i < influence.length; i++) {
         for (var j = 0; j < influence.length; j++) {
             if (influence[i][j] > threshold) {
@@ -47,6 +116,10 @@ function createInfluence(color, i, j, influenceArr) {
 		}
 	}
 }
+
+
+
+
 
 /**
 *converts a distance to an influence value
@@ -102,10 +175,10 @@ const B = constants.black;
 
 
 var brd = [[0, B, B, 0, 0],
-			[B, W, W, 0, 0],
-			[0, B, B, 0, 0],
-			[0, 0, 0, 0, W],
-			[0, 0, 0, W, W]];
+			[B, 0, B, 0, B],
+			[0, B, B, B, 0],
+			[W, 0, W, 0, B],
+			[0, W, 0, W, W]];
 var s = getScore(brd,0);
 
 console.log("left: original board; mid: influence values; right:territory\n");
@@ -114,7 +187,7 @@ console.log("white,",s.white);
 console.log("black,",s.black);
 console.log("disputed,",(brd.length*brd.length-s.white-s.black));
 
-
+/*
 
 var brd = [[0, 0, 0, 0, 0],
 			[0, B, 0, 0, 0],
@@ -128,3 +201,4 @@ console.log(printBoardAndInf(brd,s.influence));
 console.log("white,",s.white);
 console.log("black,",s.black);
 console.log("disputed,",(brd.length*brd.length-s.white-s.black));
+*/
