@@ -120,25 +120,25 @@ gameSchema.methods.makeMove = function(xPos, yPos, color, pass) {
 			
 			//this mess handles capturing by brute force checking the 4 adjacent armies to the played piece
 			var armyToCap = new Set();
-			getArmy(xPos, yPos+1, oppositeColor, this.board, armyToCap, visited);
+			getArmy(xPos, parseInt(yPos)+1, oppositeColor, this.board, armyToCap, visited);
 			if (armyToCap.size > 0 && !armyHasLiberties(this.board, armyToCap)){
 				for (let element of armyToCap)
                     capturedPieces.add(element)
 			}
 			armyToCap = new Set();
-			getArmy(xPos, yPos-1, oppositeColor, this.board, armyToCap, visited);
+			getArmy(xPos, parseInt(yPos)-1, oppositeColor, this.board, armyToCap, visited);
 			if(armyToCap.size > 0 && !armyHasLiberties(this.board, armyToCap)){
 				for (let element of armyToCap)
                     capturedPieces.add(element)
 			}
 			armyToCap = new Set();
-			getArmy(xPos+1, yPos, oppositeColor, this.board, armyToCap, visited);
+			getArmy(parseInt(xPos)+1, yPos, oppositeColor, this.board, armyToCap, visited);
 			if(armyToCap.size > 0 && !armyHasLiberties(this.board, armyToCap)){
 				for (let element of armyToCap)
                     capturedPieces.add(element)
 			}
 			armyToCap = new Set();
-			getArmy(xPos-1, yPos, oppositeColor, this.board, armyToCap, visited);
+			getArmy(parseInt(xPos)-1, yPos, oppositeColor, this.board, armyToCap, visited);
 			if(armyToCap.size > 0 && !armyHasLiberties(this.board, armyToCap)){
 				for (let element of armyToCap)
                     capturedPieces.add(element);
@@ -285,13 +285,13 @@ function getArmy(x, y, color, board, army, visited) {  //called as getArmy(j,i,.
 		visited[y][x] = true;
 		
         // north??? y/x confusion
-        getArmy(x, y+1, color, board, army, visited);
+        getArmy(x, parseInt(y)+1, color, board, army, visited);
         // south
-		getArmy(x, y-1, color, board, army, visited);
+		getArmy(x, parseInt(y)-1, color, board, army, visited);
 		// east
-		getArmy(x+1, y, color, board, army, visited);
+		getArmy(parseInt(x)+1, y, color, board, army, visited);
 		// west
-		getArmy(x-1, y, color, board, army, visited);
+		getArmy(parseInt(x)-1, y, color, board, army, visited);
 	}//end if
 }//end function
 		
