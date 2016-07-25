@@ -2,6 +2,8 @@ var path = new Array;
 var loggedIn = false;
 var username;
 var hotseatSelected = false;
+var multiplayerSelected = false;
+var joinMultiplayerSelected = false;
 
 $(document).ready(function() {
     initiatePage();
@@ -19,11 +21,14 @@ function callRouter(event) {
 
         var boardSizeSelected = $("input[type='radio'][name='size']:checked").val();
         console.log(boardSizeSelected);
-        var newGameParameters = {size: boardSizeSelected, hotseat: hotseatSelected};
+        var newGameParameters = {size: boardSizeSelected, hotseat: hotseatSelected, multiplayer: multiplayerSelected };
         document.cookie = "boardColor=" + $("input[type='radio'][name='color']:checked").val();
 
         $.post("/newGame", newGameParameters, function(data, status) {
-            window.location = '/gamepage.html';
+            if (!newGameParameters.multiplayer) 
+                window.location = '/gamepage.html';
+            else 
+                window.location = '/matchpage.html';
         });
     }
 
@@ -66,7 +71,6 @@ function callRouter(event) {
             showLoginSignUpOption();
         }
         createButtonEvent();
-
     }
 
     else if (event.currentTarget.id == 'playHSB') {
@@ -80,7 +84,6 @@ function callRouter(event) {
             showLoginSignUpOption();
         }
         createButtonEvent();
-
     }
 
     else if (event.currentTarget.id == 'loginOptionB') {
@@ -88,20 +91,16 @@ function callRouter(event) {
         console.log("Routing to login.");
         showLogin();
         createButtonEvent();
-
     }
 
     else if (event.currentTarget.id == 'signOptionB') {
         clearPage();
-
         console.log("Routing to sign up.");
         showSignUp();
         createButtonEvent();
-
     }
 
     else if (event.currentTarget.id == 'guestOptionB') {
-
         var uName = $('#usern_login_textbox').val();
         var pass = $('#pw_login_textbox').val();
         var loginData = {
@@ -117,13 +116,14 @@ function callRouter(event) {
                 $('#loginOptionContainer').append('<p>Invalid login</p>');
                 createButtonEvent();
 
+            } else if (joinMultiplayerSelected) {
+                window.location = '/joinmatch.html';
             } else {
                 clearPage();
                 getStatus();
                 console.log("Routing to board options");
                 showBoardOption();
                 createButtonEvent();
-
             }
         });
     }
@@ -144,6 +144,8 @@ function callRouter(event) {
                 $('#loginContainer').append('<p>Invalid login</p>');
                 createButtonEvent();
 
+            } else if (joinMultiplayerSelected) {
+                window.location = '/joinmatch.html';
             } else {
                 clearPage();
                 getStatus();
@@ -171,6 +173,8 @@ function callRouter(event) {
                 $('#signUpContainer').append('<p>Invalid signup</p>');
                 createButtonEvent();
 
+            } else if (joinMultiplayerSelected) {
+                window.location = '/joinmatch.html';
             } else {
                 clearPage();
                 getStatus();
@@ -197,7 +201,31 @@ function callRouter(event) {
     else if (event.currentTarget.id == 'userCenterButton') {
         location.href="/usercenter.html";
         //location.reload();
+    } 
+
+    else if (event.currentTarget.id == 'CreateMultiplayerMatch') {
+        clearPage();
+        multiplayerSelected = true;
+        if (loggedIn == true) {
+            console.log("Logged in. Routing to board options.");
+            showBoardOption();
+        } else {
+            showLoginSignUpOption();
+        }
+        createButtonEvent();
+    } 
+
+    else if (event.currentTarget.id == 'JoinMultiplayerMatch') {
+        clearPage();
+        joinMultiplayerSelected = true;
+        if (loggedIn == true) {
+            window.location = '/joinmatch.html';
+        } else {
+            showLoginSignUpOption();
+        }  
+        createButtonEvent();
     }
+
 }
 
 function getStatus() {
@@ -228,7 +256,6 @@ function clearPage() {
 //this is the nav bar at the top of screen, username is name of logged in
 //username is undefined if user not logged in
 function showNavBar() {
-
     $('#navbar').append('<ul id=navbarList><li id=aboutUsButton class=navbarItem>About Us</li></ul>');
     $('#aboutUsButton').click(callRouter);
 }
@@ -259,6 +286,8 @@ function showPlayerOption() {
     $('#container').append('<div id=playerContainer class=container></div>');
     $('#playerContainer').append('<button type="button" class="button" id="playAIB">Player vs AI</button><br>');
     $('#playerContainer').append('<button type="button" class="button" id="playHSB">Player vs Player</button><br>');
+    $('#playerContainer').append('<button type="button" class="button" id="CreateMultiplayerMatch">Create Multiplayer Match</button><br>');
+    $('#playerContainer').append('<button type="button" class="button" id="JoinMultiplayerMatch">Join Multiplayer Match</button><br>');
 }
 
 function showLoginSignUpOption() {

@@ -120,9 +120,8 @@ class Board {
     }
 
     animateRemove(capturedPieces) {
-
         var alpha = 1;
-        const frame = () => {
+        (function frame() {
             if (alpha < 0.1) {
                 clearInterval(id);
                 this.drawCurrentBoard();
@@ -145,11 +144,8 @@ class Board {
                 }
                     this.context.globalAlpha = 1;
             }
-        }
+        }).bind(this);
         var id = setInterval(frame,10);
-
-
-
     }
 
     drawCurrentBoard() {

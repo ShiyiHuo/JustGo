@@ -48,7 +48,9 @@ const gameSchema = new mongoose.Schema({
     whiteMsRemaining: Number,
     blackEndTime: Number,
     blackMsRemaining: Number,
-    username: String
+    username: String,
+	multiplayerMode: Boolean,
+	guestUsername: String
 });
 
 gameSchema.methods.makeMove = function(xPos, yPos, color, pass) {

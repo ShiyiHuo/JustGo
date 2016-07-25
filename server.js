@@ -259,6 +259,50 @@ app.post('/user/stats', function(req, res) {
     });
 });
 
+/**
+ * Get active multiplayer games available to join
+ */
+app.get('/user/multiplayergames', function(req, res) {
+    console.log('GET: /user/multiplayergames');
+    const multiplayerGames = [];
+    for (const gameID in activeGames) {
+        const game = activeGames[gameID];
+        if (game.multiplayerMode) 
+            multiplayerGames.push({
+                id: game._id.id,
+                size: game.board.length,
+                username: game.username
+            });
+    }
+    debugger;
+    res.json(multiplayerGames);
+});
+
+/**
+ * Join an active multiplayer game
+ * @param {Object} postData
+ * @param {String} postData.gameID -- gameID of the game to join
+ */
+app.post('/user/multiplayergames', function(req, res) {
+    debugger;
+
+    let gameID = req.body.gameID;
+    req.session.gameID = gameID;
+
+    let game = activeGames[gameID]; // TODO: what if not valid gameID? not in active games?
+    game.guestUsername = req.session.username;
+    game.save(function (err, game) {
+        if (err || !game) 
+            return res.status(400).send("Error saving game after joining");
+        
+        game.startBlackTimer(); // start the game now
+        req.session.gameID = game._id.id;
+        res.location('/gamepage.html');
+        res.end();
+    })
+});
+
+
 
 /**
  * Create a new game state and store it in database
@@ -267,25 +311,24 @@ app.post('/user/stats', function(req, res) {
  * @param {Object} gameParam
  * @param {Number} gameParam.size
  * @param {Boolean} gameParam.hotseat
+ * @param {Boolean} gameParam.multiplayer -- if a multiplayer game is desired
  */
 app.post("/newGame", function(req, res) {
 
-    if (!req.session || !req.session.username || !req.body.size || req.body.size < 3 || req.body.hotseat === undefined)
+    if (!req.session || !req.session.username || !req.body.size || req.body.size < 3 || req.body.hotseat === undefined || req.body.multiplayer === undefined)
         return res.status(400).send("Invalid request format");
-
     let size;
     let hotseat;
+    let multiplayer;
     try {
         size = JSON.parse(req.body.size); // TODO: check correct types
         hotseat = JSON.parse(req.body.hotseat);
+        multiplayer = JSON.parse(req.body.multiplayer);
     } catch (err) {
-        if (err instanceof SyntaxError) {
-            console.log("SyntaxError parsing /newGame post data");
-            res.status(400).write("Error parsing post data");
-            return res.end();
-        } else {
+        if (err instanceof SyntaxError) 
+            return res.status(400).send("Error parsing post data");
+        else 
             console.log("Caught error parsing /newGame post data " + err);
-        }
     }
 
     let board = [];
@@ -303,22 +346,28 @@ app.post("/newGame", function(req, res) {
         winner: null,
         whiteMsRemaining: constants.startingTimePool,
         blackMsRemaining: constants.startingTimePool,
-        username: req.session.username
+        username: req.session.username,
+        multiplayerMode: multiplayer
     });
 
     game.save(function (err, game) {
-        if (err || !game) {
-            console.log("Error saving new game: " + err);
-            res.status(400).write("Error saving new game")
-            return res.end();
-        }
+        if (err || !game) 
+            return res.status(400).send("Error saving new game");
         activeGames[game._id.id] = game;
-        game.startBlackTimer();
         req.session.gameID = game._id.id;
-        res.end();
+        
+
+        if (game.multiplayerMode) {
+            res.redirect(301, '/matchpage.html');
+        } else {
+            game.startBlackTimer();
+        }   
+        res.end();         
     });
 
 });
+
+
 
 /**
  * This is middleware for all routes starting with /game.
@@ -351,7 +400,36 @@ app.use('/game', function(req, res, next) {
     }
 });
 
+/**
+ * Periodic polling request from client every ~30 seconds.
+ * Responds when a "guest user" has joined the game
+ */
+const matchstatusBuffer = [];
+app.get('/game/matchstatus', function(req, res) {
+    console.log("GET: /game/matchstatus");
+    const game = activeGames[req.session.gameID];
+    matchstatusBuffer.push({
+        req: req,
+        res: res,
+        timestamp: Date.now()
+    });
+});
+setInterval(function() {
 
+    for (const matchstatus of matchstatusBuffer) {
+        const game = activeGames[matchstatus.req.session.gameID];
+
+         if (Date.now() - matchstatus.timestamp > 29999) {
+             matchstatus.res.end();
+             const index = matchstatusBuffer.indexOf(matchstatus);
+             matchstatusBuffer.splice(index, 1);
+         } else if (game.guestUsername !== undefined) {
+             matchstatus.res.send({ redirect: '/gamepage.html' });
+             const index = matchstatusBuffer.indexOf(matchstatus);
+             matchstatusBuffer.splice(index, 1);      
+         } 
+    }
+}, 100);
 
 /**
  * Periodic polling request from the client every ~30 seconds.
