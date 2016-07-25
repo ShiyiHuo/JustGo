@@ -52,7 +52,7 @@ const gameSchema = new mongoose.Schema({
 });
 
 gameSchema.methods.makeMove = function(xPos, yPos, color, pass) {
-
+    
     const switchTimers = () => {
         if (this.turn == constants.black) {
             this.stopWhiteTimer();
@@ -62,168 +62,143 @@ gameSchema.methods.makeMove = function(xPos, yPos, color, pass) {
             this.startWhiteTimer();
         } 
     }
-    const switchTurns = () => {
-        // switch turn state to opposite color
-        if (this.turn == constants.black) {
-            this.turn = constants.white;
-        } else {
-            this.turn = constants.black;
-        }
-    }
 
-    // make sure correct turn
-    if (color != this.turn) {
-        throw new Rule.GameException("Not your turn.");  
+	if (color != this.turn) {
+		throw new Rule.GameException("Not your turn.");  
     }
-
+	
+	const oppositeColor = (this.turn === constants.black) ? constants.white : constants.black;
+	
+	var move = undefined;
+	
     if (pass) {
-        // switch turn state to opposite color
-        switchTurns();
-
-        // check if 2 passes in a row
         if (this.moveHistory.length > 0) {
             const lastMove = this.moveHistory[this.moveHistory.length - 1];
             if (lastMove.pass) {
                 throw new Rule.DoublePassException();
             }
         }
-        // create move for return and moveHistory
-        const scores = this.getScore();
-        const boardCopy = JSON.parse(JSON.stringify(this.board))
-        const move = new Move({
-            x: 0,
-            y: 0,
-            color: color,
-            pass: true,
-            capturedPieces: [],
-            board: boardCopy,
-            whiteScore: scores.white,
-            blackScore: scores.black,
-            whiteTime: this.getPlayerTimes().white,
-            blackTime: this.getPlayerTimes().black
-        });
-        this.moveHistory.push(move);
-        switchTimers();
 
-        return move;
+		const scores = this.getScore();
+        const deepBoardCopy = JSON.parse(JSON.stringify(this.board));
 
-    } else { // move is not a pass
+        move = new Move({
+                    x: 0,
+                    y: 0,
+                    color: color,
+                    pass: true,
+                    capturedPieces: [],
+                    board: deepBoardCopy,
+                    whiteScore: scores.white,
+                    blackScore: scores.black,
+                    whiteTime: this.getPlayerTimes().white,
+                    blackTime: this.getPlayerTimes().black});
+	}
+	else {//no pass
+		
+		if (this.board[yPos][xPos] != constants.empty) {
+			throw new Rule.GameException("Occupied Place.");
+		}  
+		//this statement executes before adding a piece
+		var boardIsEmpty = isEmpty(this.board);
+		
+		//this places the piece
+		this.board[yPos][xPos] = color;
+		
+		//basically an empty array
+		//martin why don't you just use a normal array
+		var capturedPieces = new Set();
+		
+		//below checks for: capturing, ko rule, suicide,
+		if (!boardIsEmpty) {
+			
+			var visited = [];
+			for (var i = 0; i < this.board.length; i++) {
+				//initialize 2D array corresponding to board
+				visited[i] = new Array(this.board.length).fill(false);
+			}
+			
+			//this mess handles capturing by brute force checking the 4 adjacent armies to the played piece
+			var armyToCap = new Set();
+			getArmy(xPos, parseInt(yPos)+1, oppositeColor, this.board, armyToCap, visited);
+			if (armyToCap.size > 0 && !armyHasLiberties(this.board, armyToCap)){
+				for (let element of armyToCap)
+                    capturedPieces.add(element)
+			}
+			armyToCap = new Set();
+			getArmy(xPos, parseInt(yPos)-1, oppositeColor, this.board, armyToCap, visited);
+			if(armyToCap.size > 0 && !armyHasLiberties(this.board, armyToCap)){
+				for (let element of armyToCap)
+                    capturedPieces.add(element)
+			}
+			armyToCap = new Set();
+			getArmy(parseInt(xPos)+1, yPos, oppositeColor, this.board, armyToCap, visited);
+			if(armyToCap.size > 0 && !armyHasLiberties(this.board, armyToCap)){
+				for (let element of armyToCap)
+                    capturedPieces.add(element)
+			}
+			armyToCap = new Set();
+			getArmy(parseInt(xPos)-1, yPos, oppositeColor, this.board, armyToCap, visited);
+			if(armyToCap.size > 0 && !armyHasLiberties(this.board, armyToCap)){
+				for (let element of armyToCap)
+                    capturedPieces.add(element);
+			}
 
-        // check for occupied place
-        if (this.board[yPos][xPos] != constants.empty) {
-            throw new Rule.GameException("Occupied Place.");
-        }  
+			//the army created by current player move
+			var newArmyCreated = new Set();
+			getArmy(xPos, yPos, color, this.board, newArmyCreated, visited);
+			
+			//suicide is checked only if nothing captured
+			if(capturedPieces.size === 0){
+				if (!armyHasLiberties(this.board, newArmyCreated)) {
+					this.board[yPos][xPos] = constants.empty; // undo the board update
+					throw new Rule.GameException("You cannot commit suicide.");
+				} 
+			}
+			//koRule is checked only if something captured
+			else{
+				//ko (repeated board) rule
+				//this is done AFTER placing the player's piece and BEFORE removed captured
+				//expects this.moveHistory to not be empty
+				if (this.koRule(yPos,xPos,capturedPieces)){
+					this.board[yPos][xPos] = constants.empty; // undo the board update
+					throw new Rule.GameException("You cannot play a move which may lead to an infinite game");
+				}
+			}
 
-        // temporarily update the board 
-        this.board[yPos][xPos] = color;  
-        
-        // init visited boolean array for DFS
-        var visited = [];
-        for (var i = 0; i < this.board.length; i++) {
-            visited[i] = new Array(this.board.length).fill(false);
-        }
+			// remove captured pieces from board
+			for (var pieceString of capturedPieces) {
+				let piece = JSON.parse(pieceString); // convert to object since army and captured pieces are JSON strings
+				this.board[piece.y][piece.x] = constants.empty;
+                console.log("board is: " + this.board);
+			}	
 
-        // For all tiles with pieces on board, find armies to calculate liberties
-        // append to capturedPieces if an army has no liberties
-        var capturedPieces = new Set();
-        for (var i = 0; i < this.board.length; i++) {
-            for (var j = 0; j < this.board.length; j++) {
-                    
-                if (this.board[i][j] != constants.empty && !visited[i][j]) { // there is a piece on this board "tile"  
-                    // perform depth first search to get armies connected to this piece
-                    var army = new Set();       
-                    var pieceColor = this.board[i][j];
 
-                    // recursive depth-first search for armies
-                    const getArmies = (x, y, color) => {              
-                        if (x < 0 || x >= this.board.length || y < 0 || y >= this.board.length) { // out of bounds
-                            return;
-                        }
-                        army.add(point(x, y));
-                        visited[i][j] = true;
-                        
-                        if (y+1 < this.board.length && this.board[y+1][x] == color && !army.has(point(x, y+1))) {
-                            // north neighbor is piece of same color and we haven't added it to the army yet
-                            getArmies(x, y+1, color);
-                        }
-                        if (y-1 >= 0 && this.board[y-1][x] == color && !army.has(point(x, y-1))) {
-                            // south neighbor is piece of same color and we haven't added it to the army yet
-                            getArmies(x, y-1, color);
-                        } 
-                        if (x+1 < this.board.length && this.board[y][x+1] == color && !army.has(point(x+1, y))) {
-                            // east neighbor is piece of same color and we haven't added it to army yet
-                            getArmies(x+1, y, color);
-                        }
-                        if (x-1 >= 0 && this.board[y][x-1] == color && !army.has(point(x-1, y))) {
-                            // west neighbor is piece of same color and we haven't added it to army yet
-                            getArmies(x-1, y, color);
-                        }   
-                        
-                    }
-                    getArmies(j, i, pieceColor);
-
-                    // calculate army's liberties                
-                    var liberties = 0;
-                    for (var node of army) {
-                        node = JSON.parse(node); // convert back to object since army is composed of JSON strings 
-                        var x = node.x;
-                        var y = node.y;
-
-                        var rightLiberty = x + 1 < this.board.length && this.board[y][x + 1] == constants.empty;
-                        var leftLiberty = x - 1 >= 0 && this.board[y][x - 1] == constants.empty;
-                        var northLiberty = y + 1 < this.board.length && this.board[y + 1][x] == constants.empty;
-                        var southLiberty = y - 1 >= 0 && this.board[y - 1][x] == constants.empty;
-                        
-                        if (rightLiberty || leftLiberty || northLiberty || southLiberty) {
-                            liberties++;
-                        }
-                    } 
-
-                    // army is captured if it has no liberties
-                    if (liberties == 0) {
-                        army.forEach((element) => {
-                            capturedPieces.add(element);
-                        });
-                    }
-
-                }
-            }
-        }
-        
-        // check suicide
-        if (capturedPieces.has(point(xPos, yPos))) {
-            this.board[yPos][xPos] = constants.empty; // undo the board update
-            throw new Rule.GameException("You cannot commit suicide.");
-        } 
-
-        switchTurns();
-
-        // remove captured pieces from board
-        for (var piece of capturedPieces) {
-            piece = JSON.parse(piece); // convert to object since army and captured pieces are JSON strings
-            this.board[piece.y][piece.x] = constants.empty;
-        }
-
-        const boardCopy = JSON.parse(JSON.stringify(this.board)); // need a deep copy 
-
-        // create move object for return and moveHistory
-        const scores = this.getScore();
-        const move = new Move({
+		}//end if(board not empty)
+		
+		const scores = this.getScore();
+        const deepBoardCopy = JSON.parse(JSON.stringify(this.board));
+        move = new Move({
             x: xPos,
             y: yPos,
             color: color,
             pass: false,
             capturedPieces: capturedPieces,
-            board: boardCopy,
+            board: deepBoardCopy,
             whiteScore: scores.white,
             blackScore: scores.black,
             whiteTime: this.getPlayerTimes().white,
-            blackTime: this.getPlayerTimes().black 
+            blackTime: this.getPlayerTimes().black
         })
-        this.moveHistory.push(move);
+	}//end else (no pass)
+		
+	// turn done, switch turn state to opposite color
+	this.turn = oppositeColor;
+	this.moveHistory.push(move);
+    
+    switchTimers();
 
-        switchTimers();
-        return move;
+	return move;
 
         // Returns a JSON-string representation of a "point". 
         // Strings are used to create primitive values for points to allow lookup in Sets in constant time. 
@@ -232,8 +207,10 @@ gameSchema.methods.makeMove = function(xPos, yPos, color, pass) {
         function point(x, y) {
             return '{"x":' + x + ',"y":' + y + '}';
         }
-    }
-}
+
+		
+}//end function makeMove
+
 
 gameSchema.methods.getScore = function(komi) {
 	
@@ -291,6 +268,139 @@ function influenceFunction(dist, boardSize){
 	//to be adjusted experimentally
 	return 16 / Math.pow(4,dist);
 }
+
+/**
+*function isEmpty
+*input reference to a board object
+*returns true if every cell is equal to 0
+*/
+function isEmpty(board){
+	for (var i = 0; i < board.length; i++) {
+		for (var j = 0; j < board[i].length; j++) {
+				if(board[i][j] !== 0)	return false;
+		}
+	}return true;
+}
+
+//represents a single member of an army, which has coordinates and color
+function armyElement(x, y, color) {
+	return '{"x":' + x + ',"y":' + y + ',"color":' + color + '}';
+}
+
+// recursive depth-first search for armies
+// mutates army and visited
+function getArmy(x, y, color, board, army, visited) {  //called as getArmy(j,i,...)
+	
+	//check for out of bounds
+	var inBounds = (x >= 0 && x < board.length && y >= 0 && y < board.length);
+
+	//if next index is: not out of bounds; same color; not already in army
+	if (inBounds && (board[y][x] === color) && !visited[y][x]) {//[y][x]???
+		
+		army.add(armyElement(x, y, color));
+		visited[y][x] = true;
+		
+        // north??? y/x confusion
+        getArmy(x, parseInt(y)+1, color, board, army, visited);
+        // south
+		getArmy(x, parseInt(y)-1, color, board, army, visited);
+		// east
+		getArmy(parseInt(x)+1, y, color, board, army, visited);
+		// west
+		getArmy(parseInt(x)-1, y, color, board, army, visited);
+	}//end if
+}//end function
+		
+//does not mutate board or army
+function armyHasLiberties(board, army){
+	//var liberties = 0;//unused
+	for (var node of army) {
+		node = JSON.parse(node); // convert back to object since army is composed of JSON strings 
+		var x = node.x;
+		var y = node.y;
+
+		//bools
+		//JS arrays behave weirdly
+		//array.length returns max index + 1, regardless of gaps in the array
+		//negative array indexes can be defined and do not affect array.length
+		var rightLiberty = (x + 1 < board.length) &&(board[y][x + 1] === constants.empty);
+		var leftLiberty  = (x - 1 >= 0) 		&&	(board[y][x - 1] === constants.empty);
+		var northLiberty = (y + 1 < board.length) &&(board[y + 1][x] === constants.empty);
+		var southLiberty = (y - 1 >= 0) 		&&	(board[y - 1][x] === constants.empty);
+	
+		if (rightLiberty || leftLiberty || northLiberty || southLiberty) {
+			return true;
+		}
+	}//end for
+	return false;		
+}//end function
+
+//these 3 functions should be put in a Board class but such a class doesnt exist yet
+/**
+*function deepCopy
+*input reference to a board object
+*returns a copy of the board
+*should work with any 2D array
+*/
+function deepCopy(board){
+	var boardCopy = new Array(board.length);
+	for (var i = 0; i < board.length; i++) {
+		boardCopy[i] = new Array(board[i].length);
+		for (var j = 0; j < board[i].length; j++) {
+				boardCopy[i][j] = board[i][j];
+		}
+	}
+	return boardCopy;
+}
+
+function deepEquals(board1, board2){
+	if(board1.length !== board2.length) return false;
+	if(board1[0].length !== board2[0].length) return false;
+	
+	for(var i = 0; i< board1.length; i++){
+		for(var j = 0; j< board1[0].length; j++){
+			if(board1[i][j] !== board2[i][j]) return false;
+		}
+	}
+	return true;
+}
+
+//this is done AFTER placing the player's piece and BEFORE removed captured
+//should mutate nothing
+gameSchema.methods.koRule = function(yPos,xPos,capturedPieces){
+	//if move history does not exist
+	if(this.moveHistory!==this.moveHistory || this.moveHistory.length === 0){
+		throw new Error("Error at koRule: this.moveHistory does not exist. If this error is encountered while running test cases, make sure that hard-coded board arrangements have at least one item in moveHistory (even a pass should work)");
+	}
+	
+	var newBoard = deepCopy(this.board);
+		//capture
+		for (var pieceString of capturedPieces) {
+			let piece = JSON.parse(pieceString); // convert to object since army and captured pieces are JSON strings
+			newBoard[piece.y][piece.x] = constants.empty;
+		}
+	
+	var previousBoard = deepCopy(this.board);
+		//undo current move
+		previousBoard[yPos][xPos] = constants.empty;
+		
+		//undo 1 move from opposing player
+		var prevMove = this.moveHistory[this.moveHistory.length-1];
+		if (!prevMove.pass){
+			//unmove
+			previousBoard[prevMove.y][prevMove.x] = constants.empty;
+			//behaviour of this statement relies on prevMove color being only white or black, not empty
+			var colorOfPrevCapturedPieces = ((prevMove.color === constants.white) ? constants.black : constants.white);
+			//uncapture
+			for (var pieceString of prevMove.capturedPieces) {
+				let piece = JSON.parse(pieceString); // convert to object since army and captured pieces are JSON strings
+				previousBoard[piece.y][piece.x] = colorOfPrevCapturedPieces;
+			}
+		}
+		
+	return deepEquals(newBoard,previousBoard);
+}
+
 
 gameSchema.methods.endGame = function() {
     if (!this.active) 
