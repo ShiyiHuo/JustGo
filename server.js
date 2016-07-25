@@ -475,7 +475,7 @@ setInterval(function() {
             const longpollIndex = longpollRequests.indexOf(longpoll);
             longpollRequests.splice(longpollIndex, 1);
 
-        } else if (game.turn != game.clientColor && !game.hotseatMode && game.active) { // AI's Turn
+        } else if (game.active && !game.hotseatMode && !game.multiplayerMode && game.turn != game.clientColor) { // AI's Turn
             // query the AI
             AIInterface.query(game, function(aiMove) {
                 // Try to make the AI's move
@@ -503,6 +503,18 @@ setInterval(function() {
                     if (err) throw err;
                 });
             });
+
+        } else if (game.active && game.multiplayerMode) {
+
+            let clientTurn;
+            if (req.session.username == game.username) {
+                clientTurn = constants.black;
+            } else {
+                clientTurn = constants.white;
+            }
+
+
+            if (game.turn )
 
         } else if (!game.active) { // game is over
             const endGame = game.getEndGameState();
@@ -587,15 +599,25 @@ app.get('/game/moveHistory', function(req,res) {
 app.post("/game/makeClientMove", function(req, res, next) {
     // game should already be active at this point
     const game = activeGames[req.session.gameID];
-    if (!game.active) {
-        res.status(400).send("Cannot make move on game that is inactive");
-        res.end();
-        return;
-    }
+    if (!game.active) 
+        return res.status(400).send("Cannot make move on game that is inactive");
 
     // try to make the client's move
     var boardUpdates;
-    let clientTurn = game.hotseatMode? game.turn : game.clientColor;
+
+    let clientTurn;
+    if (game.hotseatMode) {
+        clientTurn = game.turn
+    } else if (game.multiplayer) {
+        if (req.session.username == game.username) {
+            clientTurn = constants.black;
+        } else {
+            clientTurn = constants.white;
+        }
+
+    } else {
+        clientTurn = game.clientColor;
+    }
     try {
         boardUpdates = game.makeMove(req.body.x, req.body.y, clientTurn, req.body.pass);
     } catch (err) { // Handle game errors by ending response and returning from function
