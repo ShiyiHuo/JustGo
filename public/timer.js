@@ -11,13 +11,12 @@ class Timer {
     }
     start() {
         this.endTime = Date.now() + this.msRemaining;
-        this.timeoutID = setInterval(() => {
+        this.timeoutID = setInterval((function() {
             this.msRemaining = this.endTime - Date.now(); 
             if (this.msRemaining <= 0) {
-                this.onTimeout();
                 clearInterval(this.timeoutID);
             }
-        }, 100);
+        }).bind(this), 100);
     }
 
     stop() {

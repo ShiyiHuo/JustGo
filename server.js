@@ -264,7 +264,7 @@ app.post('/user/stats', function(req, res) {
 });
 
 /**
- * Get active multiplayer games available to join
+ * Get active multiplayer games available to join.
  */
 app.get('/user/multiplayergames', function(req, res) {
     const multiplayerGames = [];
@@ -272,7 +272,7 @@ app.get('/user/multiplayergames', function(req, res) {
         const game = activeGames[gameID];
         const username = (game.whiteUsername)? game.whiteUsername : game.blackUsername
 
-        if (game.mode == MODE.MULTIPLAYER) 
+        if (game.mode == MODE.MULTIPLAYER && game.username != req.session.username) 
             multiplayerGames.push({
                 id: game._id.id,
                 size: game.board.length,
@@ -307,16 +307,9 @@ app.post('/user/multiplayergames', function(req, res) {
     })
 });
 
-
-
 /**
  * Create a new game state and store it in database
- * @module POST:/newGame
- * @function
- * @param {Object} gameParam
- * @param {Number} gameParam.size
- * @param {Boolean} gameParam.hotseat
- * @param {Boolean} gameParam.multiplayer -- if a multiplayer game is desired
+ * @param postData should be in form {size: Number, mode: 'HOTSEAT', 'AI', or 'MULTIPLAYER, userColor: Number}
  */
 app.post("/newGame", function(req, res) {
 
@@ -330,11 +323,11 @@ app.post("/newGame", function(req, res) {
     let userColor;
     try {
         size = parseInt(req.body.size); 
-        mode = req.body.mode; // TODO: check correct types
+        mode = req.body.mode; // TODO: make sure mode is an available MODE
         userColor = parseInt(req.body.userColor);
     } catch (err) {
         if (err instanceof SyntaxError) 
-            return res.status(400).send("Error parsing post data");
+            return res.status(400).send("Error parsing post data.");
         else 
             console.log("Caught error parsing /newGame post data " + err);
     }
@@ -350,6 +343,7 @@ app.post("/newGame", function(req, res) {
         blackUsername = null;
     }
 
+    // initialize game document
     let board = [];
     for (var i = 0; i < size; i++) {
         board[i] = new Array(size).fill(constants.empty);
@@ -377,7 +371,7 @@ app.post("/newGame", function(req, res) {
         activeGames[game._id.id] = game; // store game in activeGames array
         req.session.gameID = game._id.id; // give client session's gameID 
 
-        if (game.mode != MODE.MULTIPLAYER)  // need to find opponent if multiplayer
+        if (game.mode != MODE.MULTIPLAYER)  // need to find opponent if multiplayer before starting
             game.startBlackTimer();
 
         res.end();         
@@ -400,13 +394,13 @@ app.use('/game', function(req, res, next) {
         console.log("Invalid session cookie: " + JSON.stringify(req.session));
         return res.status(400).send("Could not find client session");
     }
-
      // initialize game for this gameID if not active
     if (activeGames[req.session.gameID]) {
         next();
     } else {
         Game.findById(req.session.gameID, function(err, game) {
             if (err || !game) {
+                console.log("Could not find game in database")
                 res.status(400).send("Could not find game in database");
             } else {
                 activeGames[req.session.gameID] = game;
@@ -494,18 +488,17 @@ setInterval(function playAI() {
                     try {
                         boardUpdates = game.makeMove(aiMove.x, aiMove.y, aiMove.c, aiMove.pass);
                     } catch (err) {
-                        if (err instanceof Rule.DoublePassException) { // two passes occured in a row. The game is over
+                        if (err instanceof Rule.DoublePassException) { 
                             const endGameState = game.endGame(); 
                             pushToSubscribers(subscriber.req.session.gameID, endGameState);
                             return;
-                        } else if (err instanceof Rule.GameException) { // ai made some illegal move
+                        } else if (err instanceof Rule.GameException) { 
                             return console.log("AI made some illegal move");
                         }
                     }
                     pushToSubscribers(gameID, boardUpdates);
 
                     // save the game into the database
-                    game.markModified('board');
                     game.save(function(err) {
                         if (err) throw err;
                     });
@@ -531,9 +524,6 @@ function pushToSubscribers(gameID, data) {
 
 function pushToSubscriber(gameID, username, data) {
     const subscriber = gameSubscribers[gameID][username];
-    if (!subscriber) {
-        throw new Error("Could not find subscribers for the gameID"); // DEBUG
-    }
     subscriber.res.json(data);
     delete gameSubscribers[gameID][username];
 }
@@ -627,9 +617,9 @@ app.post("/game/makeClientMove", function(req, res, next) {
 
     res.json(boardUpdates);
 
-    game.save(function(err) {
-        if (err) {
-            throw err;
+    game.save(function(err, game) {
+        if (err || !game) {
+            console.log("Error saving game after /makeClientMove " + err);
         }
     });
 });

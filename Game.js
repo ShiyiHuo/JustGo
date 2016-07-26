@@ -191,6 +191,7 @@ gameSchema.methods.makeMove = function(xPos, yPos, color, pass) {
 	this.moveHistory.push(move);
     
     switchTimers();
+	this.markModified('board');
 
 	return move;
 

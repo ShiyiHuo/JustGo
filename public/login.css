@@ -10,8 +10,6 @@
     margin-left: 250;
 }
 
-
-
 .boardOption {
     font-size: 20px;
 }
@@ -19,7 +17,6 @@
 input[type="radio"] {
     margin: 0 10px 0 40px;
 }
-
 
 #container {
     position: fixed;

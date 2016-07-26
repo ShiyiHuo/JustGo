@@ -1,6 +1,7 @@
 var gameboard;
 var loggedIn = true;
-var username = "player1";
+var blackUsername = "player1";
+var whiteUsername = "player2";
 var timer;
 
 var COLOR = {
@@ -20,7 +21,7 @@ $(document).ready(function() {
         data = JSON.parse(data);
         if (data.login == "yes") {
             loggedIn = true;
-            username = data.username;
+            blackUsername = data.username;
         } else {
             loggedIn = false;
         }
@@ -52,6 +53,10 @@ $(document).ready(function() {
     // get game state
     $.get("/game", function(data, status) {
         longpoll();
+
+        if (data.blackUsername) {
+            blackUsername = data.blackUsername;
+        }
 
         // init board
         initBoard(data.board.length);
@@ -90,7 +95,7 @@ function longpoll() {
             if (!data.winner) { // game active and move occured
                 
                 if (data.pass == true) { // DEBUG
-                    writePC('AI passed');
+                    writePC('Opponent passed');
                 } else {
                     gameboard.drawPiece(data.x, data.y, data.color);
                     gameboard.removePieces(data.capturedPieces);
@@ -130,8 +135,8 @@ function initBoard(size) {
     // init player container for user scores, usernames, timers, etc
     $('#playerTable').append('<table id="table" frame="box" rules="none" border="0">');
     $('#playerTable').append('<tr> <th>Color</th> <th>Players</th> <th>Score</th> <th>Time</th></tr>');
-    $('#playerTable').append('<tr> <td>Black</td><td>'+ username +'</td><td id="blackScore"></td><td id="blackTime"></td></tr>');
-    $('#playerTable').append('<tr> <td>White</td><td>Player2</td><td id="whiteScore"></td><td id="whiteTime"></td></tr>');
+    $('#playerTable').append('<tr> <td>Black</td><td>'+ blackUsername +'</td><td id="blackScore"></td><td id="blackTime"></td></tr>');
+    $('#playerTable').append('<tr> <td>White</td><td>' + whiteUsername + '</td><td id="whiteScore"></td><td id="whiteTime"></td></tr>');
     $('#playerTable').append('</table>');
 
     // init buttons
@@ -195,8 +200,9 @@ function initBoard(size) {
                             if (data.error) {
                                 writePC(data.error);
                             } else {
-
                                 updateScore(data.blackScore, data.whiteScore);
+                                console.log(data);
+                                timer.syncTimesWithServer(data.blackTime, data.whiteTime)
                                 if (data.color == COLOR.black) {
                                     timer.stopBlackTimer();
                                     timer.startWhiteTimer();
