@@ -10,7 +10,7 @@ class Board {
     constructor(boardSize, canvasSize, canvas, color) {
         //variables we'll need to draw the board
         this.boardSize = boardSize;
-        this.color = color;
+        this.color = color? color : "white";
         this.leftOffset; // this is the left offset
         this.topOffset; //this is the top offset
         this.canvasSize; //size of the canvas
@@ -133,6 +133,7 @@ class Board {
         this.context.globalAlpha = .25;
         this.context.fillStyle = "blue";
         this.context.fill();
+	this.context.fillStyle = this.color;
         this.context.globalAlpha = 1;
     }
 

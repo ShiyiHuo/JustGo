@@ -1,8 +1,8 @@
 "use strict";
 const http = require("http");
 const options = {
-  hostname: '127.0.0.1',
-  port: 3000,
+  hostname: 'roberts.seng.uvic.ca',
+  port: 30000,
   path: '/ai/attackEnemy',
   method: 'POST',
   headers: {

@@ -26,7 +26,7 @@ app.use(sessions({
     duration: 60 * 60 * 1000,
     activeDuration: 60 * 60 * 1000
 }));
-app.use(express.static("public"));
+app.use(express.static(__dirname +"/public"));
 
 // listen on port assigned by class
 app.listen(30144, function() {

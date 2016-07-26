@@ -220,8 +220,8 @@ function initBoard(size) {
     );
     $('#boardContainer').append(canvas);
     var color = getCookie("boardColor");
-    if (color == undefined) {
-        color = white;
+    if (typeof color === 'undefined') {
+        color = 'white';
     }
     gameboard = new Board(size, $('#boardContainer').width(), canvas, color);
     gameboard.drawCurrentBoard();
@@ -239,7 +239,7 @@ function endGame(data) {
     timer.stopBlackTimer();
     timer.stopWhiteTimer();
     var winner = data.winner == 1? "Black" : "White";
-    writePC("winner is: " + winner + '<br>' + " whiteScore: " + data.scores.white + '<br>' +" blackScore: " + data.scores.black);
+    writePC("winner is: " + winner + '<br>' + " white score: " + data.scores.white + '<br>' +" black score: " + data.scores.black);
     showEndGameOpts();
 }
 
