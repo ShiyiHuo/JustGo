@@ -113,6 +113,7 @@ class Board {
 
     drawPieces(pieces) {
         for (var piece of pieces) {
+            piece = JSON.parse(piece);
             this.drawPiece(piece.x, piece.y, piece.color);
         }
     }

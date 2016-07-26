@@ -449,7 +449,6 @@ setInterval(function() {
  */
 const gameSubscribers = {};
 app.get("/game/longpoll", function(req, res) {
-    console.log("GET: /game/longpoll");
 
     if (!gameSubscribers[req.session.gameID]) {
         gameSubscribers[req.session.gameID] = new Object();

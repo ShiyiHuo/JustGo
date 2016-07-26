@@ -151,7 +151,7 @@ function initBoard(size) {
                 if (data.error) {
                     writePC(data.error);
                 } else {
-                    gameboard.drawPiece(position.x, position.y, data.color);
+                    
                     gameboard.removePieces(data.capturedPieces);
                 }
             })
@@ -296,7 +296,6 @@ function showEndGameOpts() {
                     if (!currentMove.pass) {
                         gameboard.removePiece(currentMove.x, currentMove.y); // remove current piece
                     }
-                    console.log(currentMove);
                     replayPosition--;
                 }
             });
