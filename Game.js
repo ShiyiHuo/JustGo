@@ -15,7 +15,6 @@ class Move {
             || !options.color 
             || options.pass === undefined
             || !options.capturedPieces 
-            || !options.board 
             || options.whiteScore === undefined 
             || options.blackScore === undefined
             || options.whiteTime === undefined 
@@ -28,7 +27,6 @@ class Move {
         this.color = options.color;
         this.pass = options.pass;
         this.capturedPieces = options.capturedPieces;
-        this.board = options.board;
         this.whiteScore = options.whiteScore;
         this.blackScore = options.blackScore;
         this.whiteTime = options.whiteTime;
@@ -40,7 +38,7 @@ const gameSchema = new mongoose.Schema({
     board: Array,
     turn: Number,
     moveHistory: Array,
-    hotseatMode: Boolean,
+    mode: String,
     clientColor: Number,
     active: Boolean,
     winner: Number,
@@ -48,9 +46,8 @@ const gameSchema = new mongoose.Schema({
     whiteMsRemaining: Number,
     blackEndTime: Number,
     blackMsRemaining: Number,
-    username: String,
-	multiplayerMode: Boolean,
-	guestUsername: String
+    blackUsername: String,
+	whiteUsername: String
 });
 
 gameSchema.methods.makeMove = function(xPos, yPos, color, pass) {
@@ -65,12 +62,11 @@ gameSchema.methods.makeMove = function(xPos, yPos, color, pass) {
         } 
     }
 
-	if (color != this.turn) {
+	if (color != this.turn) 
 		throw new Rule.GameException("Not your turn.");  
-    }
 	
 	const oppositeColor = (this.turn === constants.black) ? constants.white : constants.black;
-	
+
 	var move = undefined;
 	
     if (pass) {
@@ -82,7 +78,6 @@ gameSchema.methods.makeMove = function(xPos, yPos, color, pass) {
         }
 
 		const scores = this.getScore();
-        const deepBoardCopy = JSON.parse(JSON.stringify(this.board));
 
         move = new Move({
                     x: 0,
@@ -90,7 +85,6 @@ gameSchema.methods.makeMove = function(xPos, yPos, color, pass) {
                     color: color,
                     pass: true,
                     capturedPieces: [],
-                    board: deepBoardCopy,
                     whiteScore: scores.white,
                     blackScore: scores.black,
                     whiteTime: this.getPlayerTimes().white,
@@ -172,26 +166,24 @@ gameSchema.methods.makeMove = function(xPos, yPos, color, pass) {
 			for (var pieceString of capturedPieces) {
 				let piece = JSON.parse(pieceString); // convert to object since army and captured pieces are JSON strings
 				this.board[piece.y][piece.x] = constants.empty;
-                console.log("board is: " + this.board);
 			}	
 
 
 		}//end if(board not empty)
 		
 		const scores = this.getScore();
-        const deepBoardCopy = JSON.parse(JSON.stringify(this.board));
         move = new Move({
             x: xPos,
             y: yPos,
             color: color,
             pass: false,
-            capturedPieces: capturedPieces,
-            board: deepBoardCopy,
+            capturedPieces: Array.from(capturedPieces),
             whiteScore: scores.white,
             blackScore: scores.black,
             whiteTime: this.getPlayerTimes().white,
             blackTime: this.getPlayerTimes().black
         })
+
 	}//end else (no pass)
 		
 	// turn done, switch turn state to opposite color
@@ -418,23 +410,44 @@ gameSchema.methods.endGame = function() {
     this.winner = winner;
     this.active = false 
 
-    // update user stats
-    User.findOne({username: this.username}, function (err, user) {
-        if (err || !user) 
-            return console.log("Error saving stats for username: " + this.username);
-        
-        if (winner == constants.clientColor) {
-            user.wins++;
-        } else {
-            user.losses++;
-        }
+	// update user stats
+	if (this.blackUsername) {
+		User.findOne({username: this.blackUsername}, function (err, user) {
+			if (err || !user) 
+				return console.log("Error saving stats for username: " + this.username);
+			
+			if (winner == constants.black) {
+				user.wins++;
+			} else {
+				user.losses++;
+			}
 
-        user.save(function (err, user) {
-            if (err || !user) {
-                console.log("Error saving user stats: " + err);
-            }
-        });
-    });
+			user.save(function (err, user) {
+				if (err || !user) {
+					console.log("Error saving user stats: " + err);
+				}
+			});
+		});
+	}
+
+	if (this.whiteUsername) {
+		User.findOne({username: this.whiteUsername}, function (err, user) {
+			if (err || !user) 
+				return console.log("Error saving stats for username: " + this.username);
+			
+			if (winner == constants.white) {
+				user.wins++;
+			} else {
+				user.losses++;
+			}
+
+			user.save(function (err, user) {
+				if (err || !user) {
+					console.log("Error saving user stats: " + err);
+				}
+			});
+		});
+	}
 
     return { winner: winner, scores: scores };
 }
@@ -447,23 +460,42 @@ gameSchema.methods.endGameWithWinner = function(winner) {
     this.stopBlackTimer();
     this.stopWhiteTimer();
 
-    // update user stats
-    User.findOne({username: this.username}, function (err, user) {
-        if (err || !user) 
-            return console.log("Error saving stats for username: " + this.username);
-        
-        if (winner == constants.clientColor) {
-            user.wins++;
-        } else {
-            user.losses++;
-        }
+	if (this.blackUsername) {
+		// update user stats
+		User.findOne({username: this.blackUsername}, function (err, user) {
+			if (err || !user) 
+				return console.log("Error saving stats for username: " + this.username);
+			
+			if (winner == constants.black) 
+				user.wins++;
+			else 
+				user.losses++;
+			
+			user.save(function (err, user) {
+				if (err || !user) {
+					console.log("Error saving user stats: " + err);
+				}
+			});
+		});
+	}
 
-        user.save(function (err, user) {
-            if (err || !user) {
-                console.log("Error saving user stats: " + err);
-            }
-        });
-    });
+	if (this.whiteUsername) {
+		User.findOne({username: this.whiteUsername}, function (err, user) {
+			if (err || !user) 
+				return console.log("Error saving stats for username: " + this.username);
+			
+			if (winner == constants.white)
+				user.wins++;
+			else 
+				user.losses++;
+
+			user.save(function (err, user) {
+				if (err || !user) {
+					console.log("Error saving user stats: " + err);
+				}
+			});
+		});	
+	}
 
     var scores = this.getScore();
     this.winner = winner;
@@ -478,12 +510,12 @@ gameSchema.methods.getEndGameState = function() {
     return { winner: this.winner, scores: this.getScore() };
 }
 
-gameSchema.methods.resignClient = function() {   
+gameSchema.methods.resignColor = function(color) {   
     var winner;
-    if (this.hotseatMode) {
+    if (this.mode == 'HOTSEAT') {
         winner = (this.turn == constants.black)? constants.white : constants.black
     } else {
-        winner = (this.clientColor == constants.black)? constants.white : constants.black;
+        winner = (color == constants.black)? constants.white : constants.black;
     }
     return this.endGameWithWinner(winner);
 }

@@ -8,10 +8,9 @@ var COLOR = {
 class Board {
 
     constructor(boardSize, canvasSize, canvas, color) {
-
+        //variables we'll need to draw the board
         this.boardSize = boardSize;
         this.color = color;
-        //variables we'll need to draw the board
         this.leftOffset; // this is the left offset
         this.topOffset; //this is the top offset
         this.canvasSize; //size of the canvas
@@ -36,7 +35,6 @@ class Board {
     }
 
     calibrate(canvas, canvasSize) {
-
         var rect = canvas.getBoundingClientRect(); //we need to know how offset the canvas is from the viewport
         this.leftOffset = rect.left; // this is the left offset
         this.topOffset = rect.top; //this is the top offset
@@ -47,7 +45,6 @@ class Board {
         this.gridHeight = canvasSize-this.gridMargin*2; //the height of the grid
 
         this.squareSize = this.gridWidth/(this.boardSize-1);
-
     }
 
     drawEmptyBoard() {
@@ -77,8 +74,22 @@ class Board {
         this.drawCurrentBoard();
     }
 
+    removePiece(x, y) {
+        this.board[y][x] = 0;
+        this.drawCurrentBoard();
+    }
+
+    removePieces(pieces) {
+        for (var piece of pieces) {
+            piece = JSON.parse(piece);
+            this.board[piece.y][piece.x] = 0;
+        }
+        this.drawCurrentBoard();
+    }
+
     //draw a single piece
     drawPiece(x, y, color) {
+        this.board[y][x] = color;
 
         //get the x and y coords of the line drawn
         var xcoord = this.gridMargin - this.lineSize/2 + this.gridWidth/(this.boardSize-1)*x;
@@ -100,9 +111,15 @@ class Board {
         this.context.fill();
     }
 
-    drawTempPiece(x, y) {
+    drawPieces(pieces) {
+        for (var piece of pieces) {
+            this.drawPiece(piece.x, piece.y, piece.color);
+        }
+    }
 
+    drawTempPiece(x, y) {
         this.drawCurrentBoard();
+
         //get the x and y coords of the line drawn
         var xcoord = this.gridMargin - this.lineSize/2 + this.gridWidth/(this.boardSize-1)*x;
         var ycoord = this.gridMargin - this.lineSize/2 + this.gridHeight/(this.boardSize-1)*y;
@@ -116,7 +133,6 @@ class Board {
         this.context.fillStyle = "blue";
         this.context.fill();
         this.context.globalAlpha = 1;
-
     }
 
     animateRemove(capturedPieces) {

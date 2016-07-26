@@ -10,8 +10,12 @@ const app = express();
 const Game = require('./Game');
 const Rule = require('./Rule');
 const User = require('./User');
-
 const activeGames = {};
+const MODE = {
+    HOTSEAT: 'HOTSEAT',
+    MULTIPLAYER: 'MULTIPLAYER',
+    AI: 'AI'
+};
 
 // set up middleware
 app.use(bodyParser.urlencoded({extended: true}));
@@ -71,7 +75,7 @@ app.get('/gamepage.html', function (req, res, next) {
  * @param {String} userInfo.username
  * @param {String} userInfo.password
  * @return {Object} loginStatus
- * @return {String} loginStatus.redirect - '' or '/gampage.html'
+ * @return {String} loginStatus.redirect - '' or '/gamepage.html'
  * @return {String} loginStatus.status - 'invalidUsername' or 'OK'
  * @return {String} loginsStatus.login - 'yes' or 'no'
  **/
@@ -263,18 +267,18 @@ app.post('/user/stats', function(req, res) {
  * Get active multiplayer games available to join
  */
 app.get('/user/multiplayergames', function(req, res) {
-    console.log('GET: /user/multiplayergames');
     const multiplayerGames = [];
     for (const gameID in activeGames) {
         const game = activeGames[gameID];
-        if (game.multiplayerMode) 
+        const username = (game.whiteUsername)? game.whiteUsername : game.blackUsername
+
+        if (game.mode == MODE.MULTIPLAYER) 
             multiplayerGames.push({
                 id: game._id.id,
                 size: game.board.length,
-                username: game.username
+                username: username
             });
     }
-    debugger;
     res.json(multiplayerGames);
 });
 
@@ -284,20 +288,21 @@ app.get('/user/multiplayergames', function(req, res) {
  * @param {String} postData.gameID -- gameID of the game to join
  */
 app.post('/user/multiplayergames', function(req, res) {
-    debugger;
-
     let gameID = req.body.gameID;
-    req.session.gameID = gameID;
-
     let game = activeGames[gameID]; // TODO: what if not valid gameID? not in active games?
-    game.guestUsername = req.session.username;
+
+    // join as the vacant color
+    if (game.blackUsername)
+        game.whiteUsername = req.session.username
+    else 
+        game.blackUsername = req.session.username
+
     game.save(function (err, game) {
         if (err || !game) 
             return res.status(400).send("Error saving game after joining");
         
         game.startBlackTimer(); // start the game now
         req.session.gameID = game._id.id;
-        res.location('/gamepage.html');
         res.end();
     })
 });
@@ -315,20 +320,34 @@ app.post('/user/multiplayergames', function(req, res) {
  */
 app.post("/newGame", function(req, res) {
 
-    if (!req.session || !req.session.username || !req.body.size || req.body.size < 3 || req.body.hotseat === undefined || req.body.multiplayer === undefined)
+    if (!req.session || !req.session.username || !req.body.size || req.body.size < 3
+        || req.body.mode === undefined || req.body.userColor === undefined)
         return res.status(400).send("Invalid request format");
+    
+    // parameter check
     let size;
-    let hotseat;
-    let multiplayer;
+    let mode;
+    let userColor;
     try {
-        size = JSON.parse(req.body.size); // TODO: check correct types
-        hotseat = JSON.parse(req.body.hotseat);
-        multiplayer = JSON.parse(req.body.multiplayer);
+        size = parseInt(req.body.size); 
+        mode = req.body.mode; // TODO: check correct types
+        userColor = parseInt(req.body.userColor);
     } catch (err) {
         if (err instanceof SyntaxError) 
             return res.status(400).send("Error parsing post data");
         else 
             console.log("Caught error parsing /newGame post data " + err);
+    }
+
+    // assign username to appropriate color
+    let blackUsername;
+    let whiteUsername;
+    if (userColor == constants.black) {
+        blackUsername = req.session.username;
+        whiteUsername = null;
+    } else {
+        whiteUsername = req.session.username;
+        blackUsername = null;
     }
 
     let board = [];
@@ -340,28 +359,27 @@ app.post("/newGame", function(req, res) {
         board: board,
         turn: constants.black,
         moveHistory: [],
-        hotseatMode: hotseat,
+        mode: mode,
         clientColor: constants.black,
         active: true,
         winner: null,
         whiteMsRemaining: constants.startingTimePool,
         blackMsRemaining: constants.startingTimePool,
-        username: req.session.username,
-        multiplayerMode: multiplayer
+        blackUsername: blackUsername,
+        whiteUsername: whiteUsername
     });
-
     game.save(function (err, game) {
-        if (err || !game) 
+        if (err || !game) {
+            console.log("Error saving new game: " + err);
             return res.status(400).send("Error saving new game");
-        activeGames[game._id.id] = game;
-        req.session.gameID = game._id.id;
+        }
         
+        activeGames[game._id.id] = game; // store game in activeGames array
+        req.session.gameID = game._id.id; // give client session's gameID 
 
-        if (game.multiplayerMode) {
-            res.redirect(301, '/matchpage.html');
-        } else {
+        if (game.mode != MODE.MULTIPLAYER)  // need to find opponent if multiplayer
             game.startBlackTimer();
-        }   
+
         res.end();         
     });
 
@@ -379,9 +397,8 @@ app.post("/newGame", function(req, res) {
 app.use('/game', function(req, res, next) {
     // check if session cookie
     if (!req.session || !req.session.gameID || !req.session.username) {
-        console.log("Invalid session cookie");
-        res.status(400).write("Could not find client session");
-        return res.end();
+        console.log("Invalid session cookie: " + JSON.stringify(req.session));
+        return res.status(400).send("Could not find client session");
     }
 
      // initialize game for this gameID if not active
@@ -390,8 +407,7 @@ app.use('/game', function(req, res, next) {
     } else {
         Game.findById(req.session.gameID, function(err, game) {
             if (err || !game) {
-                res.status(400).write("Could not find game in database");
-                res.end();
+                res.status(400).send("Could not find game in database");
             } else {
                 activeGames[req.session.gameID] = game;
                 next();
@@ -402,7 +418,7 @@ app.use('/game', function(req, res, next) {
 
 /**
  * Periodic polling request from client every ~30 seconds.
- * Responds when a "guest user" has joined the game
+ * Responds when 2 users have joined a game
  */
 const matchstatusBuffer = [];
 app.get('/game/matchstatus', function(req, res) {
@@ -415,15 +431,14 @@ app.get('/game/matchstatus', function(req, res) {
     });
 });
 setInterval(function() {
-
     for (const matchstatus of matchstatusBuffer) {
         const game = activeGames[matchstatus.req.session.gameID];
 
-         if (Date.now() - matchstatus.timestamp > 29999) {
+         if (Date.now() - matchstatus.timestamp > 29999) { // to much time 
              matchstatus.res.end();
              const index = matchstatusBuffer.indexOf(matchstatus);
              matchstatusBuffer.splice(index, 1);
-         } else if (game.guestUsername !== undefined) {
+         } else if (game.blackUsername && game.whiteUsername) { // both players joined
              matchstatus.res.send({ redirect: '/gamepage.html' });
              const index = matchstatusBuffer.indexOf(matchstatus);
              matchstatusBuffer.splice(index, 1);      
@@ -433,147 +448,132 @@ setInterval(function() {
 
 /**
  * Periodic polling request from the client every ~30 seconds.
- * Responds with a status of 400 if the /game/longpoll is requested on an inactive game.
- * Responds with "aiMove" object after the AI makes a move.
- * Responds with "endGame" object when the game ends.
- * @module GET:/game/longpoll
- * @function
- *
- * @return {Object} aiMove
- * @return {Array} aiMove.board
- * @return {Number} aiMove.x
- * @return {Number} aiMove.y
- * @reurn {Boolean} aiMove.pass
- * @return {Array} aiMove.capturedPieces
- * @return {Number} aiMove.whiteScore
- * @return {Number} aiMove.blackScore
- * @return {Number} aiMove.whiteTime
- * @return {Number} aiMove.blackTime
- *
- * @return {Object} endGame
- * @return {Number} endGame.winner
- * @return {Number} endGame.whiteScore
- * @return {Number} endGame.blackScore
+ * 
+ * Responds with a status of 400 if the /game/longpoll is requested on an inactive game. TODO: needed?
+ * Responds with a Move object when a move has been completed
+ * Responds with an end game state the game ends.
  */
-const longpollRequests = [];
+const gameSubscribers = {};
 app.get("/game/longpoll", function(req, res) {
     console.log("GET: /game/longpoll");
-    const game = activeGames[req.session.gameID];
-    if (game.active)
-        longpollRequests.push({ req: req, res: res, timestamp: Date.now() });
-    else setTimeout(function() {
-        res.status(400).write("The game is over");
-        res.end();
-    }, 30000)
+
+    if (!gameSubscribers[req.session.gameID]) {
+        gameSubscribers[req.session.gameID] = new Object();
+        gameSubscribers[req.session.gameID][req.session.username] = {
+            req: req,
+            res: res,
+            timestampe: Date.now()
+        }
+    } else {
+        gameSubscribers[req.session.gameID][req.session.username] = {
+            req: req,
+            res: res,
+            timestampe: Date.now()
+        }
+    }
 });
-setInterval(function() {
-    for (const longpoll of longpollRequests) {
 
-        const game = activeGames[longpoll.req.session.gameID];
-        if (Date.now() - longpoll.timestamp > 29999) { // server-side timeout
-            longpoll.res.end();
-            const longpollIndex = longpollRequests.indexOf(longpoll);
-            longpollRequests.splice(longpollIndex, 1);
+// query AI when it is the AI's turn and push data to game's subscribers
+setInterval(function playAI() {
+    for (const gameID in gameSubscribers) {
+        const subscribers = gameSubscribers[gameID];
+        const game = activeGames[gameID];
 
-        } else if (game.active && !game.hotseatMode && !game.multiplayerMode && game.turn != game.clientColor) { // AI's Turn
-            // query the AI
-            AIInterface.query(game, function(aiMove) {
-                // Try to make the AI's move
-                let boardUpdates;
-                try {
-                    boardUpdates = game.makeMove(aiMove.x, aiMove.y, aiMove.c, aiMove.pass);
-                } catch (err) {
-                    if (err instanceof Rule.DoublePassException) { // two passes occured in a row. The game is over
-                        console.log("Two passes occured in a row. Ending game...");
-                        game.endGame();
-                        return;
-                    } else if (err instanceof Rule.GameException) { // ai made some illegal move
-                        console.log("AI made some illegal move");
-                        return;
+        for (const username in subscribers) {
+            const subscriber = subscribers[username];
+            const clientColor = (game.blackUsername == subscriber.req.session.username)? constants.black: constants.white;          
+
+            if (Date.now() - subscriber.timestamp > 29999) { // server-side timeout
+                subscriber.res.end();
+                delete gameSubscribers[gameID];
+                
+            } else if (game.active && game.mode == MODE.AI && game.turn != clientColor) { // AI's Turn
+                AIInterface.query(game, function(aiMove) {
+                    // Try to make the AI's move
+                    let boardUpdates;
+                    try {
+                        boardUpdates = game.makeMove(aiMove.x, aiMove.y, aiMove.c, aiMove.pass);
+                    } catch (err) {
+                        if (err instanceof Rule.DoublePassException) { // two passes occured in a row. The game is over
+                            const endGameState = game.endGame(); 
+                            pushToSubscribers(subscriber.req.session.gameID, endGameState);
+                            return;
+                        } else if (err instanceof Rule.GameException) { // ai made some illegal move
+                            return console.log("AI made some illegal move");
+                        }
                     }
-                }
-                // respond to longpoll with AI's move and remove requests from queue
-                longpoll.res.json(boardUpdates);
-                const longpollIndex = longpollRequests.indexOf(longpoll);
-                longpollRequests.splice(longpollIndex, 1);
+                    pushToSubscribers(gameID, boardUpdates);
 
-                // save the game into the database
-                game.markModified('board');
-                game.save(function(err) {
-                    if (err) throw err;
+                    // save the game into the database
+                    game.markModified('board');
+                    game.save(function(err) {
+                        if (err) throw err;
+                    });
                 });
-            });
-
-        } else if (game.active && game.multiplayerMode) {
-
-            let clientTurn;
-            if (req.session.username == game.username) {
-                clientTurn = constants.black;
-            } else {
-                clientTurn = constants.white;
             }
-
-
-            if (game.turn )
-
-        } else if (!game.active) { // game is over
-            const endGame = game.getEndGameState();
-            const longpollIndex = longpollRequests.indexOf(longpoll);
-            longpoll.res.json({ winner: endGame.winner, whiteScore: endGame.scores.white, blackScore: endGame.scores.black });
-            longpollRequests.splice(longpollIndex, 1);
-
-            game.markModified('moveHistory');
-            game.markModified('moveHistory.board');
-            game.markModified('board');
-            game.save(function(err) {
-                if (err) {
-                    console.log("Error saving game: " + err);
-                }
-            });
-            return;
         }
     }
 }, 100);
 
+function pushToSubscribers(gameID, data) {
+    const subscribers = gameSubscribers[gameID];
+    if (!subscribers) {
+        throw new Error("Could not find subscribers for the gameID"); // DEBUG
+    }
+        
+    for (const username in subscribers) {
+        const subscriber = subscribers[username];
+        subscriber.res.json(data);
+    }
+        
+    delete gameSubscribers[gameID];
+}
+
+function pushToSubscriber(gameID, username, data) {
+    const subscriber = gameSubscribers[gameID][username];
+    if (!subscriber) {
+        throw new Error("Could not find subscribers for the gameID"); // DEBUG
+    }
+    subscriber.res.json(data);
+    delete gameSubscribers[gameID][username];
+}
+
 /**
- * Player resigns.
- * Makes game inactive so the /game/longpoll is responded to
- * @module POST:/game/resign
- * @function
+ * Player resigns. 
+ * Responds to /game/longpoll request with end game state: {winner: color, scores: {white: Number, black: Number} }
  */
 app.post("/game/resign", function(req, res) {
     const game = activeGames[req.session.gameID];
-    game.resignClient();
-    res.end();
+
+    // try to make the client's move
+    let clientColor;
+    if (game.mode == MODE.HOTSEAT) 
+        clientColor = game.turn
+    else if (req.session.username == game.blackUsername) 
+        clientColor = constants.black;
+    else if (req.session.username == game.whiteUsername)
+        clientColor = constants.white;
+    else 
+        throw new Error("Could not decide on client color");
+    
+    if (game.active) {
+        const endGameState = game.resignColor(clientColor);
+        pushToSubscribers(req.session.gameID, endGameState);
+        res.end();
+    } 
+    else res.send('Game has already ended.');
 });
 
 /**
- * Get game state of the client. Should be used for browser refresh
- * @module GET:/game
- * @function
- * @return {Game} game - a "Game" object
+ * Get game state of the client. Should be used for browser refresh.
  */
 app.get("/game", function(req, res) {
-    // remove all longpoll requests with this game ID
-    for (const longpoll of longpollRequests) {
-        if (longpoll.req.session.gameID == req.session.gameID) {
-            // delete this longpoll from the array
-            const longpollIndex = longpollRequests.indexOf(longpoll);
-            longpollRequests.splice(longpollIndex, 1);
-        }
-    }
-    // find game and respond with it
     const game = activeGames[req.session.gameID];
-    game.username = req.session.username; // TODO: ???
     res.json(game);
 });
 
 /**
- * If the user has a valid session (handled by /game middleware) ,
- * return the game's move history
- * @module GET:/game/moveHistory
- * @function
- * @return {Array} moveHistory
+ * Return the game's move history
  */
 app.get('/game/moveHistory', function(req,res) {
     let game = activeGames[req.session.gameID];
@@ -581,20 +581,11 @@ app.get('/game/moveHistory', function(req,res) {
 });
 
 /**
- * Make move when the client clicks the board.
- * @module POST:/game/makeClientMove
- * @function
- * @param {Object} move
- * @param {Number} move.x - the row of the board
- * @param {Number} move.y - the column of the board
- * @param {Boolean} move.pass - if the player passes
- * @return {Object} boardUpdates
- * @return {Array} boardUpdates.board
- * @return {Array} boardUpdates.capturedPieces
- * @return {Number} boardUpdates.whiteScore
- * @return {Number} boardUpdates.blackScore
- * @return {Number} boardUpdates.whiteTime
- * @return {number} boardUpdates.blackTime
+ * Make move when the client clicks the board. 
+ * Responds with a "move" object
+ * 
+ * @param Postdata should be in the form {x: Number, y: Number, pass: Boolean}
+ * @return Error message if the move was illegal.
  */
 app.post("/game/makeClientMove", function(req, res, next) {
     // game should already be active at this point
@@ -603,43 +594,44 @@ app.post("/game/makeClientMove", function(req, res, next) {
         return res.status(400).send("Cannot make move on game that is inactive");
 
     // try to make the client's move
+    let clientColor;
+    if (game.mode == MODE.HOTSEAT) 
+        clientColor = game.turn
+    else if (req.session.username == game.blackUsername) 
+        clientColor = constants.black;
+    else if (req.session.username == game.whiteUsername)
+        clientColor = constants.white;
+    else 
+        throw new Error("Could not decide on client color"); // for debug
+    
     var boardUpdates;
-
-    let clientTurn;
-    if (game.hotseatMode) {
-        clientTurn = game.turn
-    } else if (game.multiplayer) {
-        if (req.session.username == game.username) {
-            clientTurn = constants.black;
-        } else {
-            clientTurn = constants.white;
-        }
-
-    } else {
-        clientTurn = game.clientColor;
-    }
     try {
-        boardUpdates = game.makeMove(req.body.x, req.body.y, clientTurn, req.body.pass);
+        boardUpdates = game.makeMove(req.body.x, req.body.y, clientColor, req.body.pass);
     } catch (err) { // Handle game errors by ending response and returning from function
         if (err instanceof Rule.DoublePassException) { // two passes occured in a row
-            game.endGame(); // end the game so the longpoll request is responded to
-            res.end();
-            return;
+            const endGameState = game.endGame(); 
+            pushToSubscribers(req.session.gameID, endGameState);
+            return res.end();
         } else if (err instanceof Rule.GameException) { // client made some illegal move
-            res.write(err.message);
-            res.end();
-            return;
+            return res.json({error: err.message});
         } else { // Uncaught error
             console.log("Server error making move on the game: " + err);
             return res.status(400).send("Server error making move on the game");
         }
     }
+
+    if (game.mode == MODE.MULTIPLAYER) {
+        const opponentUsername = (clientColor == constants.black)? game.whiteUsername: game.blackUsername;
+        pushToSubscriber(req.session.gameID, opponentUsername, boardUpdates);
+    }
+
+    res.json(boardUpdates);
+
     game.save(function(err) {
         if (err) {
             throw err;
         }
     });
-    res.json(boardUpdates);
 });
 
 module.exports = app;

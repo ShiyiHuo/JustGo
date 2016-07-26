@@ -43,7 +43,6 @@ function query(game, callback) {
         size: game.board.length,
         last: { x: lastMove.y, y: lastMove.x, pass: lastMove.pass, c: lastMove.color } // swap x and y's for prof's "AI"
     };
-    debugger;
     var req = http.request(options, function(res) {
         res.on('data', function(data) {
             const aiMove = JSON.parse(data);

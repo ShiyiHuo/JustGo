@@ -6,74 +6,67 @@ var COLOR = {
 }
 
 class Timer {
-
-    constructor(blackTime, whiteTime, turn) {
-        this.blackTime = blackTime;
-        this.whiteTime = whiteTime;
-        this.turn = turn;
-        this.timerStart = new Date().getTime();
-        this.timerStop = false;
+    constructor(msRemaining) {
+        this.msRemaining = msRemaining;
     }
-
-    changeTurn() {
-        this.clientUpdateTime();
-        if (this.turn == COLOR.black)
-            this.turn = COLOR.white;
-        else {
-            this.turn = COLOR.black;
-        }
-    }
-
-    authoritativeSetTime(blackTime,whiteTime,turn) {
-        this.blackTime = blackTime;
-        this.whiteTime = whiteTime;
-        this.turn = turn;
-        this.timerStart = new Date().getTime();
-    }
-
-    clientUpdateTime() {
-        if (this.timerStop == false) {
-            var timePassed = new Date().getTime() - this.timerStart;
-            if (this.turn == COLOR.black) {
-                this.blackTime = this.blackTime - timePassed;
-                if (this.blackTime <= 0) {
-                    this.blackTime = 0;
-                }
-            } else {
-                this.whiteTime = this.whiteTime - timePassed;
-                if (this.whiteTime <= 0) {
-                    this.whiteTime = 0;
-                }
+    start() {
+        this.endTime = Date.now() + this.msRemaining;
+        this.timeoutID = setInterval(() => {
+            this.msRemaining = this.endTime - Date.now(); 
+            if (this.msRemaining <= 0) {
+                this.onTimeout();
+                clearInterval(this.timeoutID);
             }
-            this.timerStart = new Date().getTime();
-        }
+        }, 100);
     }
 
-    returnTime() {
-        return {
-            'blackTime': msToTime(this.blackTime),
-            'whiteTime': msToTime(this.whiteTime)
-        }
+    stop() {
+        clearInterval(this.timeoutID);
     }
+}
 
-    stopTimer() {
-        this.timerStop = true;
+class GameTimer {
+    constructor(blackMsRemaining, whiteMsRemaining) {
+        this.blackTimer = new Timer(blackMsRemaining);
+        this.whiteTimer = new Timer(whiteMsRemaining); 
     }
-
-    restartTimer() {
-        this.timerStop = false;
+    startBlackTimer() {
+        this.blackTimer.start();
+    }
+    startWhiteTimer() {
+        this.whiteTimer.start();
+        $('#whiteTime').empty();
+        $('#whiteTime').append(123);
+    }
+    stopBlackTimer() {
+        this.blackTimer.stop();
+        $('#blackTime').empty();
+        $('#blackTime').append(1234);
+    }
+    stopWhiteTimer() {
+        this.whiteTimer.stop();
+    }
+    syncTimesWithServer(blackMsRemaining, whiteMsRemaining) {
+        this.blackTimer.msRemaining = blackMsRemaining;
+        this.whiteTimer.msRemaining = whiteMsRemaining;
+    }
+    getWhiteTime() {
+        return msToTime(this.whiteTimer.msRemaining);
+    }
+    getBlackTime() {
+        return msToTime(this.blackTimer.msRemaining);
     }
 }
 
 function msToTime(duration) {
-       var milliseconds = parseInt((duration%1000)/100)
-           , seconds = parseInt((duration/1000)%60)
-           , minutes = parseInt((duration/(1000*60))%60)
-           , hours = parseInt((duration/(1000*60*60))%24);
+    var milliseconds = parseInt((duration%1000)/100)
+        , seconds = parseInt((duration/1000)%60)
+        , minutes = parseInt((duration/(1000*60))%60)
+        , hours = parseInt((duration/(1000*60*60))%24);
 
-       hours = (hours < 10) ? "0" + hours : hours;
-       minutes = (minutes < 10) ? "0" + minutes : minutes;
-       seconds = (seconds < 10) ? "0" + seconds : seconds;
+    hours = (hours < 10) ? "0" + hours : hours;
+    minutes = (minutes < 10) ? "0" + minutes : minutes;
+    seconds = (seconds < 10) ? "0" + seconds : seconds;
 
-       return hours + ":" + minutes + ":" + seconds;
-  }
+    return hours + ":" + minutes + ":" + seconds;
+}

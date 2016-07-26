@@ -1,8 +1,7 @@
 var path = new Array;
 var loggedIn = false;
+var modeSelected;
 var username;
-var hotseatSelected = false;
-var multiplayerSelected = false;
 var joinMultiplayerSelected = false;
 
 $(document).ready(function() {
@@ -18,14 +17,14 @@ function initiatePage() {
 function callRouter(event) {
 
     if (event.currentTarget.id == 'startGameB') {
-
         var boardSizeSelected = $("input[type='radio'][name='size']:checked").val();
         console.log(boardSizeSelected);
-        var newGameParameters = {size: boardSizeSelected, hotseat: hotseatSelected, multiplayer: multiplayerSelected };
+        var userColor = 1;
+        var newGameParameters = {size: boardSizeSelected, mode: modeSelected, userColor: userColor };
         document.cookie = "boardColor=" + $("input[type='radio'][name='color']:checked").val();
 
         $.post("/newGame", newGameParameters, function(data, status) {
-            if (!newGameParameters.multiplayer) 
+            if (modeSelected !== 'MULTIPLAYER') 
                 window.location = '/gamepage.html';
             else 
                 window.location = '/matchpage.html';
@@ -62,7 +61,7 @@ function callRouter(event) {
 
     else if (event.currentTarget.id == 'playAIB') {
         clearPage();
-        hotseatSelected = false;
+        modeSelected = 'AI';
         if (loggedIn == true) {
             console.log("Logged in. Routing to board options.");
             showBoardOption();
@@ -75,7 +74,7 @@ function callRouter(event) {
 
     else if (event.currentTarget.id == 'playHSB') {
         clearPage();
-        hotseatSelected = true;
+        modeSelected = 'HOTSEAT';
         if (loggedIn == true) {
             console.log("Logged in. Routing to board options.");
             showBoardOption();
@@ -205,7 +204,7 @@ function callRouter(event) {
 
     else if (event.currentTarget.id == 'CreateMultiplayerMatch') {
         clearPage();
-        multiplayerSelected = true;
+        modeSelected = 'MULTIPLAYER';
         if (loggedIn == true) {
             console.log("Logged in. Routing to board options.");
             showBoardOption();
@@ -307,7 +306,6 @@ function showLogin() {
 }
 
 function showSignUp() {
-
     $('#container').append('<div id=signUpContainer class=container></div>');
     $('#signUpContainer').append('<p class="username_label" id="usern_signup_label">Username</p>');
     $('#signUpContainer').append('<input type=text id="usern_signup_textbox"><br>')
@@ -326,7 +324,6 @@ function showBoardOption() {
 }
 
 function showBackButton() {
-
     $('#container').append('<div id=backButtonContainer class=container></div>');
     $('#backButtonContainer').append('<button class="backbutton" id="goBack"><</button><br>');
     $('.backbutton').on('click',callRouter);
