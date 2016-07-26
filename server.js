@@ -404,6 +404,11 @@ app.use('/game', function(req, res, next) {
                 res.status(400).send("Could not find game in database");
             } else {
                 activeGames[req.session.gameID] = game;
+                // start the timer
+                if (game.turn == constants.black)
+                    game.startBlackTimer();
+                else 
+                    game.startWhiteTimer();
                 next();
             }
         });
@@ -502,17 +507,16 @@ setInterval(function playAI() {
                         if (err) throw err;
                     });
                 });
+            } else if (!game.active) {
+                const endGameState = game.getEndGameState();
+                pushToSubscribers(gameID, endGameState);
             }
         }
     }
 }, 100);
 
 function pushToSubscribers(gameID, data) {
-    const subscribers = gameSubscribers[gameID];
-    if (!subscribers) {
-        throw new Error("Could not find subscribers for the gameID"); // DEBUG
-    }
-        
+    const subscribers = gameSubscribers[gameID];        
     for (const username in subscribers) {
         const subscriber = subscribers[username];
         subscriber.res.json(data);
@@ -540,10 +544,8 @@ app.post("/game/resign", function(req, res) {
         clientColor = game.turn
     else if (req.session.username == game.blackUsername) 
         clientColor = constants.black;
-    else if (req.session.username == game.whiteUsername)
-        clientColor = constants.white;
     else 
-        throw new Error("Could not decide on client color");
+        clientColor = constants.white;
     
     if (game.active) {
         const endGameState = game.resignColor(clientColor);

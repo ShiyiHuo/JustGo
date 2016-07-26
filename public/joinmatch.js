@@ -12,6 +12,8 @@ window.onload = function() {
             }
             });
             $('body').append(button);
+            var BR = $('<br>');
+            $('body').append(BR);
         }
     });
 }
