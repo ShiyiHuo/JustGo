@@ -241,7 +241,6 @@ function getStatus() {
     });
 }
 
-
 function createButtonEvent() {
     $('.button').on('click',callRouter);
 }
@@ -250,7 +249,6 @@ function clearPage() {
     $('#container').empty();
     showBackButton();
 }
-
 
 //this is the nav bar at the top of screen, username is name of logged in
 //username is undefined if user not logged in
