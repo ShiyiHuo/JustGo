@@ -22,11 +22,21 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 app.use(sessions({
     cookieName: 'session',
-    secret: 'sh',
+    secret: 'sh', // TODO: could be longer
     duration: 60 * 60 * 1000,
     activeDuration: 60 * 60 * 1000
 }));
-app.use(express.static(__dirname +"/public"));
+app.use(express.static(__dirname + "/public"));
+
+// periodically clear inactive games from activeGames memory
+setInterval(function() {
+    for (const gameID in activeGames) {
+        const game = activeGames[gameID];
+        if (!game.active)
+            delete activeGames[gameID];
+    }
+}, 60 * 60 * 1000) 
+
 
 // listen on port assigned by class
 app.listen(30144, function() {
@@ -46,7 +56,6 @@ app.listen(30144, function() {
             if (err)
                 console.log("Error initialize the guest account: " + err);
     })
-
     console.log("Express listening on port 30144");
 });
 
@@ -80,19 +89,19 @@ app.get('/gamepage.html', function (req, res, next) {
  * @return {String} loginsStatus.login - 'yes' or 'no'
  **/
 app.post('/signUp', function(req,res) {
-
+    // check if post data valid
     if (!req.body.username || !req.body.password) {
         console.log("Invalid username/password combination");
         return res.status(400).send("Invalid username/password combination");
     }
-
+    // create user. Seriously could be much more secure. Could salt then hash password 
     const user = new User({
         username: req.body.username,
         password: req.body.password,
         wins: 0,
         losses: 0
     });
-
+    // try and save user, redirect if succesfully
     user.save(function(err, user) {
         if (err || !user) {
             res.write(JSON.stringify({
@@ -127,11 +136,12 @@ app.post('/signUp', function(req,res) {
  * @return {String} loginsStatus.login - 'yes' or 'no'
  *  */
 app.post('/login', function(req,res) {
-
+    // check post data
     if (!req.body.username || !req.body.password) {
         console.log("Invalid username/password combination");
         return res.status(400).send("Invalid username/password combination");
     }
+    // try and find if username/password matches (seriously could be more secure. Could use hash function for password storage)
     var query = User.findOne({username: req.body.username, password: req.body.password});
     query.exec(function(err, user) {
         if (err || !user) {
@@ -198,7 +208,7 @@ app.use('/user', function(req, res, next) {
 });
 
 /**
- * Client logs out
+ * Client logs out by resetting their session cookie
  * @module POST:/user/logout
  * @function
  * @return {Object} loginStatus
@@ -233,7 +243,7 @@ app.post('/user/playAIB', function(req, res) {
  * @module POST:/user/playHSB
  * @function
  * */
-app.post('/user/playHSB', function(req, res) { // TODO: do we even need this path?
+app.post('/user/playHSB', function(req, res) { 
     res.redirect('/gamepage.html');
     res.end();
 });
@@ -265,18 +275,20 @@ app.post('/user/stats', function(req, res) {
 
 /**
  * Get active multiplayer games available to join.
+ * @module POST:/user/multiplayergames
+ * @function
  */
 app.get('/user/multiplayergames', function(req, res) {
     const multiplayerGames = [];
     for (const gameID in activeGames) {
         const game = activeGames[gameID];
-        const username = (game.whiteUsername)? game.whiteUsername : game.blackUsername
-
-        if (game.mode == MODE.MULTIPLAYER && game.username != req.session.username) 
+        const opponentUsername = (game.whiteUsername)? game.whiteUsername : game.blackUsername
+        if (game.active && game.mode == MODE.MULTIPLAYER 
+            && opponentUsername != req.session.username && (!game.whiteUsername || !game.blackUsername)) // can't join own game and can't join game that already has 2 users
             multiplayerGames.push({
                 id: game._id.id,
                 size: game.board.length,
-                username: username
+                username: opponentUsername
             });
     }
     res.json(multiplayerGames);
@@ -284,12 +296,21 @@ app.get('/user/multiplayergames', function(req, res) {
 
 /**
  * Join an active multiplayer game
+ * @module POST:/user/multiplayergames
+ * @function
  * @param {Object} postData
  * @param {String} postData.gameID -- gameID of the game to join
  */
 app.post('/user/multiplayergames', function(req, res) {
     let gameID = req.body.gameID;
     let game = activeGames[gameID]; // TODO: what if not valid gameID? not in active games?
+
+    if (!game)
+        return res.status(400).send("Invalid gameID to join.")
+    if (game.blackUsername && game.whiteUsername)
+        return res.status(400).send("This game is already full.")
+    if (game.blackUsername == req.session.username || game.whiteUsername == req.session.username)
+        return res.status(400).send("Cannot join this game.")
 
     // join as the vacant color
     if (game.blackUsername)
@@ -308,30 +329,40 @@ app.post('/user/multiplayergames', function(req, res) {
 });
 
 /**
- * Create a new game state and store it in database
- * @param postData should be in form {size: Number, mode: 'HOTSEAT', 'AI', or 'MULTIPLAYER, userColor: Number}
+ * Create a new game state and add it to the client's session.
+ * @module POST:/newgame
+ * @function
+ * @param {Object} postData
+ * @param {Number} postData.size - board size
+ * @param {String} postData.mode - 'HOTSEAT', 'AI' or 'MULTIPLAYER'
+ * @param {Number} postData.userColor - the user's color (black = 1 or white = 2)
  */
-app.post("/newGame", function(req, res) {
-
+app.post("/newgame", function(req, res) {
+    // check post data
     if (!req.session || !req.session.username || !req.body.size || req.body.size < 3
-        || req.body.mode === undefined || req.body.userColor === undefined)
-        return res.status(400).send("Invalid request format");
+        || req.body.mode === undefined || req.body.userColor === undefined) 
+        return res.status(400).send("Invalid request format.");
     
-    // parameter check
+    // parameter checking
     let size;
-    let mode;
     let userColor;
     try {
         size = parseInt(req.body.size); 
-        mode = req.body.mode; // TODO: make sure mode is an available MODE
         userColor = parseInt(req.body.userColor);
     } catch (err) {
+        console.log("Caught error parsing /newGame post data " + err);
         if (err instanceof SyntaxError) 
-            return res.status(400).send("Error parsing post data.");
+            return res.status(400).send("Invalid request format.");
         else 
-            console.log("Caught error parsing /newGame post data " + err);
+            return res.status(400).send("Invalid request format.");
     }
+    let mode = req.body.mode;
+    let validModes = Object.keys(MODE);
 
+    if (validModes.indexOf(mode) == -1) 
+        return res.status(400).send("Invalid request format.")
+
+    
     // assign username to appropriate color
     let blackUsername;
     let whiteUsername;
@@ -345,9 +376,8 @@ app.post("/newGame", function(req, res) {
 
     // initialize game document
     let board = [];
-    for (var i = 0; i < size; i++) {
+    for (var i = 0; i < size; i++) 
         board[i] = new Array(size).fill(constants.empty);
-    }
 
     const game = new Game({
         board: board,
@@ -356,7 +386,6 @@ app.post("/newGame", function(req, res) {
         mode: mode,
         clientColor: constants.black,
         active: true,
-        winner: null,
         whiteMsRemaining: constants.startingTimePool,
         blackMsRemaining: constants.startingTimePool,
         blackUsername: blackUsername,
@@ -367,9 +396,8 @@ app.post("/newGame", function(req, res) {
             console.log("Error saving new game: " + err);
             return res.status(400).send("Error saving new game");
         }
-        
         activeGames[game._id.id] = game; // store game in activeGames array
-        req.session.gameID = game._id.id; // give client session's gameID 
+        req.session.gameID = game._id.id; // give game to the client session 
 
         if (game.mode != MODE.MULTIPLAYER)  // need to find opponent if multiplayer before starting
             game.startBlackTimer();
@@ -379,32 +407,39 @@ app.post("/newGame", function(req, res) {
 
 });
 
-
-
 /**
  * This is middleware for all routes starting with /game.
- * If the user attempts to access a /game path and is not logged in or doesn't have a session gameID,
- * the request is ended with status 400.
+ * If the user attempts to access a /game path and is not logged in or doesn't have a valid
+ * session gameID, the request is ended with status 400.
  * @module /game
  * @function
  *  */
 app.use('/game', function(req, res, next) {
-    // check if session cookie
-    if (!req.session || !req.session.gameID || !req.session.username) {
-        console.log("Invalid session cookie: " + JSON.stringify(req.session));
-        return res.status(400).send("Could not find client session");
+    // check valid session cookie
+    if (!req.session) {
+        console.log("Invalid session cookie.");
+        return res.status(400).send("Invalid session cookie.");
+    } 
+    if (!req.session.gameID) {
+        console.log("Invalid session gameID.");
+        return res.status(400).send("Invalid session gameID.");
     }
+    if (!req.session.username) {
+        console.log("Invalid session username.");
+        return res.status(400).send("Invalid session username.");     
+    }
+
      // initialize game for this gameID if not active
     if (activeGames[req.session.gameID]) {
         next();
-    } else {
+    } else { // not in activeGames array so load it from database
         Game.findById(req.session.gameID, function(err, game) {
             if (err || !game) {
-                console.log("Could not find game in database")
-                res.status(400).send("Could not find game in database");
+                console.log("Could not find game in database.")
+                res.status(400).send("Could not find game.");
             } else {
                 activeGames[req.session.gameID] = game;
-                // start the timer
+                // restart start the timer
                 if (game.turn == constants.black)
                     game.startBlackTimer();
                 else 
@@ -416,12 +451,15 @@ app.use('/game', function(req, res, next) {
 });
 
 /**
- * Periodic polling request from client every ~30 seconds.
- * Responds when 2 users have joined a game
+ * Periodic polling request from client every ~30 seconds 
+ * that is waiting for a user to join his/her created multiplayer game.
+ * Responds when 2 users have joined a game.
+ * @module GET:/game/matchstatus
+ * @function
+ * @return {String} redirect - /gamepage.html when 2 users join game
  */
 const matchstatusBuffer = [];
 app.get('/game/matchstatus', function(req, res) {
-    console.log("GET: /game/matchstatus");
     const game = activeGames[req.session.gameID];
     matchstatusBuffer.push({
         req: req,
@@ -446,13 +484,16 @@ setInterval(function() {
 }, 100);
 
 /**
- * Periodic polling request from the client every ~30 seconds.
+ * Periodic polling request from the client every ~30 seconds for game events.
+ * Responds with a Move object when a move has been completed by an AI or Multiplayer opponent
+ * Responds with an end game state the game ends or is already over. (E.g. due to double pass, Timer, resignation)
  * 
- * Responds with a status of 400 if the /game/longpoll is requested on an inactive game. TODO: needed?
- * Responds with a Move object when a move has been completed
- * Responds with an end game state the game ends.
+ * @module GET:/game/longpoll
+ * @function
+ * @return {Move} move - the completed move of client's opponent
+ * @return {Object} endGameState - Consists of object with winner, scores
  */
-const gameSubscribers = {};
+const gameSubscribers = {}; // A data structure for storing requests indexed by [session GameID][session username]
 app.get("/game/longpoll", function(req, res) {
 
     if (!gameSubscribers[req.session.gameID]) {
@@ -472,6 +513,7 @@ app.get("/game/longpoll", function(req, res) {
 });
 
 // query AI when it is the AI's turn and push data to game's subscribers
+// respond with endGameState if the game is over
 setInterval(function playAI() {
     for (const gameID in gameSubscribers) {
         const subscribers = gameSubscribers[gameID];
@@ -481,33 +523,39 @@ setInterval(function playAI() {
             const subscriber = subscribers[username];
             const clientColor = (game.blackUsername == subscriber.req.session.username)? constants.black: constants.white;          
 
-            if (Date.now() - subscriber.timestamp > 29999) { // server-side timeout
+            if (Date.now() - subscriber.timestamp > 29999) { // request timeout
                 subscriber.res.end();
                 delete gameSubscribers[gameID];
                 
             } else if (game.active && game.mode == MODE.AI && game.turn != clientColor) { // AI's Turn
-                AIInterface.query(game, function(aiMove) {
-                    // Try to make the AI's move
-                    let boardUpdates;
-                    try {
-                        boardUpdates = game.makeMove(aiMove.x, aiMove.y, aiMove.c, aiMove.pass);
-                    } catch (err) {
-                        if (err instanceof Rule.DoublePassException) { 
-                            const endGameState = game.endGame(); 
-                            pushToSubscribers(subscriber.req.session.gameID, endGameState);
-                            return;
-                        } else if (err instanceof Rule.GameException) { 
-                            return console.log("AI made some illegal move");
+                
+                try { // and query AI
+                    AIInterface.query(game, function(aiMove) {
+                        // Try to make the AI's move
+                        let boardUpdates;
+                        try {
+                            boardUpdates = game.makeMove(aiMove.x, aiMove.y, aiMove.c, aiMove.pass);
+                        } catch (err) {
+                            if (err instanceof Rule.DoublePassException) { 
+                                const endGameState = game.endGame(); 
+                                pushToSubscribers(subscriber.req.session.gameID, endGameState);
+                                return;
+                            } else if (err instanceof Rule.GameException) { 
+                                return console.log("AI made some illegal move");
+                            }
                         }
-                    }
-                    pushToSubscribers(gameID, boardUpdates);
+                        pushToSubscribers(gameID, boardUpdates);
 
-                    // save the game into the database
-                    game.save(function(err) {
-                        if (err) throw err;
+                        // save the game into the database
+                        game.save(function(err) {
+                            if (err) throw err;
+                        });
                     });
-                });
-            } else if (!game.active) {
+                } catch (err) {
+                    errorToSubscribers(gameID, "Error connecting to AI");
+                }
+
+            } else if (!game.active) { // game has ended 
                 const endGameState = game.getEndGameState();
                 pushToSubscribers(gameID, endGameState);
             }
@@ -515,16 +563,37 @@ setInterval(function playAI() {
     }
 }, 100);
 
+/**
+ * Respond to GET:/game/longpoll request with 400 error message
+ */
+function errorToSubscribers(gameID, message) {
+    const subscribers = gameSubscribers[gameID];        
+    for (const username in subscribers) {
+        const subscriber = subscribers[username];
+        subscriber.res.status(400).send(message);
+    }    
+    delete gameSubscribers[gameID];
+}
+
+/**
+ * Respond to GET:/game/longpoll requests with data for 
+ * a given gameID
+ */
 function pushToSubscribers(gameID, data) {
     const subscribers = gameSubscribers[gameID];        
     for (const username in subscribers) {
         const subscriber = subscribers[username];
         subscriber.res.json(data);
-    }
-        
+    }    
     delete gameSubscribers[gameID];
 }
 
+/**
+ * Respond to GET:/game/longpoll requests with data for 
+ * a given gameID and username
+ * @module
+ * @function
+ */
 function pushToSubscriber(gameID, username, data) {
     const subscriber = gameSubscribers[gameID][username];
     subscriber.res.json(data);
@@ -533,7 +602,9 @@ function pushToSubscriber(gameID, username, data) {
 
 /**
  * Player resigns. 
- * Responds to /game/longpoll request with end game state: {winner: color, scores: {white: Number, black: Number} }
+ * Responds to /game/longpoll with endGameState
+ * @module
+ * @function
  */
 app.post("/game/resign", function(req, res) {
     const game = activeGames[req.session.gameID];
@@ -551,8 +622,8 @@ app.post("/game/resign", function(req, res) {
         const endGameState = game.resignColor(clientColor);
         pushToSubscribers(req.session.gameID, endGameState);
         res.end();
-    } 
-    else res.send('Game has already ended.');
+    } else 
+        res.send('Game has already ended.');
 });
 
 /**
@@ -565,6 +636,7 @@ app.get("/game", function(req, res) {
 
 /**
  * Return the game's move history
+ * @return {Array} moveHistory - an Array of Move Objects corresponding to this game's history
  */
 app.get('/game/moveHistory', function(req,res) {
     let game = activeGames[req.session.gameID];
@@ -573,9 +645,13 @@ app.get('/game/moveHistory', function(req,res) {
 
 /**
  * Make move when the client clicks the board. 
- * Responds with a "move" object
+ * Responds with a "Move" object
  * 
- * @param Postdata should be in the form {x: Number, y: Number, pass: Boolean}
+ * @param {Object} Postdata 
+ * @param {Number} x - the column of the move 
+ * @param {Number} y - the row of the move
+ * @param {Boolean} pass - if the user passes 
+ * @return {Move} move - a Move object
  * @return Error message if the move was illegal.
  */
 app.post("/game/makeClientMove", function(req, res, next) {
@@ -598,20 +674,20 @@ app.post("/game/makeClientMove", function(req, res, next) {
     var boardUpdates;
     try {
         boardUpdates = game.makeMove(req.body.x, req.body.y, clientColor, req.body.pass);
-    } catch (err) { // Handle game errors by ending response and returning from function
-        if (err instanceof Rule.DoublePassException) { // two passes occured in a row
+    } catch (err) { 
+        if (err instanceof Rule.DoublePassException) { 
             const endGameState = game.endGame(); 
             pushToSubscribers(req.session.gameID, endGameState);
             return res.end();
-        } else if (err instanceof Rule.GameException) { // client made some illegal move
+        } else if (err instanceof Rule.GameException) { 
             return res.json({error: err.message});
         } else { // Uncaught error
-            console.log("Server error making move on the game: " + err);
-            return res.status(400).send("Server error making move on the game");
+            console.log("Error making move on the game: " + err);
+            return res.status(400).send("Error making move on the game.");
         }
     }
 
-    if (game.mode == MODE.MULTIPLAYER) {
+    if (game.mode == MODE.MULTIPLAYER) { // notify opponents if multiplayer mode
         const opponentUsername = (clientColor == constants.black)? game.whiteUsername: game.blackUsername;
         pushToSubscriber(req.session.gameID, opponentUsername, boardUpdates);
     }

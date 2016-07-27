@@ -18,6 +18,7 @@ $(document).ready(function() {
     
     // get login status and update nav bar
     $.post("/getStatus", function(data, status) {
+        // update login status
         data = JSON.parse(data);
         if (data.login == "yes") {
             loggedIn = true;
@@ -57,6 +58,9 @@ $(document).ready(function() {
         if (data.blackUsername) {
             blackUsername = data.blackUsername;
         }
+        if (data.whiteUsername) {
+            whiteUsername = data.whiteUsername;
+        }
 
         // init board
         initBoard(data.board.length);
@@ -78,10 +82,6 @@ $(document).ready(function() {
         
         // init scores
         updateScore(data.blackScore, data.whiteScore);
-        
-        if (data.winner) { // TODO: ???
-            endGame(data);
-        }
     });
     $(window).trigger('resize');
 });
@@ -115,8 +115,11 @@ function longpoll() {
                 endGame(data);
             }
         },
-        complete: function() {
-            if (gameActive) {
+        complete: function(xhr, status) {
+            if (status == "error") {
+                window.alert("Server connection error.");
+                window.location = '/';
+            } else if (gameActive) {
                 longpoll();
             }
         },
@@ -150,8 +153,7 @@ function initBoard(size) {
             }, function(data, status) {
                 if (data.error) {
                     writePC(data.error);
-                } else {
-                    
+                } else {   
                     gameboard.removePieces(data.capturedPieces);
                 }
             })
@@ -159,13 +161,15 @@ function initBoard(size) {
     );
     $('#buttonContainer').append('<button type="button" class="button resignButton">Resign</button>');
     $('.resignButton').click(
-    function (event) {
-        $.post('/game/resign', {
-        }, function(data, status) {
-            if (data) {
-                writePC(data);
-            }
-        })
+        function (event) {
+            $.post('/game/resign', {
+            }, function(data, status) {
+                if (data) {
+                    writePC(data);
+                }
+                timer.stopBlackTimer();
+                timer.stopWhiteTimer();
+            })
     });
 
     applyStyle();

@@ -1,8 +1,8 @@
 "use strict";
 const http = require("http");
 const options = {
-  hostname: 'roberts.seng.uvic.ca',
-  port: 30000,
+  hostname: 'localhost', // when running at uvic should be roberts.seng.uvic.ca
+  port: 3000, // when running on uvic server should be 30000
   path: '/ai/attackEnemy',
   method: 'POST',
   headers: {
@@ -33,11 +33,10 @@ function query(game, callback) {
     const randomIndex = Math.floor(Math.random() * (paths.length - 1)); // choose random index for the ai paths
     options.path = paths[randomIndex]; 
     
-    if (!game.moveHistory || game.moveHistory.length < 1) {
+    if (!game.moveHistory || game.moveHistory.length < 1) 
         throw new AIInterfaceException("Prof's AI requires a previous move.");
-    } 
-    let lastMove = game.moveHistory[game.moveHistory.length - 1];
 
+    let lastMove = game.moveHistory[game.moveHistory.length - 1];
     const postData = {
         board: game.board,
         size: game.board.length,
@@ -49,9 +48,7 @@ function query(game, callback) {
             const temp = aiMove.x;
             aiMove.x = aiMove.y // swap x's and y's for prof's "AI"
             aiMove.y = temp; 
-            aiMove.pass = aiMove.pass
-            if (aiMove.pass)
-                console.log("AI passes");
+            aiMove.pass = aiMove.pass;
             callback(aiMove);
         });
     });
