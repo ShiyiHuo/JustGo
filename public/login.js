@@ -138,9 +138,9 @@ function callRouter(event) {
         $.post("/login", loginData, function(data, status) {
             data = JSON.parse(data);
             if (data.status == "invalidLogin") {
-                clearPage();
-                showLogin();
-                $('#loginContainer').append('<p>Invalid login</p>');
+                $('#loginContainer .invalidMessage').remove();
+                $('#loginContainer').append('<div class="invalidMessage"> Invalid login</div>');
+
                 createButtonEvent();
 
             } else if (joinMultiplayerSelected) {
@@ -299,7 +299,7 @@ function showLogin() {
     $('#loginContainer').append('<p class="username_label" id="usern_login_label">Username</p>');
     $('#loginContainer').append('<input type=text id="usern_login_textbox"><br>')
     $('#loginContainer').append('<p class="password_label" id="pw_login_label">Password</p>');
-    $('#loginContainer').append('<input type=text id="pw_login_textbox"><br>');
+    $('#loginContainer').append('<input type="password" id="pw_login_textbox"><br>');
     $('#loginContainer').append('<button type="button" class="button" id="loginSubmitB">Log in</button>');
 }
 
@@ -308,7 +308,7 @@ function showSignUp() {
     $('#signUpContainer').append('<p class="username_label" id="usern_signup_label">Username</p>');
     $('#signUpContainer').append('<input type=text id="usern_signup_textbox"><br>')
     $('#signUpContainer').append('<p class="password_label" id="pw_signup_label">Password</p>');
-    $('#signUpContainer').append('<input type=text id="pw_signup_textbox"><br>');
+    $('#signUpContainer').append('<input type="password" id="pw_signup_textbox"><br>');
     $('#signUpContainer').append('<button type="button" class="button" id="signUpSubmitB">Sign up</button>');
 }
 

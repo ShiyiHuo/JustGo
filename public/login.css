@@ -102,7 +102,6 @@ input[type="radio"] {
     -webkit-transition-duration: 0.4s; /* Safari */
     transition-duration: 0.4s;
     cursor: pointer;
-
     border-radius: 1000px;
 }
 
@@ -166,6 +165,16 @@ input[type=text] {
 
 #pw_login_textbox {
     margin-bottom: 40px;
+    padding: 20px 10px; 
+    line-height: 10px;
+    width: 300px;
+}
+
+#pw_signup_textbox {
+    margin-bottom: 40px;
+    padding: 20px 10px; 
+    line-height: 10px;
+    width: 300px;
 }
 
 #signUpContainer {
@@ -180,10 +189,6 @@ input[type=text] {
     width: 700px;
     height: 400px;
     top: 150px;
-}
-
-#pw_signup_textbox {
-    margin-bottom: 40px;
 }
 
 #boardOptionContainer {

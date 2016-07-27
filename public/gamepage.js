@@ -31,6 +31,7 @@ $(document).ready(function() {
             if ($('#logOutButton').length) {} else {
                 $('#navbarList').append('<li id=logOutButton class=navbarItem>Logout</li><li id=userCenterButton class=navbarItem>User Center</li>');
                 $('#logOutButton').click(function() {
+                    gameActive = false;
                     $.post("/user/logout", function(data, status) {
                         data = JSON.parse(data);
                         if (data.status == "OK") {
@@ -116,9 +117,8 @@ function longpoll() {
             }
         },
         complete: function(xhr, status) {
-            if (status == "error") {
-                window.alert("Server connection error.");
-                window.location = '/';
+            if (status == "error" && gameActive) {
+                writePC("Server disconnected.");
             } else if (gameActive) {
                 longpoll();
             }
@@ -422,3 +422,4 @@ function applyStyle() {
     $('#playerConsole').css('top',$('#playerTable').height());
     $('#playerConsole').css('font-size',$('#playerConsole').width()*(5/100));
 }
+
