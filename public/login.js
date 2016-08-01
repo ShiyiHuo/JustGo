@@ -24,9 +24,9 @@ function callRouter(event) {
         document.cookie = "boardColor=" + $("input[type='radio'][name='color']:checked").val();
 
         $.post("/newGame", newGameParameters, function(data, status) {
-            if (modeSelected !== 'MULTIPLAYER') 
+            if (modeSelected !== 'MULTIPLAYER')
                 window.location = '/gamepage.html';
-            else 
+            else
                 window.location = '/matchpage.html';
         });
     }
@@ -200,7 +200,7 @@ function callRouter(event) {
     else if (event.currentTarget.id == 'userCenterButton') {
         location.href="/usercenter.html";
         //location.reload();
-    } 
+    }
 
     else if (event.currentTarget.id == 'CreateMultiplayerMatch') {
         clearPage();
@@ -212,7 +212,7 @@ function callRouter(event) {
             showLoginSignUpOption();
         }
         createButtonEvent();
-    } 
+    }
 
     else if (event.currentTarget.id == 'JoinMultiplayerMatch') {
         clearPage();
@@ -221,7 +221,7 @@ function callRouter(event) {
             window.location = '/joinmatch.html';
         } else {
             showLoginSignUpOption();
-        }  
+        }
         createButtonEvent();
     }
 
@@ -253,9 +253,23 @@ function clearPage() {
 //this is the nav bar at the top of screen, username is name of logged in
 //username is undefined if user not logged in
 function showNavBar() {
-    $('#navbar').append('<ul id=navbarList><li id=aboutUsButton class=navbarItem>About Us</li></ul>');
+
+    $('#navbar').append('<ul id=navbarList><li class=navbarItem onclick="changeColorToWhite()">White Background</li></ul>');
+    $('#navbarList').append('<li class=navbarItem onclick="changeColorToBlue()">Blue Background</li>');
+    $('#navbarList').append('<li id=aboutUsButton class=navbarItem>About Us</li>');
     $('#aboutUsButton').click(callRouter);
 }
+
+
+function changeColorToBlue() {
+    document.body.style.backgroundColor = '#cfecec';   //Pale Blue Lily
+}
+
+function changeColorToWhite() {
+    document.body.style.backgroundColor = 'white';   //White
+}
+
+
 
 function updateNavBar() {
     if (loggedIn == true) {

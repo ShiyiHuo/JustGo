@@ -35,6 +35,8 @@ function showMenuBar(login) {
 
     if (login == "logged in") {
         $('body').append('<div class="navbar_container"><ul>' +
+                         '<li><a id="changeColorToWhite">White Background</a></li>'+
+                         '<li><a id="changeColorToBlue">Blue Background</a></li>'+
                          '<li><a id="aboutUs" href="/aboutus.html">About Us</a></li>' +
                          '<li><a id="logoutB">Log Out</a></li>' +
                          '<li><a id="userCenter" href="/usercenter.html">User Center</a></li>' +
@@ -60,18 +62,37 @@ function showMenuBar(login) {
             location.href="/aboutus.html";
         });
 
-    }
+        $('#changeColorToWhite').on('click', function() {
+             document.body.style.backgroundColor = 'white';   //White
+        });
 
+        $('#changeColorToBlue').on('click', function() {
+             document.body.style.backgroundColor = '#cfecec';   //Pale Blue Lily
+        });
+
+    }
+    /*
     else {
         $('body').append('<div class="navbar_container"><ul>' +
+                         '<li><a id="changeColorToWhite">White Background</a></li>'+
+                         '<li><a id="changeColorToBlue">Blue Background</a></li>'+
                          '<li><a id="aboutUs">About Us</a></li>' +
                          '</ul></div>');
 
         $('#aboutUs').on('click', function() {
              location.href="/aboutus.html";
         });
-    }
 
+        $('#changeColorToWhite').on('click', function() {
+             document.body.style.backgroundColor = 'white';   //White
+        });
+
+        $('#changeColorToBlue').on('click', function() {
+             document.body.style.backgroundColor = '#cfecec';   //Pale Blue Lily
+        });
+    }
+    */
+    
 }
 
 function userCenterGoBack() {
