@@ -210,13 +210,15 @@ gameSchema.methods.getScore = function(komi) {
 	
 	const threshold = 2;
 	var blackScore = 0;
+	//komi is the score compensation to white for black's first turn advantage
+	//typical values of 5.5, 6.5, 7.5 depending on rules, to be set when a new game is created
 	var whiteScore = komi ? komi : 0;
 	var influence = [];
 	for (var i = 0; i < this.board.length; i++) {
 		influence[i] = new Array(this.board.length).fill(0);
 	}
     
-	//this is bad because it defines every piece on board as an influence source
+	//defines every piece on board as an influence source
 	for (var i = 0; i < this.board.length; i++) {
 		for (var j = 0; j < this.board.length; j++) {
 			if (this.board[i][j] !== constants.empty) {
@@ -224,10 +226,6 @@ gameSchema.methods.getScore = function(komi) {
 			} 
 		}
 	}
-	//----------
-	
-	//for each in list of influence sources create influence
-	//-------
 
     for (var i = 0; i < influence.length; i++) {
         for (var j = 0; j < influence.length; j++) {
