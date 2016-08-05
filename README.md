@@ -8,6 +8,7 @@ Implemented using NodeJS, ExpressJS, and MongoDB.
 ### Use
 
 The server must be run on the engineering network to access the roberts.seng.uvic.ca "AI" server running on port 30000. 
+Note the application was tested in Chrome/Safari. Other browsers have not been tested for compatibility.
 
 1. Navigate the project root directory and install dependencies required for the application using the node package manager.
 
