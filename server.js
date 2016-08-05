@@ -94,7 +94,7 @@ app.post('/signUp', function(req,res) {
         console.log("Invalid username/password combination");
         return res.status(400).send("Invalid username/password combination");
     }
-    // create user. Seriously could be much more secure. Could salt then hash password 
+    // create user. 
     const user = new User({
         username: req.body.username,
         password: req.body.password,
@@ -104,13 +104,13 @@ app.post('/signUp', function(req,res) {
     // try and save user, redirect if succesfully
     user.save(function(err, user) {
         if (err || !user) {
-            res.write(JSON.stringify({
+            res.write(JSON.stringify({ 
                 redirect: '',
                 status: 'invalidUsername',
                 login: 'no'
             }));
             res.end();
-        } else {
+        } else { // username was valid
             req.session.username = user.username;
             res.write(JSON.stringify({
                 redirect: '/gamepage.html',
@@ -384,7 +384,6 @@ app.post("/newgame", function(req, res) {
         turn: constants.black,
         moveHistory: [],
         mode: mode,
-        clientColor: constants.black,
         active: true,
         whiteMsRemaining: constants.startingTimePool,
         blackMsRemaining: constants.startingTimePool,
@@ -496,15 +495,15 @@ setInterval(function() {
 const gameSubscribers = {}; // A data structure for storing requests indexed by [session GameID][session username]
 app.get("/game/longpoll", function(req, res) {
 
-    if (!gameSubscribers[req.session.gameID]) {
+    if (!gameSubscribers[req.session.gameID]) { // no subscription to game under this gameID so make one
         gameSubscribers[req.session.gameID] = new Object();
-        gameSubscribers[req.session.gameID][req.session.username] = {
+        gameSubscribers[req.session.gameID][req.session.username] = { // index subscription by gameID and username
             req: req,
             res: res,
             timestampe: Date.now()
         }
     } else {
-        gameSubscribers[req.session.gameID][req.session.username] = {
+        gameSubscribers[req.session.gameID][req.session.username] = { // subscription to this gameID and username exists so update it 
             req: req,
             res: res,
             timestampe: Date.now()
@@ -515,11 +514,11 @@ app.get("/game/longpoll", function(req, res) {
 // query AI when it is the AI's turn and push data to game's subscribers
 // respond with endGameState if the game is over
 setInterval(function playAI() {
-    for (const gameID in gameSubscribers) {
+    for (const gameID in gameSubscribers) { // iterate over subscriptions by gameID
         const subscribers = gameSubscribers[gameID];
         const game = activeGames[gameID];
 
-        for (const username in subscribers) {
+        for (const username in subscribers) { // iterate over subscribers in this gameID
             const subscriber = subscribers[username];
             const clientColor = (game.blackUsername == subscriber.req.session.username)? constants.black: constants.white;          
 
@@ -528,32 +527,28 @@ setInterval(function playAI() {
                 delete gameSubscribers[gameID];
                 
             } else if (game.active && game.mode == MODE.AI && game.turn != clientColor) { // AI's Turn
-                
-                try { // and query AI
-                    AIInterface.query(game, function(aiMove) {
-                        // Try to make the AI's move
-                        let boardUpdates;
-                        try {
-                            boardUpdates = game.makeMove(aiMove.x, aiMove.y, aiMove.c, aiMove.pass);
-                        } catch (err) {
-                            if (err instanceof Rule.DoublePassException) { 
-                                const endGameState = game.endGame(); 
-                                pushToSubscribers(subscriber.req.session.gameID, endGameState);
-                                return;
-                            } else if (err instanceof Rule.GameException) { 
-                                return console.log("AI made some illegal move");
-                            }
+                    
+                // try and make AI's move
+                AIInterface.query(game, function(aiMove) {
+                    let boardUpdates;
+                    try {
+                        boardUpdates = game.makeMove(aiMove.x, aiMove.y, aiMove.c, aiMove.pass);
+                    } catch (err) {
+                        if (err instanceof Rule.DoublePassException) { 
+                            const endGameState = game.endGame(); 
+                            pushToSubscribers(subscriber.req.session.gameID, endGameState);
+                            return;
+                        } else if (err instanceof Rule.GameException) { 
+                            return console.log("AI made some illegal move");
                         }
-                        pushToSubscribers(gameID, boardUpdates);
+                    }
+                    pushToSubscribers(gameID, boardUpdates);
 
-                        // save the game into the database
-                        game.save(function(err) {
-                            if (err) throw err;
-                        });
+                    // save the game into the database async
+                    game.save(function(err) { 
+                        if (err) throw err;
                     });
-                } catch (err) {
-                    errorToSubscribers(gameID, "Error connecting to AI");
-                }
+                });
 
             } else if (!game.active) { // game has ended 
                 const endGameState = game.getEndGameState();
@@ -655,12 +650,12 @@ app.get('/game/moveHistory', function(req,res) {
  * @return Error message if the move was illegal.
  */
 app.post("/game/makeClientMove", function(req, res, next) {
-    // game should already be active at this point
+    // game should already be active at this point due to /game middleware
     const game = activeGames[req.session.gameID];
     if (!game.active) 
         return res.status(400).send("Cannot make move on game that is inactive");
 
-    // try to make the client's move
+    // find out client's color
     let clientColor;
     if (game.mode == MODE.HOTSEAT) 
         clientColor = game.turn
@@ -671,6 +666,7 @@ app.post("/game/makeClientMove", function(req, res, next) {
     else 
         throw new Error("Could not decide on client color"); // for debug
     
+    // try and make clients move
     var boardUpdates;
     try {
         boardUpdates = game.makeMove(req.body.x, req.body.y, clientColor, req.body.pass);
@@ -687,14 +683,17 @@ app.post("/game/makeClientMove", function(req, res, next) {
         }
     }
 
-    if (game.mode == MODE.MULTIPLAYER) { // notify opponents if multiplayer mode
+    // notify opponents if multiplayer mode
+    if (game.mode == MODE.MULTIPLAYER) { 
         const opponentUsername = (clientColor == constants.black)? game.whiteUsername: game.blackUsername;
         pushToSubscriber(req.session.gameID, opponentUsername, boardUpdates);
     }
 
+    // respond to request
     res.json(boardUpdates);
 
-    game.save(function(err, game) {
+    // save game asyncly
+    game.save(function(err, game) { 
         if (err || !game) {
             console.log("Error saving game after /makeClientMove " + err);
         }

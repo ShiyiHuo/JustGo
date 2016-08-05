@@ -1,8 +1,8 @@
 "use strict";
 const http = require("http");
 const options = {
-  hostname: 'localhost', // when running at uvic should be roberts.seng.uvic.ca
-  port: 3000, // when running on uvic server should be 30000
+  hostname: 'roberts.seng.uvic.ca', // when running at uvic should be roberts.seng.uvic.ca
+  port: 30000, // when running on uvic server should be 30000
   path: '/ai/attackEnemy',
   method: 'POST',
   headers: {
@@ -54,7 +54,9 @@ function query(game, callback) {
     });
 
     req.on('error', function(e) {
-        throw new AIInterfaceException("Error on request: " + e);
+        console.log("Error connecting to prof's AI server. Terminating process.");
+        console.log(e);
+        process.exit(1); 
     });
 
     req.write(JSON.stringify(postData));

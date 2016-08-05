@@ -39,7 +39,6 @@ const gameSchema = new mongoose.Schema({
     turn: Number,
     moveHistory: Array,
     mode: String,
-    clientColor: Number,
     active: Boolean,
     winner: Number,
     whiteEndTime: Number,
