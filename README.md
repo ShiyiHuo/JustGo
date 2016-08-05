@@ -20,5 +20,3 @@ The server must be run on the engineering network to access the roberts.seng.uvi
 3. On a web browser connected to the engineering network go to (roberts.seng.uvic.ca:30144) 
 
 4. Enjoy!
-
-
