@@ -13,11 +13,11 @@ The server must be run on the engineering network to access the roberts.seng.uvi
 
     npm install 
 
-2. Run the server.js in the latest version of node. This is done using "n" on the roberts server.
+2. Run server.js in the latest version of node. This can be done using "n" on the roberts server.
 
     node server.js
 
-3. On a web browser connected to the engineering network and go to (roberts.seng.uvic.ca:30144) 
+3. On a web browser connected to the engineering network go to (roberts.seng.uvic.ca:30144) 
 
 4. Enjoy!
 

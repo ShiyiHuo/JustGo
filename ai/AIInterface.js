@@ -18,7 +18,6 @@ class AIInterfaceException extends Error {
     }
 }
 
-
 /**
  * Post request to AI Server
  * 

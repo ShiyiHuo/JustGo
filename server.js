@@ -43,7 +43,11 @@ app.listen(30144, function() {
     // connect to mongoose
     const mongoose = require('mongoose');
     mongoose.connect('mongodb://localhost/GoData');
-    mongoose.connection.on('error', console.error.bind(console, 'connection error'));
+    mongoose.connection.on('error', function(e) {
+        console.log("Error connecting to mongo. Terminating process.");
+        console.log(e);
+        process.exit(1);
+    });
     mongoose.connection.once('open', function() {
         console.log("succesfully connected to mongo");
     });
